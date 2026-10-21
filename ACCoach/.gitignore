@@ -1,0 +1,6 @@
+# dane jazd – osobiste, tworzone przy jeździe
+*__*/
+rywale/*
+!rywale/.gitkeep
+sciezka_ac.txt
+zrodla/tools/*.exe

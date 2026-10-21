@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa toru</title>
+<style>
+:root {
+  --bg: #f4f4f1; --panel: #ffffff; --text: #1d1f22; --muted: #686d74; --line: #d9dbd6;
+  --asphalt: #c9ccc6; --edge: #8a8f88; --ai: #1f8a4c; --ref: #2f6fd6; --brake: #d43c2f; --gas: #2e9b57; --coast: #d99a1e;
+  --beep: #e0a800; --off: #c4142a; --badge: #1d1f22; --badge-text: #ffffff; --accent: #2f6fd6; --cmp: #8a3ffc; --good: #1f8a4c; --bad: #d43c2f; --mid: #c98a00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --panel: #1e2125; --text: #e8e9ea; --muted: #9aa0a6; --line: #30343a;
+    --asphalt: #3a3e44; --edge: #6d737b; --ai: #4cc97f; --ref: #6ea2ff; --brake: #ff6a5c; --gas: #4fc77d; --coast: #f0b440;
+    --beep: #ffd23f; --off: #ff4d63; --badge: #e8e9ea; --badge-text: #15171a; --accent: #6ea2ff; --cmp: #b58cff; --good: #4cc97f; --bad: #ff6a5c; --mid: #f0b440;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --panel: #1e2125; --text: #e8e9ea; --muted: #9aa0a6; --line: #30343a;
+  --asphalt: #3a3e44; --edge: #6d737b; --ai: #4cc97f; --ref: #6ea2ff; --brake: #ff6a5c; --gas: #4fc77d; --coast: #f0b440;
+  --beep: #ffd23f; --off: #ff4d63; --badge: #e8e9ea; --badge-text: #15171a; --accent: #6ea2ff; --cmp: #b58cff; --good: #4cc97f; --bad: #ff6a5c; --mid: #f0b440;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+header { padding: 14px 16px 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.sub { color: var(--muted); }
+.bar { padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+select, button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+button { cursor: pointer; }
+label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; padding: 0 16px 16px; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+.mapbox { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; height: min(78vh, 900px); min-height: 380px; }
+svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+svg.drag { cursor: grabbing; }
+.zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.zoom button { width: 34px; height: 34px; padding: 0; font-size: 18px; }
+.legend { position: absolute; left: 10px; bottom: 10px; background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px; display: grid; grid-template-columns: auto auto; gap: 3px 12px; }
+.sw { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 5px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
+aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h2 { font-size: 14px; margin: 0 0 8px; font-weight: 600; }
+ol.tips { margin: 0; padding-left: 20px; }
+ol.tips li { margin-bottom: 6px; }
+.corner { border-top: 1px solid var(--line); padding: 9px 0; cursor: pointer; }
+.corner:first-of-type { border-top: 0; padding-top: 0; }
+.corner:hover .cn, .corner.sel .cn { color: var(--accent); }
+.cn { font-weight: 600; }
+.meta { color: var(--muted); font-size: 12px; }
+.beepline { font-size: 13px; margin-top: 3px; }
+.late { color: var(--brake); font-weight: 600; }
+.early { color: var(--coast); font-weight: 600; }
+.ok { color: var(--gas); font-weight: 600; }
+.outtag { color: var(--off); font-weight: 600; }
+.tip { margin-top: 3px; }
+.empty { color: var(--muted); }
+#compare { padding: 0 16px 24px; display: grid; gap: 12px; }
+#compare h2 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
+.chart { position: relative; }
+.chart svg { width: 100%; height: 120px; display: block; cursor: crosshair; touch-action: pan-y; }
+.chart .lbl { font-size: 12px; color: var(--muted); margin: 6px 0 2px; display: flex; gap: 14px; flex-wrap: wrap; }
+.chart .tip { position: absolute; top: 22px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 12px; white-space: nowrap; display: none; }
+table.sec { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.sec th, table.sec td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+table.sec th:first-child, table.sec td:first-child { text-align: left; }
+table.sec tr.pick { cursor: pointer; }
+table.sec tr.pick:hover td, table.sec tr.sel td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.g { color: var(--good); font-weight: 600; } .b { color: var(--bad); font-weight: 600; } .m { color: var(--mid); font-weight: 600; }
+.scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Mapa toru</h1>
+  <span class="sub" id="reftime"></span>
+</header>
+<div class="bar">
+  <label>Okrążenie <select id="lap"></select></label>
+  <label><input type="checkbox" id="showAi" checked> linia wzorcowa (AI)</label>
+  <label>Porównaj z <select id="cmp"></select></label>
+  <label><input type="checkbox" id="showRef" checked> linia porównania</label>
+  <label><input type="checkbox" id="colorLap" checked> kolor: hamulec / gaz</label>
+  <label id="secLbl" hidden><input type="checkbox" id="sectorColors"> sektory vs rywal</label>
+</div>
+<main>
+  <div class="mapbox">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="zoom"><button id="zin" title="Przybliż">+</button><button id="zout" title="Oddal">−</button><button id="zfit" title="Cały tor">⤢</button></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <aside>
+    <div class="card"><h2>Na następną jazdę</h2><div id="tips"></div></div>
+    <div class="card" id="rivalCard" hidden><h2>Rywal</h2><pre id="rival" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
+    <div class="card" id="inputsCard" hidden><h2>Wyjazdy z toru</h2><div id="inputs"></div></div>
+    <div class="card" id="reactionCard" hidden><h2>Piknięcia</h2><div id="reaction" class="meta"></div></div>
+    <div class="card"><h2>Zakręty <span class="meta">(kliknij, aby przybliżyć)</span></h2><div id="corners"></div></div>
+  </aside>
+</main>
+<section id="compare">
+  <div class="card" id="secCard" hidden><h2 id="secTitle">Sektory</h2><div class="scroll" id="secTable"></div></div>
+  <div class="card" id="chartCard"><h2 id="chartTitle">Porównanie okrążeń</h2><div id="charts"></div>
+    <div class="meta" id="chartNote"></div></div>
+  <div class="card" id="heatCard" hidden><h2 id="heatTitle">Wszystkie okrążenia sesji – sektory</h2><div class="meta">Kliknij okrążenie, żeby je wybrać.</div><div class="scroll" id="heat"></div></div>
+</section>
+<script>
+const D = /*__DATA__*/null;
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('map');
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+$('title').textContent = D.title;
+$('reftime').textContent = 'wzorzec: ' + D.ref.time;
+
+// world bounds from edges or laps
+let xs = [], zs = [];
+if (D.edgeL) { xs = xs.concat(D.edgeL[0], D.edgeR[0]); zs = zs.concat(D.edgeL[1], D.edgeR[1]); }
+D.laps.forEach(l => { xs = xs.concat(l.x.filter(v => v != null)); zs = zs.concat(l.z.filter(v => v != null)); });
+const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
+const pad = 30;
+const full = { x: minX - pad, y: minZ - pad, w: maxX - minX + 2 * pad, h: maxZ - minZ + 2 * pad };
+let vb = Object.assign({}, full);
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(e);
+  return e;
+}
+function pts(X, Z, close) {
+  let s = '';
+  let pen = false;   // a gap in the data (no position) starts a new line
+  for (let i = 0; i < X.length; i++) {
+    if (X[i] == null || Z[i] == null) { pen = false; continue; }
+    s += (pen ? 'L' : 'M') + X[i] + ' ' + Z[i]; pen = true;
+  }
+  return s + (close ? 'Z' : '');
+}
+function pxPerUnit() { return svg.clientWidth / vb.w; }
+
+const gTrack = el('g', {}), gAi = el('g', {}), gSec = el('g', {}), gRef = el('g', {}), gLap = el('g', {}), gMarks = el('g', {}), gHover = el('g', {});
+
+function drawTrack() {
+  gTrack.innerHTML = '';
+  if (!D.edgeL) return;
+  el('path', { d: pts(D.edgeL[0], D.edgeL[1], true) + pts(D.edgeR[0], D.edgeR[1], true), fill: css('--asphalt'), 'fill-rule': 'evenodd', stroke: 'none' }, gTrack);
+  el('path', { d: pts(D.edgeL[0], D.edgeL[1], true), fill: 'none', stroke: css('--edge'), 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, gTrack);
+  el('path', { d: pts(D.edgeR[0], D.edgeR[1], true), fill: 'none', stroke: css('--edge'), 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, gTrack);
+}
+function drawAi() {
+  gAi.innerHTML = '';
+  if (!D.ai || !$('showAi').checked) return;
+  el('path', { d: pts(D.ai[0], D.ai[1], true), fill: 'none', stroke: css('--ai'), 'stroke-width': 2, 'stroke-dasharray': '7 5', 'vector-effect': 'non-scaling-stroke' }, gAi);
+}
+const refLap = D.laps.find(l => l.isRef);
+const RT = D.rivalTimes || null;          // rival's server times (sectors only)
+// the lap the selected one is compared with: your best lap or a rival lap recorded with AC Coach
+function drawRef() {
+  gRef.innerHTML = '';
+  const c = cmpLap();
+  if (!c || !$('showRef').checked || c === curLap()) return;
+  el('path', { d: pts(c.x, c.z), fill: 'none', stroke: css(c.rival ? '--cmp' : '--ref'), 'stroke-width': 2, 'stroke-opacity': 0.9, 'vector-effect': 'non-scaling-stroke' }, gRef);
+}
+function curLap() { return D.laps[+$('lap').value]; }
+function cmpLap() { const v = $('cmp').value; return v === '' ? null : D.laps[+v]; }
+function lapLabel(l) { return l.rival ? l.name : 'Ty ' + l.name.trim(); }
+
+// sector time gap -> color: faster green, up to 0.3 s amber, more red
+function gapCls(g) { return g <= 0 ? 'g' : (g < 0.3 ? 'm' : 'b'); }
+function gapCss(g) { return css(g <= 0 ? '--good' : (g < 0.3 ? '--mid' : '--bad')); }
+function fmt(ms) { return (ms / 1000).toFixed(3); }
+function fmtLap(ms) { const m = Math.floor(ms / 60000), s = (ms % 60000) / 1000; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(3); }
+function gapTxt(s) { return (s > 0 ? '+' : '') + s.toFixed(2); }
+
+// the selected lap painted sector by sector against the rival's best lap
+function drawSectors() {
+  gSec.innerHTML = '';
+  const l = curLap();
+  if (!RT || !D.sectorBounds || !l.sectors || !$('sectorColors').checked) return;
+  const step = D.step, starts = [0].concat(D.sectorBounds), n = l.x.length;
+  for (let s = 0; s < l.sectors.length; s++) {
+    const a = Math.round(starts[s] / step), b = s + 1 < starts.length ? Math.round(starts[s + 1] / step) : n - 1;
+    const g = (l.sectors[s] - RT.bestLapSectors[s]) / 1000;
+    el('path', { d: pts(l.x.slice(a, b + 1), l.z.slice(a, b + 1)), fill: 'none', stroke: gapCss(g), 'stroke-width': 14, 'stroke-opacity': 0.35, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }, gSec)
+      .appendChild(title('S' + (s + 1) + ': ' + fmt(l.sectors[s]) + ' s, ' + RT.name + ' ' + fmt(RT.bestLapSectors[s]) + ' (' + gapTxt(g) + ')'));
+  }
+}
+function drawLap() {
+  gLap.innerHTML = '';
+  const l = curLap();
+  if (!$('colorLap').checked) {
+    el('path', { d: pts(l.x, l.z), fill: 'none', stroke: css('--coast'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, gLap);
+    return;
+  }
+  const cls = i => l.brk[i] > 0.1 ? '--brake' : (l.gas[i] > 0.9 ? '--gas' : '--coast');
+  let start = 0;
+  for (let i = 1; i <= l.x.length; i++) {
+    if (i < l.x.length && cls(i) === cls(start)) continue;
+    const X = l.x.slice(start, Math.min(i + 1, l.x.length)), Z = l.z.slice(start, Math.min(i + 1, l.z.length));
+    el('path', { d: pts(X, Z), fill: 'none', stroke: css(cls(start)), 'stroke-width': 3, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }, gLap);
+    start = i;
+  }
+}
+function drawMarks() {
+  gMarks.innerHTML = '';
+  const u = 1 / pxPerUnit();   // world units per screen pixel: markers keep their screen size
+  const l = curLap();
+  D.corners.forEach(c => {
+    if (c.brake) {
+      el('line', { x1: c.brake[0], y1: c.brake[1] - 7 * u, x2: c.brake[0], y2: c.brake[1] + 7 * u, stroke: css('--ref'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, gMarks)
+        .appendChild(title('Z' + c.num + ': punkt hamowania z wzorca'));
+    }
+  });
+  l.beeps.forEach(b => {
+    if (b.beep && b.brake) el('line', { x1: b.beep[0], y1: b.beep[1], x2: b.brake[0], y2: b.brake[1], stroke: css('--text'), 'stroke-width': 1, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }, gMarks);
+    if (b.beep) el('circle', { cx: b.beep[0], cy: b.beep[1], r: 6 * u, fill: 'none', stroke: css('--beep'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, gMarks)
+      .appendChild(title('Z' + b.corner + ': ostatnie piknięcie'));
+    if (b.brake) el('circle', { cx: b.brake[0], cy: b.brake[1], r: 4 * u, fill: css('--brake') }, gMarks)
+      .appendChild(title('Z' + b.corner + ': tu wcisnąłeś hamulec' + (b.reaction != null ? ' (' + sign(b.reaction) + ' s po piknięciu)' : '')));
+  });
+  l.off.forEach(p => {
+    const s = 6 * u;
+    const g = el('g', {}, gMarks);
+    el('line', { x1: p[0] - s, y1: p[1] - s, x2: p[0] + s, y2: p[1] + s, stroke: css('--off'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, g);
+    el('line', { x1: p[0] - s, y1: p[1] + s, x2: p[0] + s, y2: p[1] - s, stroke: css('--off'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, g);
+    g.appendChild(title('Wyjazd poza tor'));
+  });
+  D.corners.forEach(c => {
+    if (!c.apex) return;
+    const g = el('g', { style: 'cursor:pointer' }, gMarks);
+    el('circle', { cx: c.apex[0], cy: c.apex[1], r: 11 * u, fill: css('--badge'), stroke: c.tip ? css('--brake') : 'none', 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }, g);
+    const t = el('text', { x: c.apex[0], y: c.apex[1] + 4.5 * u, 'text-anchor': 'middle', 'font-size': 12.5 * u, 'font-weight': 700, fill: css('--badge-text') }, g);
+    t.textContent = c.num;
+    g.appendChild(title('Z' + c.num + (c.tip ? ': ' + c.tip : '')));
+    g.addEventListener('click', ev => { ev.stopPropagation(); focusCorner(c.num); });
+  });
+}
+function title(s) { const t = document.createElementNS(NS, 'title'); t.textContent = s; return t; }
+function sign(v) { return (v > 0 ? '+' : '') + v.toFixed(2); }
+
+function applyVb() {
+  svg.setAttribute('viewBox', vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  drawMarks();
+}
+function zoomAt(f, cx, cy) {
+  const nw = Math.max(40, Math.min(full.w * 1.5, vb.w * f)), k = nw / vb.w;
+  vb = { x: cx - (cx - vb.x) * k, y: cy - (cy - vb.y) * k, w: nw, h: vb.h * k };
+  applyVb();
+}
+function toWorld(ev) {
+  const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+svg.addEventListener('wheel', ev => { ev.preventDefault(); const w = toWorld(ev); zoomAt(ev.deltaY > 0 ? 1.2 : 1 / 1.2, w.x, w.y); }, { passive: false });
+let drag = null;
+// drag starts only after the pointer really moves, so clicks on corner badges still work
+svg.addEventListener('pointerdown', ev => { drag = { x: ev.clientX, y: ev.clientY, vb: Object.assign({}, vb), moving: false }; });
+svg.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  if (!drag.moving) {
+    if (Math.abs(ev.clientX - drag.x) + Math.abs(ev.clientY - drag.y) < 4) return;
+    drag.moving = true; svg.classList.add('drag'); svg.setPointerCapture(ev.pointerId);
+  }
+  const s = drag.vb.w / svg.clientWidth;
+  vb.x = drag.vb.x - (ev.clientX - drag.x) * s; vb.y = drag.vb.y - (ev.clientY - drag.y) * s;
+  applyVb();
+});
+svg.addEventListener('pointerup', () => { drag = null; svg.classList.remove('drag'); });
+$('zin').onclick = () => zoomAt(1 / 1.5, vb.x + vb.w / 2, vb.y + vb.h / 2);
+$('zout').onclick = () => zoomAt(1.5, vb.x + vb.w / 2, vb.y + vb.h / 2);
+$('zfit').onclick = () => { vb = Object.assign({}, full); applyVb(); selectCorner(null); };
+
+function focusCorner(num) {
+  const c = D.corners.find(c => c.num === num);
+  const p = [c.apex, c.brake, c.throttle].filter(Boolean);
+  const X = p.map(q => q[0]), Z = p.map(q => q[1]);
+  const cx = (Math.min(...X) + Math.max(...X)) / 2, cz = (Math.min(...Z) + Math.max(...Z)) / 2;
+  const size = Math.max(220, Math.max(...X) - Math.min(...X) + 120, Math.max(...Z) - Math.min(...Z) + 120);
+  const aspect = svg.clientHeight / svg.clientWidth;
+  vb = { x: cx - size / 2, y: cz - size * aspect / 2, w: size, h: size * aspect };
+  applyVb();
+  selectCorner(num);
+}
+function selectCorner(num) {
+  document.querySelectorAll('.corner').forEach(e => e.classList.toggle('sel', +e.dataset.num === num));
+  if (num != null) document.querySelector('.corner[data-num="' + num + '"]').scrollIntoView({ block: 'nearest' });
+}
+
+function renderRival() {
+  if (!D.rival || !D.rival.length) return;
+  $('rivalCard').hidden = false;
+  $('rival').textContent = D.rival.join(String.fromCharCode(10));
+}
+function renderInputs() {
+  if (!D.inputs || !D.inputs.length) return;
+  $('inputsCard').hidden = false;
+  $('inputs').innerHTML = D.inputs.map(l => '<div class="beepline">' + esc(l) + '</div>').join('');
+}
+function renderReaction() {
+  if (!D.reaction || !D.reaction.length) return;
+  $('reactionCard').hidden = false;
+  $('reaction').innerHTML = D.reaction.map(l => '<div class="beepline">' + esc(l) + '</div>').join('');
+}
+function renderTips() {
+  $('tips').innerHTML = D.tips.length ? '<ol class="tips">' + D.tips.map(t => '<li>' + esc(t) + '</li>').join('') + '</ol>'
+    : '<div class="empty">Brak wyraźnych strat albo za mało okrążeń w sesji.</div>';
+}
+function renderCorners() {
+  const l = curLap();
+  $('corners').innerHTML = D.corners.map(c => {
+    const b = l.beeps.find(b => b.corner === c.num);
+    let beep = '';
+    if (b) {
+      if (b.reaction == null) beep = '<div class="beepline">' + (b.brakeM == null ? 'brak hamowania po piknięciu' : 'hamulec przed ostatnim piknięciem') + '</div>';
+      else {
+        const k = b.reaction > 0.35 ? 'late' : (b.reaction < -0.35 ? 'early' : 'ok');
+        const word = k === 'late' ? 'za późno' : (k === 'early' ? 'za wcześnie' : 'dobrze');
+        beep = '<div class="beepline">piknięcie → hamulec: <span class="' + k + '">' + sign(b.reaction) + ' s, ' + word + '</span>'
+          + '</div>';
+      }
+      if (b.miss != null) beep += '<div class="beepline">punkt hamowania: <span class="' + (Math.abs(b.miss) <= 8 ? 'ok' : (b.miss > 0 ? 'late' : 'early')) + '">'
+        + (b.miss > 0 ? '+' : '') + b.miss + ' m</span> <span class="meta">(+ = za punktem, − = przed)</span></div>';
+      if (b.out) beep += '<div class="beepline outtag">wyjazd poza tor w tym zakręcie</div>';
+    }
+    const meta = (c.force ? 'hamowanie: ' + c.force + ' (' + c.forcePct + '%)' : 'bez hamulca') + ' · szczyt ' + c.minSpeed + ' km/h'
+      + (c.loss > 0.05 ? ' · tracisz śr. ' + c.loss.toFixed(2) + ' s' : '');
+    return '<div class="corner" data-num="' + c.num + '"><span class="cn">Z' + c.num + '</span> <span class="meta">' + meta + '</span>'
+      + beep + (c.tip ? '<div class="tip">' + esc(c.tip) + '</div>' : '') + '</div>';
+  }).join('');
+  document.querySelectorAll('.corner').forEach(e => e.onclick = () => focusCorner(+e.dataset.num));
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
+
+function renderLegend() {
+  const rows = [];
+  if (D.ai) rows.push('<span><span class="sw" style="border-color:var(--ai);border-top-style:dashed"></span>linia wzorcowa AI</span>');
+  rows.push('<span><span class="sw" style="border-color:var(--ref)"></span>Twoja najlepsza</span>');
+  rows.push('<span><span class="sw" style="border-color:var(--brake)"></span>hamulec</span>');
+  rows.push('<span><span class="sw" style="border-color:var(--gas)"></span>pełny gaz</span>');
+  rows.push('<span><span class="sw" style="border-color:var(--coast)"></span>częściowo / bez gazu</span>');
+  rows.push('<span><span class="dot" style="border:3px solid var(--beep)"></span>ostatnie piknięcie</span>');
+  rows.push('<span><span class="dot" style="background:var(--brake)"></span>Twoje hamowanie</span>');
+  rows.push('<span style="color:var(--off);font-weight:700">✕ <span style="color:var(--text);font-weight:400">poza torem</span></span>');
+  $('legend').innerHTML = rows.join('');
+}
+
+// ---------- comparison panel ----------
+function renderSectorTable() {
+  const l = curLap(), c = cmpLap();
+  if (!D.sectorBounds || !l.sectors) { $('secCard').hidden = true; return; }
+  $('secCard').hidden = false;
+  const n = l.sectors.length;
+  const base = RT ? RT.bestLapSectors : (c && c.sectors ? c.sectors : null);
+  const baseName = RT ? RT.name + ' – najlepsze okrążenie' : (c ? lapLabel(c) : '');
+  $('secTitle').textContent = RT ? 'Sektory: Ty vs ' + RT.name : 'Sektory';
+  let h = '<table class="sec"><tr><th></th>' + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + '<th>okrążenie</th></tr>';
+  const row = (name, secs, lapMs, ref) => {
+    let r = '<tr><td>' + esc(name) + '</td>';
+    for (let i = 0; i < n; i++) {
+      const g = ref ? (secs[i] - ref[i]) / 1000 : null;
+      r += '<td>' + fmt(secs[i]) + (g != null ? ' <span class="' + gapCls(g) + '">' + gapTxt(g) + '</span>' : '') + '</td>';
+    }
+    const lg = ref && lapMs ? (lapMs - ref.reduce((x, y) => x + y, 0)) / 1000 : null;
+    return r + '<td>' + (lapMs ? fmtLap(lapMs) : '') + (lg != null ? ' <span class="' + gapCls(lg) + '">' + gapTxt(lg) + '</span>' : '') + '</td></tr>';
+  };
+  if (RT) {
+    h += row(RT.name + ' – najlepsze okrążenie', RT.bestLapSectors, RT.bestLapMs, null);
+    h += row(RT.name + ' – najlepsze sektory', RT.bestSectors, RT.bestSectors.reduce((x, y) => x + y, 0), null);
+    h += row(RT.name + ' – średnio', RT.avgSectors, RT.avgSectors.reduce((x, y) => x + y, 0), null);
+  }
+  h += row(lapLabel(l), l.sectors, l.lapMs, base);
+  if (c && c !== l && c.sectors) h += row(lapLabel(c), c.sectors, c.lapMs, base);
+  $('secTable').innerHTML = h + '</table>' + (base ? '<div class="meta">Różnice względem: ' + esc(baseName) + '.</div>' : '');
+}
+
+function renderHeat() {
+  if (!RT || !D.sectorBounds) { $('heatCard').hidden = true; return; }
+  const mine = D.laps.map((l, i) => [l, i]).filter(p => !p[0].rival && p[0].sectors);
+  if (!mine.length) { $('heatCard').hidden = true; return; }
+  $('heatCard').hidden = false;
+  $('heatTitle').textContent = 'Wszystkie okrążenia sesji – sektory vs najlepsze okrążenie ' + RT.name;
+  const n = RT.bestLapSectors.length, cur = +$('lap').value;
+  let h = '<table class="sec"><tr><th>okrążenie</th>' + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + '<th>razem</th></tr>';
+  mine.forEach(([l, i]) => {
+    h += '<tr class="pick' + (i === cur ? ' sel' : '') + '" data-i="' + i + '"><td>' + esc(l.name.trim()) + '</td>';
+    for (let s = 0; s < n; s++) { const g = (l.sectors[s] - RT.bestLapSectors[s]) / 1000; h += '<td class="' + gapCls(g) + '">' + gapTxt(g) + '</td>'; }
+    const lg = (l.lapMs - RT.bestLapMs) / 1000;
+    h += '<td class="' + gapCls(lg) + '">' + gapTxt(lg) + '</td></tr>';
+  });
+  $('heat').innerHTML = h + '</table>';
+  document.querySelectorAll('#heat tr.pick').forEach(tr => tr.onclick = () => { $('lap').value = tr.dataset.i; onLapChange(); });
+}
+
+// charts along the track: distance on x, both laps on the same 4 m grid
+function renderCharts() {
+  const a = curLap(), b = cmpLap(), step = D.step;
+  const host = $('charts'); host.innerHTML = '';
+  const both = !!(b && b !== a);
+  $('chartTitle').textContent = both ? 'Porównanie: ' + lapLabel(a) + '  vs  ' + lapLabel(b) : 'Telemetria: ' + lapLabel(a);
+  const folder = RT ? 'rywale' + String.fromCharCode(92) + RT.name : '';
+  $('chartNote').innerHTML = (both ? 'Linia ciągła = wybrane okrążenie, przerywana = porównanie. ' : '')
+    + 'Najedź na wykres – punkt pokaże się na mapie.'
+    + (RT && !D.laps.some(l => l.rival) ? ' Z pliku serwera ' + esc(RT.name) + ' są tylko czasy sektorów – żeby porównać jego jazdę na wykresach, wrzuć jego okrążenia z AC Coach do folderu ' + esc(folder) + '.' : '');
+  const n = Math.min(a.spd.length, both ? b.spd.length : a.spd.length);
+  const delta = both ? Array.from({ length: n }, (_, i) => a.t[i] - b.t[i]) : null;
+  const cmpCol = both && b.rival ? '--cmp' : '--ref';
+  const specs = [
+    { key: 'spd', name: 'prędkość [km/h]', series: [[a.spd, '--text', false]].concat(both ? [[b.spd, cmpCol, true]] : []) },
+    both ? { key: 'dt', name: 'różnica czasu [s] – w górę: ' + lapLabel(a) + ' traci, w dół: zyskuje', series: [[delta, '--bad', false]], zero: true } : null,
+    { key: 'gas', name: 'gaz [%]', series: [[a.gas.map(v => v * 100), '--gas', false]].concat(both ? [[b.gas.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
+    { key: 'brk', name: 'hamulec [%]', series: [[a.brk.map(v => v * 100), '--brake', false]].concat(both ? [[b.brk.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
+    { key: 'str', name: 'kierownica', series: [[a.str, '--text', false]].concat(both ? [[b.str, cmpCol, true]] : []), zero: true }
+  ].filter(Boolean);
+  specs.forEach(sp => host.appendChild(chart(sp, n, step, a, b, both, delta)));
+}
+
+function chart(sp, n, step, a, b, both, delta) {
+  const W = 1000, H = 150, wrap = document.createElement('div'); wrap.className = 'chart';
+  const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = sp.name; wrap.appendChild(lbl);
+  const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 ' + W + ' ' + H); s.setAttribute('preserveAspectRatio', 'none'); wrap.appendChild(s);
+  const tip = document.createElement('div'); tip.className = 'tip'; wrap.appendChild(tip);
+  let lo = sp.min, hi = sp.max;
+  if (lo == null || hi == null) {
+    let all = [];
+    sp.series.forEach(x => { for (let i = 0; i < n; i++) if (x[0][i] != null && isFinite(x[0][i])) all.push(x[0][i]); });
+    lo = Math.min.apply(null, all); hi = Math.max.apply(null, all);
+    if (sp.zero) { const m = Math.max(Math.abs(lo), Math.abs(hi), 0.05); lo = -m; hi = m; }
+    const p = (hi - lo) * 0.06 || 1; lo -= p; hi += p;
+  }
+  const X = i => i / (n - 1) * W, Y = v => H - (v - lo) / (hi - lo) * H;
+  const line = (x1, y1, x2, y2, col, w, dash) => {
+    const e = document.createElementNS(NS, 'line');
+    e.setAttribute('x1', x1); e.setAttribute('y1', y1); e.setAttribute('x2', x2); e.setAttribute('y2', y2);
+    e.setAttribute('stroke', col); e.setAttribute('stroke-width', w); e.setAttribute('vector-effect', 'non-scaling-stroke');
+    if (dash) e.setAttribute('stroke-dasharray', dash);
+    s.appendChild(e); return e;
+  };
+  // sector lines (dashed) and corner apexes with their numbers
+  (D.sectorBounds || []).forEach(d => line(X(d / step), 0, X(d / step), H, css('--muted'), 1, '4 4'));
+  D.corners.forEach(c => { if (c.apexD != null) line(X(c.apexD / step), 0, X(c.apexD / step), H, css('--line'), 1); });
+  if (sp.zero) line(0, Y(0), W, Y(0), css('--edge'), 1);
+  sp.series.forEach(([vals, col, dashed]) => {
+    let d = '';
+    for (let i = 0; i < n; i++) if (vals[i] != null && isFinite(vals[i])) d += (d ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(vals[i]).toFixed(1);
+    const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', css(col));
+    p.setAttribute('stroke-width', dashed ? 1.5 : 2); p.setAttribute('vector-effect', 'non-scaling-stroke'); if (dashed) p.setAttribute('stroke-dasharray', '5 4');
+    s.appendChild(p);
+  });
+  // corner numbers as HTML above the plot (SVG text would be stretched by the non-uniform scale)
+  const marks = document.createElement('div'); marks.style.cssText = 'position:relative;height:14px;font-size:11px;color:var(--muted)';
+  D.corners.forEach(c => { if (c.apexD == null) return; const m = document.createElement('span'); m.textContent = 'Z' + c.num; m.style.cssText = 'position:absolute;transform:translateX(-50%);left:' + (c.apexD / step / (n - 1) * 100) + '%'; marks.appendChild(m); });
+  wrap.insertBefore(marks, s);
+  const cursor = line(0, 0, 0, H, css('--accent'), 1); cursor.style.display = 'none';
+  s.addEventListener('mousemove', ev => {
+    const r = s.getBoundingClientRect();
+    showHover(Math.max(0, Math.min(n - 1, Math.round((ev.clientX - r.left) / r.width * (n - 1)))));
+  });
+  s.addEventListener('mouseleave', () => showHover(null));
+  wrap._update = i => {
+    if (i == null) { cursor.style.display = 'none'; tip.style.display = 'none'; return; }
+    cursor.style.display = ''; cursor.setAttribute('x1', X(i)); cursor.setAttribute('x2', X(i));
+    const v = k => (k == null || !isFinite(k)) ? '–' : (Math.abs(k) < 10 ? k.toFixed(2) : String(Math.round(k)));
+    let txt = Math.round(i * step) + ' m: ';
+    if (sp.key === 'spd') txt += v(a.spd[i]) + (both ? ' vs ' + v(b.spd[i]) : '') + ' km/h';
+    else if (sp.key === 'dt') txt += gapTxt(delta[i]) + ' s';
+    else if (sp.key === 'gas') txt += v(a.gas[i] * 100) + '%' + (both ? ' vs ' + v(b.gas[i] * 100) + '%' : '');
+    else if (sp.key === 'brk') txt += v(a.brk[i] * 100) + '%' + (both ? ' vs ' + v(b.brk[i] * 100) + '%' : '');
+    else txt += v(a.str[i]) + (both ? ' vs ' + v(b.str[i]) : '');
+    tip.textContent = txt; tip.style.display = 'block';
+    const r = s.getBoundingClientRect(), x = X(i) / W * r.width;
+    tip.style.left = Math.min(Math.max(0, x + 8), Math.max(0, r.width - tip.offsetWidth)) + 'px';
+  };
+  return wrap;
+}
+
+function showHover(i) {
+  document.querySelectorAll('#charts .chart').forEach(c => c._update && c._update(i));
+  gHover.innerHTML = '';
+  if (i == null) return;
+  const u = 1 / pxPerUnit();
+  [[curLap(), '--accent'], [cmpLap(), '--cmp']].forEach(([l, col]) => {
+    if (!l || l.x[i] == null) return;
+    el('circle', { cx: l.x[i], cy: l.z[i], r: 7 * u, fill: css(col), stroke: css('--panel'), 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, gHover);
+  });
+}
+
+function renderCompare() { renderSectorTable(); renderCharts(); renderHeat(); }
+function onLapChange() { drawSectors(); drawRef(); drawLap(); drawMarks(); renderCorners(); renderCompare(); }
+
+// the "compare with" list: nothing, your best lap, rival laps recorded with AC Coach
+(function fillCmp() {
+  const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; $('cmp').appendChild(o); };
+  add('', '—');
+  D.laps.forEach((l, i) => { if (l.isRef) add(i, 'Twoje najlepsze okrążenie (wzorzec)'); });
+  D.laps.forEach((l, i) => { if (l.rival) add(i, l.name); });
+  const rivalIdx = D.laps.findIndex(l => l.rival), refIdx = D.laps.findIndex(l => l.isRef);
+  $('cmp').value = rivalIdx >= 0 ? rivalIdx : (refIdx >= 0 ? refIdx : '');
+  if (RT && D.sectorBounds) { $('secLbl').hidden = false; $('sectorColors').checked = true; }
+})();
+D.laps.forEach((l, i) => { if (!l.rival) { const o = document.createElement('option'); o.value = i; o.textContent = l.name; $('lap').appendChild(o); } });
+// start on your best lap when there is a rival to compare with, otherwise on the newest lap
+(function () {
+  const mine = D.laps.map((l, i) => i).filter(i => !D.laps[i].rival), refIdx = D.laps.findIndex(l => l.isRef);
+  $('lap').value = (RT || D.laps.some(l => l.rival)) && refIdx >= 0 ? refIdx : mine[mine.length - 1];
+  if (+$('cmp').value === +$('lap').value) $('cmp').value = '';
+})();
+function redrawAll() { drawTrack(); drawAi(); drawSectors(); drawRef(); drawLap(); applyVb(); renderCorners(); renderCompare(); }
+$('lap').onchange = onLapChange;
+$('cmp').onchange = onLapChange;
+$('showAi').onchange = drawAi;
+$('showRef').onchange = drawRef;
+$('colorLap').onchange = drawLap;
+$('sectorColors').onchange = drawSectors;
+window.addEventListener('resize', applyVb);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+renderTips(); renderRival(); renderInputs(); renderReaction(); renderLegend(); redrawAll();
+</script>
+</body>
+</html>
