@@ -17,6 +17,8 @@ namespace ACCoach
         public string VoiceName = "";        // "" = first Polish voice
         public int Rate = 1;
         public int Volume = 100;
+        public int BeepVolume = 100;
+        public bool Panel = true;            // live settings window while driving
         public bool Mute;
         public bool LearnLead = true;        // learn the final beep's lead from the driver's reactions
         public float BeepLead = 0.15f;
@@ -53,6 +55,8 @@ namespace ACCoach
                         case "Glos": s.VoiceName = v; break;
                         case "Tempo": if (int.TryParse(v, NumberStyles.Integer, Inv, out n)) s.Rate = Math.Max(-10, Math.Min(10, n)); break;
                         case "Glosnosc": if (int.TryParse(v, NumberStyles.Integer, Inv, out n)) s.Volume = Math.Max(0, Math.Min(100, n)); break;
+                        case "GlosnoscPikniec": if (int.TryParse(v, NumberStyles.Integer, Inv, out n)) s.BeepVolume = Math.Max(0, Math.Min(100, n)); break;
+                        case "OknoNaZywo": s.Panel = v != "0"; break;
                         case "Wycisz": s.Mute = v == "1"; break;
                         case "PikniecieAuto": s.LearnLead = v != "0"; break;
                         case "PikniecieSek": if (float.TryParse(v.Replace(',', '.'), NumberStyles.Float, Inv, out f)) s.BeepLead = Math.Max(0f, Math.Min(1f, f)); break;
@@ -76,6 +80,8 @@ namespace ACCoach
             l.Add("Glos=" + VoiceName);
             l.Add("Tempo=" + Rate.ToString(Inv));
             l.Add("Glosnosc=" + Volume.ToString(Inv));
+            l.Add("GlosnoscPikniec=" + BeepVolume.ToString(Inv));
+            l.Add("OknoNaZywo=" + (Panel ? "1" : "0"));
             l.Add("Wycisz=" + (Mute ? "1" : "0"));
             l.Add("PikniecieAuto=" + (LearnLead ? "1" : "0"));
             l.Add("PikniecieSek=" + BeepLead.ToString("0.00", Inv));
@@ -84,6 +90,14 @@ namespace ACCoach
             l.Add("FolderGry=" + AcRoot);
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
             File.WriteAllLines(FilePath, l, new UTF8Encoding(false));
+        }
+
+        // Mode name for the current switches (live panel -> settings).
+        public static string ModeOf(Options o)
+        {
+            if (o.Focus) return Focus;
+            if (o.Quiet && !o.Train) return Quiet;
+            return o.Train ? Train : NoTrain;
         }
 
         // Settings -> options; the command line is applied on top afterwards.
@@ -96,6 +110,8 @@ namespace ACCoach
             o.VoiceName = string.IsNullOrEmpty(VoiceName) ? null : VoiceName;
             o.Rate = Rate;
             o.Volume = Volume;
+            o.BeepVolume = BeepVolume;
+            o.Panel = Panel;
             o.Mute = Mute;
             o.BeepLead = LearnLead ? float.NaN : BeepLead;
             o.NoOpen = !OpenMap;

@@ -28,6 +28,7 @@ namespace ACCoach
                 else if (a == "voicetest") mode = "voicetest";
                 else if (a == "config" || a == "konfiguracja") mode = "config";
                 else if (a == "--pause") o.Pause = true;
+                else if (a == "--no-panel" || a == "--bez-okna") o.Panel = false;
                 else if (a == "--mute") o.Mute = true;
                 else if (a == "--quiet") { ResetMode(o, ref modeArg); o.Quiet = true; }
                 else if (a == "--train" || a == "--trening") { ResetMode(o, ref modeArg); o.Train = true; }
@@ -49,7 +50,7 @@ namespace ACCoach
                 else if (mode == "analyze" && !a.StartsWith("--")) combo = a;
                 else
                 {
-                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry]");
+                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--no-panel] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry]");
                     return 2;
                 }
             }
@@ -71,7 +72,10 @@ namespace ACCoach
                 PauseIf(o);
                 return 0;
             }
-            new LiveCoach(o).Run();
+            LiveCoach coach = new LiveCoach(o);
+            if (o.Panel) LivePanel.Start(coach, st);
+            coach.Run();
+            LivePanel.CloseIfOpen();
             return 0;
         }
 
@@ -102,7 +106,7 @@ namespace ACCoach
                 v.SayAndWait("Czas 1 47,3, minus 0,4");
                 v.SayAndWait("Teraz piknięcia do hamowania. Hamuj na ostatnim. Ostatnie mówi, jak mocno.");
                 string[] names = { "Lekko albo krótko", "Średnio", "Cały hamulec" };
-                using (Beeper b = new Beeper(o.Mute))
+                using (Beeper b = new Beeper(o.Mute, o.BeepVolume))
                     for (int force = 2; force >= 0; force--)
                     {
                         v.SayAndWait(names[force]);

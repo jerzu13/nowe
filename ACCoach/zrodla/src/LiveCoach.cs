@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -18,6 +19,8 @@ namespace ACCoach
         public int Rate = 1;
         public string VoiceName;             // voice chosen in the settings window; null = first Polish voice
         public int Volume = 100;
+        public int BeepVolume = 100;
+        public bool Panel = true;            // live settings window next to the console (--no-panel: console only)
         public bool Pause;                   // wait for a key before closing (Start menu shortcuts)
         public float BeepLead = float.NaN;   // seconds the final beep is played early; NaN = learn from your reactions
         public bool Focus;                   // focus mode: speak only about one corner at a time
@@ -103,12 +106,67 @@ namespace ACCoach
 
         public LiveCoach(Options opts) { o = opts; }
 
+        // ---------- live changes from the panel window ----------
+        // The panel runs on its own thread; it posts changes that the coaching loop applies between ticks.
+        readonly ConcurrentQueue<Action> pending = new ConcurrentQueue<Action>();
+        public volatile string StState = "Start…", StCombo = "", StRef = "", StLast = "", StFocus = "";
+        public Options Opt { get { return o; } }
+        public bool Running { get { return !stop; } }
+
+        public void Post(Action a) { pending.Enqueue(a); }
+        public void Stop() { stop = true; }
+
+        public void SetTrain(bool on)
+        {
+            Post(delegate
+            {
+                o.Train = on;
+                beeper.Muted = o.Mute || !on;
+                Console.WriteLine(on ? "[PANEL] Piknięcia do hamowania WŁĄCZONE" : "[PANEL] Piknięcia do hamowania WYŁĄCZONE");
+            });
+        }
+
+        public void SetQuiet(bool quiet)
+        {
+            Post(delegate { o.Quiet = quiet; Console.WriteLine(quiet ? "[PANEL] Tryb cichy: tylko czasy i notatki" : "[PANEL] Uwagi głosowe po zakrętach WŁĄCZONE"); });
+        }
+
+        public void SetFocusMode(bool on, int corner)
+        {
+            Post(delegate
+            {
+                o.Focus = on;
+                o.FocusCorner = corner;
+                focusNum = 0; focusStreak = 0; focusTip = null; focusReminded = false;
+                focusDone.Clear();
+                StFocus = on ? "wybieram…" : "";
+                if (!on) Console.WriteLine("[PANEL] Fokus WYŁĄCZONY – uwagi o wszystkich zakrętach");
+                else if (refCorners != null && refCorners.Count > 0) ChooseFocus(true);
+                else Console.WriteLine("[PANEL] Fokus włączy się, gdy będzie wzorzec");
+            });
+        }
+
+        public void SetMute(bool mute)
+        {
+            Post(delegate { o.Mute = mute; voice.Muted = mute; beeper.Muted = mute || !o.Train; Console.WriteLine(mute ? "[PANEL] Wyciszone" : "[PANEL] Dźwięk włączony"); });
+        }
+
+        public void SetVoice(string name) { Post(delegate { o.VoiceName = name; voice.SetVoice(name); Console.WriteLine("[PANEL] Głos: " + voice.VoiceName); }); }
+        public void SetRate(int rate) { Post(delegate { o.Rate = rate; voice.SetRate(rate); }); }
+        public void SetVolume(int vol) { Post(delegate { o.Volume = vol; voice.SetVolume(vol); }); }
+        public void SetBeepVolume(int vol) { Post(delegate { o.BeepVolume = vol; beeper.SetVolume(vol); }); }
+
+        public void SetBeepLead(float lead)   // NaN = learn from the reactions
+        {
+            Post(delegate { o.BeepLead = lead; if (comboDir != null) UpdateBeepLead(true); });
+        }
+
         public void Run()
         {
             Console.CancelKeyPress += delegate (object s, ConsoleCancelEventArgs e) { e.Cancel = true; stop = true; };
-            timeBeginPeriod(1);
-            voice = new Voice(o.Mute, o.Rate, o.VoiceName, o.Volume);
-            beeper = new Beeper(o.Mute || !o.Train);
+            try { timeBeginPeriod(1); } catch (Exception) { }   // finer Sleep on Windows
+            voice = new Voice(false, o.Rate, o.VoiceName, o.Volume) { Muted = o.Mute };
+            beeper = new Beeper(o.Mute || !o.Train, o.BeepVolume);
             Console.WriteLine("AC Coach – nagrywanie okrążeń i trener głosowy");
             Console.WriteLine("Dane: " + o.DataDir);
             Console.WriteLine("Głos: " + voice.VoiceName + (o.Quiet ? " (tryb cichy: tylko czasy i notatki)" : ""));
@@ -122,12 +180,14 @@ namespace ACCoach
             {
                 while (!stop)
                 {
+                    Action change;
+                    while (pending.TryDequeue(out change)) change();
                     if (shm == null)
                     {
                         shm = AcShm.TryOpen(o.TestShm ? "acpmf_test" : "acpmf");
                         if (shm == null)
                         {
-                            if (!waitingShown) { Console.WriteLine("Czekam na Assetto Corsa..."); waitingShown = true; }
+                            if (!waitingShown) { Console.WriteLine("Czekam na Assetto Corsa..."); waitingShown = true; StState = "Czekam na Assetto Corsa…"; }
                             Thread.Sleep(1000);
                             continue;
                         }
@@ -139,6 +199,7 @@ namespace ACCoach
                         {
                             wasLive = false;
                             Console.WriteLine("Sesja zakończona. Zapisanych okrążeń: " + lapsThisSession);
+                            StState = "Sesja zakończona – czekam na następną";
                             if (o.Once) break;
                         }
                         Thread.Sleep(100);
@@ -147,6 +208,7 @@ namespace ACCoach
                     if (!wasLive)
                     {
                         wasLive = true;
+                        StState = "Jazda – nagrywam okrążenia";
                         SetupCombo(shm.ReadStatic());
                         lastCompleted = t.CompletedLaps;
                         StartLap(t, false);
@@ -173,7 +235,7 @@ namespace ACCoach
             }
             finally
             {
-                timeEndPeriod(1);
+                try { timeEndPeriod(1); } catch (Exception) { }
                 if (shm != null) shm.Dispose();
                 voice.Dispose();
                 beeper.Dispose();
@@ -186,6 +248,7 @@ namespace ACCoach
             comboDir = Lap.ComboDir(o.DataDir, si.Car, si.Track, si.Config);
             Directory.CreateDirectory(Path.Combine(comboDir, "laps"));
             Console.WriteLine(string.Format("Auto: {0}   Tor: {1} {2}", si.Car, si.Track, si.Config));
+            StCombo = si.Car + "  |  " + si.Track + (string.IsNullOrEmpty(si.Config) ? "" : " " + si.Config);
             length = (si.SplineLength > 200 && si.SplineLength < 50000) ? si.SplineLength : 0;
             allLaps = Lap.LoadAll(comboDir, length);
             refLap = Lap.BestValid(allLaps);
@@ -205,6 +268,7 @@ namespace ACCoach
             refCorners = Corners.Detect(lap.Trace);
             Corners.Renumber(refCorners, comboDir, lap.Trace);
             Console.WriteLine(string.Format("Wzorzec: {0}  ({1} m, zakrętów: {2})", Lap.FormatTime(lap.LapMs), (int)length, refCorners.Count));
+            StRef = Lap.FormatTime(lap.LapMs) + "  (zakrętów: " + refCorners.Count + ")";
             if (announce)
                 foreach (Corner c in refCorners)
                     Console.WriteLine(string.Format(Inv, "   Z{0,-2} szczyt {1,5:0} m  {2,4:0} km/h", c.Num, c.ApexD, c.MinSpeed));
@@ -389,11 +453,19 @@ namespace ACCoach
                 }
             }
             if (best >= 0) SetFocus(refCorners[best].Num, why, announce);
+            else if (focusDone.Count >= n)
+                StFocus = "wszystkie zakręty opanowane";
+            else if (StFocus != "wybiorę po następnym okrążeniu")
+            {
+                StFocus = "wybiorę po następnym okrążeniu";
+                Console.WriteLine("FOKUS: za mało okrążeń do porównania – wybiorę zakręt po następnym okrążeniu.");
+            }
         }
 
         void SetFocus(int num, string why, bool announce)
         {
             focusNum = num; focusStreak = 0; focusTip = null; focusReminded = false;
+            StFocus = "zakręt " + num;
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine(string.Format("FOKUS: zakręt {0} ({1}). Uwagi głosowe tylko o nim, piknięcia wszędzie.", num, why));
             Console.ResetColor();
@@ -602,11 +674,13 @@ namespace ACCoach
                 cur.Valid ? "" : "  NIEWAŻNE (" + (curPit ? "pit" : "poza torem") + ")", newBest ? "  ★ NOWY WZORZEC" : ""));
             Console.ResetColor();
             Enqueue(spoken, true);
+            StLast = Lap.FormatTime(lapMs) + delta + (cur.Valid ? "" : "  nieważne") + (newBest ? "  ★ nowy wzorzec" : "");
             allLaps.Add(cur);
-            if (newBest) { SetReference(cur, true); if (o.Focus && focusNum == 0) ChooseFocus(true); }
+            if (newBest) SetReference(cur, true);
             else if (refCorners != null)
                 foreach (int k in ConsiderForTargets(cur))
                     Console.WriteLine(string.Format(Inv, "   Z{0}: nowy najlepszy przejazd tego zakrętu, cel szybszy o {1:0.00} s od wzorca", refCorners[k].Num, refSeg[k] - targetSeg[k]));
+            if (o.Focus && focusNum == 0) ChooseFocus(true);   // also when focus was switched on from the panel
         }
 
         static string SpokenTime(int ms)
@@ -761,7 +835,7 @@ namespace ACCoach
             if (!o.Train) return;
             if (announce || Math.Abs(beepLead - old) >= 0.02f)
                 Console.WriteLine(string.Format(Inv, "Ostatnie piknięcie {0:0.00} s przed punktem hamowania ({1})", beepLead,
-                    !float.IsNaN(o.BeepLead) ? "--beep-lead" : "dopasowane do Twojej reakcji"));
+                    !float.IsNaN(o.BeepLead) ? "ustawione ręcznie" : "dopasowane do Twojej reakcji"));
             foreach (KeyValuePair<int, float> kv in cornerLead.OrderBy(x => x.Key))
             {
                 float prev;

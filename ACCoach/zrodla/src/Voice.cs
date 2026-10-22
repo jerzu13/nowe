@@ -16,27 +16,7 @@ namespace ACCoach
             {
                 synth = new SpeechSynthesizer();
                 synth.SetOutputToDefaultAudioDevice();
-                bool polish = false;
-                foreach (InstalledVoice v in synth.GetInstalledVoices())
-                {
-                    if (!string.IsNullOrEmpty(voiceName) && v.Enabled && v.VoiceInfo.Name == voiceName)
-                    {
-                        // the voice picked in the settings window
-                        synth.SelectVoice(v.VoiceInfo.Name);
-                        polish = true;
-                        break;
-                    }
-                }
-                if (!polish)
-                foreach (InstalledVoice v in synth.GetInstalledVoices())
-                {
-                    if (v.Enabled && v.VoiceInfo.Culture != null && v.VoiceInfo.Culture.TwoLetterISOLanguageName == "pl")
-                    {
-                        synth.SelectVoice(v.VoiceInfo.Name);
-                        polish = true;
-                        break;
-                    }
-                }
+                bool polish = Select(voiceName);
                 if (!polish)
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
@@ -56,6 +36,43 @@ namespace ACCoach
             }
         }
 
+        // Picks the named voice, else the first Polish one; false when neither exists.
+        bool Select(string voiceName)
+        {
+            foreach (InstalledVoice v in synth.GetInstalledVoices())
+                if (!string.IsNullOrEmpty(voiceName) && v.Enabled && v.VoiceInfo.Name == voiceName)
+                {
+                    synth.SelectVoice(v.VoiceInfo.Name);
+                    return true;
+                }
+            foreach (InstalledVoice v in synth.GetInstalledVoices())
+                if (v.Enabled && v.VoiceInfo.Culture != null && v.VoiceInfo.Culture.TwoLetterISOLanguageName == "pl")
+                {
+                    synth.SelectVoice(v.VoiceInfo.Name);
+                    return true;
+                }
+            return false;
+        }
+
+        // Live changes from the panel window. Muted keeps the console log but says nothing.
+        public bool Muted;
+
+        public void SetVoice(string voiceName)
+        {
+            if (synth == null) return;
+            try { Select(voiceName); VoiceName = synth.Voice.Name; } catch (Exception) { }
+        }
+
+        public void SetRate(int rate)
+        {
+            if (synth != null) synth.Rate = Math.Max(-10, Math.Min(10, rate));
+        }
+
+        public void SetVolume(int volume)
+        {
+            if (synth != null) synth.Volume = Math.Max(0, Math.Min(100, volume));
+        }
+
         public bool Busy
         {
             get { return synth != null && synth.State == SynthesizerState.Speaking; }
@@ -66,13 +83,13 @@ namespace ACCoach
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [GŁOS] " + text);
             Console.ResetColor();
-            if (synth != null) synth.SpeakAsync(text);
+            if (synth != null && !Muted) synth.SpeakAsync(text);
         }
 
         public void SayAndWait(string text)
         {
             Console.WriteLine("  [GŁOS] " + text);
-            if (synth != null) synth.Speak(text);
+            if (synth != null && !Muted) synth.Speak(text);
         }
 
         // Enabled Windows voices as "name|culture", for the settings window.

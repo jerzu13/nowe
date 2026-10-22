@@ -25,13 +25,30 @@ KONFIGURACJA (okno ustawień – osobne dla każdego użytkownika Windows)
   Menu Start > AC Coach > Konfiguracja AC Coach  (albo "Konfiguracja.bat").
   - Tryb jazdy: z sygnałami / bez piknięć / cichy / fokus (+ numer zakrętu). Tak startuje
     skrót "AC Coach". Pliki .bat z numerami 1–5 nadal wymuszają swój tryb.
-  - Głos: wybór głosu Windows, tempo, głośność, wyciszenie, przycisk "Test głosu i piknięć".
+  - Głos: wybór głosu Windows, tempo, głośność głosu i piknięć, wyciszenie,
+    przycisk "Test głosu i piknięć".
   - Piknięcia: uczenie się Twojego czasu reakcji albo stała wartość w sekundach.
   - Foldery: gdzie zapisywać dane (puste = domyślnie) i folder Assetto Corsa
     (puste = szukaj samemu; przycisk "Wykryj").
   - Czy po analizie otwierać mapę toru.
   - Ustawienia zapisują się w  %APPDATA%\AC Coach\ustawienia.ini .
     Przyciski: "Zapisz i uruchom trenera", "Analiza ostatniej sesji".
+
+OKNO "NA ŻYWO" (zmiana ustawień w trakcie jazdy)
+  Po uruchomieniu trenera obok okna z logiem otwiera się okno "AC Coach – na żywo".
+  Wszystko, co tu zmienisz, działa OD RAZU, bez restartu:
+  - piknięcia do hamowania (wł./wył.), uwagi głosowe po zakrętach (wył. = tylko czasy),
+    fokus na jednym zakręcie (0 = trener wybiera sam), wycisz wszystko,
+  - głos, głośność głosu, głośność piknięć, tempo mowy,
+  - ostatnie piknięcie: uczenie się Twojej reakcji albo stała liczba sekund.
+  Na górze: stan, auto i tor, czas wzorca, ostatnie okrążenie, zakręt fokusu.
+  "Zapisz jako domyślne" – trener tak wystartuje następnym razem.
+  "Zawsze na wierzchu" – przydatne na drugim monitorze. "Pokaż okno z logiem" – chowa
+  albo pokazuje czarne okno z logiem. "Zakończ" (albo krzyżyk) kończy trenera.
+  Nie chcesz tego okna? W Konfiguracji odznacz "Podczas jazdy pokazuj okno na żywo"
+  (albo dopisz  --no-panel  w pliku .bat).
+  Gra w pełnym ekranie zasłania okno – przełącz się Alt+Tab albo graj w oknie
+  bez ramki (borderless) / trzymaj panel na drugim monitorze.
 
   WSKAZÓWKI
   - Assetto Corsa jest wyszukiwane samo: uruchomiona gra, Steam (wszystkie biblioteki,

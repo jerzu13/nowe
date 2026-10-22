@@ -10,7 +10,7 @@ using System.Windows.Forms;
 namespace ACCoach
 {
     // "ACCoach.exe config": the settings window of the current Windows user (saved by Settings).
-    public class ConfigForm : Form
+    public class ConfigForm : LayoutForm
     {
         [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
         [DllImport("kernel32.dll")] static extern uint GetConsoleProcessList(uint[] list, uint count);
@@ -38,26 +38,18 @@ namespace ACCoach
         RadioButton rTrain, rNoTrain, rQuiet, rFocus;
         NumericUpDown focusNum, leadNum;
         ComboBox voiceBox;
-        TrackBar rateBar, volBar;
-        Label rateLbl, volLbl, dataHint, acHint;
-        CheckBox muteChk, learnChk, mapChk;
+        TrackBar rateBar, volBar, beepVolBar;
+        Label rateLbl, volLbl, beepVolLbl, dataHint, acHint;
+        CheckBox muteChk, learnChk, mapChk, panelChk;
         TextBox dataBox, acBox;
         Button testBtn;
-
-        const int W = 560;   // inner width of the groups
-        int y;               // layout cursor inside the current group
 
         ConfigForm(Settings settings)
         {
             s = settings;
+            W = 560;
             Text = "AC Coach – konfiguracja (" + Environment.UserName + ")";
-            Font = new Font("Segoe UI", 9f);
-            AutoScaleMode = AutoScaleMode.Font;
-            AutoScaleDimensions = new SizeF(7f, 15f);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch (Exception) { }
             int top = 10;
 
             // --- mode
@@ -72,6 +64,9 @@ namespace ACCoach
             Add(g, Lbl("0 = ten, który kosztuje najwięcej"), 150, y + 3);
             y += 30;
             rFocus.CheckedChanged += delegate { focusNum.Enabled = rFocus.Checked; };
+            panelChk = new CheckBox { Text = "Podczas jazdy pokazuj okno „na żywo” (zmiana ustawień w trakcie jazdy)", AutoSize = true };
+            Add(g, panelChk, 10, y);
+            y += 26;
             End(g, ref top);
 
             // --- voice
@@ -98,6 +93,9 @@ namespace ACCoach
             rateBar = Bar(g, "Tempo mowy:", -10, 10, out rateLbl);
             volBar = Bar(g, "Głośność głosu:", 0, 100, out volLbl);
             volBar.TickFrequency = 10;
+            beepVolBar = Bar(g, "Głośność piknięć:", 0, 100, out beepVolLbl);
+            beepVolBar.TickFrequency = 10;
+            beepVolBar.ValueChanged += delegate { beepVolLbl.Text = beepVolBar.Value + "%"; };
             rateBar.ValueChanged += delegate { rateLbl.Text = (rateBar.Value > 0 ? "+" : "") + rateBar.Value; };
             volBar.ValueChanged += delegate { volLbl.Text = volBar.Value + "%"; };
             muteChk = new CheckBox { Text = "Wycisz wszystko (bez głosu i piknięć)", AutoSize = true };
@@ -175,6 +173,9 @@ namespace ACCoach
             volBar.Value = s.Volume;
             rateLbl.Text = (s.Rate > 0 ? "+" : "") + s.Rate;
             volLbl.Text = s.Volume + "%";
+            beepVolBar.Value = s.BeepVolume;
+            beepVolLbl.Text = s.BeepVolume + "%";
+            panelChk.Checked = s.Panel;
             muteChk.Checked = s.Mute;
             learnChk.Checked = s.LearnLead;
             leadNum.Value = (decimal)Math.Round(s.BeepLead, 2);
@@ -193,6 +194,8 @@ namespace ACCoach
             t.VoiceName = voiceNames[Math.Max(0, voiceBox.SelectedIndex)];
             t.Rate = rateBar.Value;
             t.Volume = volBar.Value;
+            t.BeepVolume = beepVolBar.Value;
+            t.Panel = panelChk.Checked;
             t.Mute = muteChk.Checked;
             t.LearnLead = learnChk.Checked;
             t.BeepLead = (float)leadNum.Value;
@@ -268,74 +271,6 @@ namespace ACCoach
             });
             th.IsBackground = true;
             th.Start();
-        }
-
-        // --- layout helpers (fixed positions: predictable on every Windows DPI, scaled by AutoScaleMode.Font)
-        GroupBox Group(string title, ref int top)
-        {
-            GroupBox g = new GroupBox { Text = title, Location = new Point(12, top), Width = W + 20 };
-            Controls.Add(g);
-            y = 22;
-            return g;
-        }
-
-        void End(GroupBox g, ref int top)
-        {
-            g.Height = y + 6;
-            top += g.Height + 8;
-        }
-
-        static void Add(Control parent, Control c, int x, int cy)
-        {
-            c.Location = new Point(x, cy);
-            parent.Controls.Add(c);
-        }
-
-        static Label Lbl(string text)
-        {
-            return new Label { Text = text, AutoSize = true };
-        }
-
-        RadioButton Radio(GroupBox g, string text)
-        {
-            RadioButton r = new RadioButton { Text = text, AutoSize = true };
-            Add(g, r, 10, y);
-            y += 24;
-            return r;
-        }
-
-        TrackBar Bar(GroupBox g, string title, int min, int max, out Label value)
-        {
-            Add(g, Lbl(title), 10, y + 6);
-            TrackBar b = new TrackBar { Minimum = min, Maximum = max, Width = 380, TickStyle = TickStyle.BottomRight };
-            Add(g, b, 110, y);
-            value = Lbl("");
-            Add(g, value, 500, y + 6);
-            y += 44;
-            return b;
-        }
-
-        TextBox PathRow(GroupBox g, string title, string extra, EventHandler extraClick, out Label hint)
-        {
-            Add(g, Lbl(title), 10, y);
-            y += 20;
-            TextBox box = new TextBox { Width = 400 };
-            Add(g, box, 10, y);
-            Button browse = new Button { Text = "…", Width = 32, Height = 25 };
-            browse.Click += delegate
-            {
-                using (FolderBrowserDialog d = new FolderBrowserDialog { Description = title, SelectedPath = box.Text })
-                    if (d.ShowDialog(this) == DialogResult.OK) box.Text = d.SelectedPath;
-            };
-            Add(g, browse, 416, y - 1);
-            Button more = new Button { Text = extra, Width = 100, Height = 25 };
-            more.Click += extraClick;
-            Add(g, more, 454, y - 1);
-            y += 28;
-            hint = new Label { AutoSize = false, AutoEllipsis = true, Width = W, Height = 18, ForeColor = SystemColors.GrayText };
-            Add(g, hint, 10, y);
-            y += 24;
-            return box;
         }
     }
 }
