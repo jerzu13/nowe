@@ -44,13 +44,14 @@ namespace ACCoach
                 }
                 else if (a == "--once") o.Once = true;
                 else if (a == "--data" && i + 1 < args.Length) dataArg = args[++i];
+                else if (a == "--cel" && i + 1 < args.Length) o.TargetMs = TargetPlan.ParseTime(args[++i]);
                 else if (a == "--ac" && i + 1 < args.Length) TrackAi.AcRootOverride = args[++i];
                 else if (a == "--rate" && i + 1 < args.Length) o.Rate = int.Parse(args[++i], CultureInfo.InvariantCulture);
                 else if (a == "--beep-lead" && i + 1 < args.Length) o.BeepLead = float.Parse(args[++i], CultureInfo.InvariantCulture);
                 else if (mode == "analyze" && !a.StartsWith("--")) combo = a;
                 else
                 {
-                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--no-panel] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry]");
+                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--no-panel] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry] [--cel 1:35.000]");
                     return 2;
                 }
             }
@@ -62,7 +63,7 @@ namespace ACCoach
             if (mode == "analyze")
             {
                 Console.WriteLine("Dane: " + o.DataDir);
-                int r = Analyzer.Run(o.DataDir, combo, !o.NoOpen);
+                int r = Analyzer.Run(o.DataDir, combo, !o.NoOpen, o.TargetMs);
                 PauseIf(o);
                 return r;
             }

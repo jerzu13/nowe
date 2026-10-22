@@ -94,6 +94,7 @@ table.sec tr.pick:hover td, table.sec tr.sel td { background: color-mix(in srgb,
   </div>
   <aside>
     <div class="card"><h2>Na następną jazdę</h2><div id="tips"></div></div>
+    <div class="card" id="targetCard" hidden><h2>Cel czasu</h2><pre id="target" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
     <div class="card" id="rivalCard" hidden><h2>Rywal</h2><pre id="rival" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
     <div class="card" id="inputsCard" hidden><h2>Wyjazdy z toru</h2><div id="inputs"></div></div>
     <div class="card" id="reactionCard" hidden><h2>Piknięcia</h2><div id="reaction" class="meta"></div></div>
@@ -291,6 +292,11 @@ function selectCorner(num) {
   if (num != null) document.querySelector('.corner[data-num="' + num + '"]').scrollIntoView({ block: 'nearest' });
 }
 
+function renderTarget() {
+  if (!D.target || !D.target.length) return;
+  $('targetCard').hidden = false;
+  $('target').textContent = D.target.join(String.fromCharCode(10));
+}
 function renderRival() {
   if (!D.rival || !D.rival.length) return;
   $('rivalCard').hidden = false;
@@ -518,7 +524,7 @@ $('colorLap').onchange = drawLap;
 $('sectorColors').onchange = drawSectors;
 window.addEventListener('resize', applyVb);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
-renderTips(); renderRival(); renderInputs(); renderReaction(); renderLegend(); redrawAll();
+renderTips(); renderTarget(); renderRival(); renderInputs(); renderReaction(); renderLegend(); redrawAll();
 </script>
 </body>
 </html>

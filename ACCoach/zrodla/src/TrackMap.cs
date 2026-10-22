@@ -252,7 +252,7 @@ namespace ACCoach
         static float F(string s) { float v; return float.TryParse(s, NumberStyles.Float, Inv, out v) ? v : float.NaN; }
 
         public static string Write(string comboDir, string outFile, float length, Lap refLap, List<CornerInfo> corners, List<Lap> session, List<string> tips, List<string> reaction, List<string> inputs, List<string> rivalText,
-            float[] sectorBounds, Rival rival, List<KeyValuePair<string, Lap>> rivalLaps)
+            float[] sectorBounds, Rival rival, List<KeyValuePair<string, Lap>> rivalLaps, List<string> targetText = null)
         {
             TrackAi ai = TrackAi.Load(TrackAi.FindAcRoot(), refLap.Track, refLap.Config);
             Dictionary<string, object> root = new Dictionary<string, object>();
@@ -262,6 +262,7 @@ namespace ACCoach
             root["reaction"] = reaction;
             root["inputs"] = inputs;
             root["rival"] = rivalText;
+            root["target"] = targetText ?? new List<string>();
 
             if (ai != null)
             {

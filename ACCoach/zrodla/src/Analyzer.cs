@@ -61,7 +61,7 @@ namespace ACCoach
             return best;
         }
 
-        public static int Run(string dataDir, string comboDir, bool open = true)
+        public static int Run(string dataDir, string comboDir, bool open = true, int targetMs = 0)
         {
             if (comboDir == null) comboDir = NewestCombo(dataDir);
             if (comboDir == null) { Console.WriteLine("Brak nagranych okrążeń w " + dataDir); return 1; }
@@ -117,6 +117,10 @@ namespace ACCoach
                 session.Count, valid.Count, sessionBest > 0 ? Lap.FormatTime(sessionBest) : "–", Lap.FormatTime(refLap.LapMs),
                 compared.Count > 0 ? string.Format(Inv, " | idealne {0} (z Twoich najszybszych zakrętów)", Lap.FormatTime((int)Math.Round(ideal * 1000))) : ""));
             r.AppendLine();
+
+            List<string> targetLines = TargetSection(comboDir, refLap, corners, compared.Count > 0 ? (int)Math.Round(ideal * 1000) : 0, targetMs);
+            foreach (string l in targetLines) r.AppendLine(l);
+            if (targetLines.Count > 0) r.AppendLine();
 
             List<Priority> prio = Priorities(stats, measured, corners);
             List<string> tips = prio.Select(p => p.Text()).ToList();
@@ -202,12 +206,30 @@ namespace ACCoach
             string map = Path.Combine(repDir, "mapa_" + stamp + ".html");
             string warn = TrackMap.Write(comboDir, map, length, refLap, info, session, tips, reactionLines, inputLines, rivalLines,
                 Sectors.Bounds(comboDir, refLap.Track, refLap.Config, refLap.Trace), Rival.Load(dataDir, refLap.Car, refLap.Track, refLap.Config),
-                Rival.LoadLaps(dataDir, refLap.Car, refLap.Track, refLap.Config));
+                Rival.LoadLaps(dataDir, refLap.Car, refLap.Track, refLap.Config), targetLines);
             if (warn != null) Console.WriteLine("Uwaga: " + warn);
             Console.WriteLine("Mapa toru: " + map);
             if (open)
                 try { System.Diagnostics.Process.Start(map); } catch (Exception) { }
             return 0;
+        }
+
+        // CEL CZASU: the target from --cel or <combo>\cel.txt, judged against the limit model
+        static List<string> TargetSection(string comboDir, Lap refLap, List<Corner> corners, int idealMs, int targetMs)
+        {
+            List<string> r = new List<string>();
+            if (targetMs <= 0) targetMs = TargetPlan.LoadTarget(comboDir);
+            if (targetMs <= 0) return r;
+            LimitModel m = LimitModel.Build(comboDir);
+            LimitModel.Line line = LimitModel.LineOf(refLap.Trace);
+            if (m == null || line == null)
+            {
+                r.Add("CEL CZASU " + Lap.FormatTime(targetMs) + ": za mało danych do oceny – przejedź kilka czystych okrążeń.");
+                return r;
+            }
+            TargetPlan p = TargetPlan.Make(m, line, refLap.Trace, refLap.LapMs, idealMs < refLap.LapMs ? idealMs : 0, targetMs);
+            r.AddRange(p.Describe(m, corners));
+            return r;
         }
 
         // From pikniecia.csv, the session's brakings per corner: typical reaction to the final beep, how far from the

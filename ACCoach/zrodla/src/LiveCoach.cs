@@ -20,6 +20,7 @@ namespace ACCoach
         public string VoiceName;             // voice chosen in the settings window; null = first Polish voice
         public int Volume = 100;
         public int BeepVolume = 100;
+        public int TargetMs;                 // --cel: target lap time; 0 = from <combo>\cel.txt
         public bool Panel = true;            // live settings window next to the console (--no-panel: console only)
         public bool Pause;                   // wait for a key before closing (Start menu shortcuts)
         public float BeepLead = float.NaN;   // seconds the final beep is played early; NaN = learn from your reactions
@@ -104,7 +105,7 @@ namespace ACCoach
         readonly List<Msg> queue = new List<Msg>();
         DateTime lastSpoke = DateTime.MinValue;
 
-        public LiveCoach(Options opts) { o = opts; }
+        public LiveCoach(Options opts) { o = opts; cliTarget = o.TargetMs > 0; }
 
         // ---------- live changes from the panel window ----------
         // The panel runs on its own thread; it posts changes that the coaching loop applies between ticks.
@@ -113,7 +114,80 @@ namespace ACCoach
         public Options Opt { get { return o; } }
         public bool Running { get { return !stop; } }
 
+        public volatile string StTarget = "", StStep = "";
+
         public void Post(Action a) { pending.Enqueue(a); }
+
+        // target lap time from the panel; 0 = off. Saved per car + track in <combo>\cel.txt.
+        public void SetTarget(int ms)
+        {
+            Post(delegate
+            {
+                o.TargetMs = ms;
+                if (comboDir == null) panelTargetPending = ms;
+                else TargetPlan.SaveTarget(comboDir, ms);
+                Console.WriteLine(ms > 0 ? "[PANEL] Cel czasu: " + Lap.FormatTime(ms) : "[PANEL] Cel czasu wyłączony");
+                RebuildPlan(true);
+            });
+        }
+
+        // ---------- target lap time ----------
+        LimitModel model;
+        LimitModel.Line modelLine;
+        bool modelTried;
+        TargetPlan plan;              // the goal driven to now (the next intermediate step)
+        TargetPlan finalPlan;         // the target itself
+        int idealMs;
+        int panelTargetPending = -1;
+        bool cliTarget;
+
+        // the limit model reads every saved lap: built off the coaching thread, swapped in between ticks
+        void RebuildModel()
+        {
+            if (comboDir == null || refLap == null) return;
+            string dir = comboDir;
+            Trace tr = refLap.Trace;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                LimitModel m = null;
+                LimitModel.Line line = null;
+                try { m = LimitModel.Build(dir); line = LimitModel.LineOf(tr); } catch (Exception) { }
+                Post(delegate
+                {
+                    if (dir != comboDir) return;
+                    model = m;
+                    modelLine = refLap != null && refLap.Trace != tr ? LimitModel.LineOf(refLap.Trace) : line;
+                    modelTried = true;
+                    RebuildPlan(true);
+                });
+            });
+        }
+
+        void RebuildPlan(bool announce)
+        {
+            plan = finalPlan = null;
+            StStep = "";
+            if (o.TargetMs <= 0) { StTarget = ""; return; }
+            if (refLap == null) { StTarget = Lap.FormatTime(o.TargetMs) + " – czekam na wzorzec"; return; }
+            if (model == null || modelLine == null)
+            {
+                StTarget = Lap.FormatTime(o.TargetMs) + (modelTried ? " – za mało danych (przejedź kilka czystych okrążeń)" : " – liczę model auta…");
+                return;
+            }
+            finalPlan = TargetPlan.Make(model, modelLine, refLap.Trace, refLap.LapMs, idealMs, o.TargetMs);
+            List<int> steps = finalPlan.Steps();
+            int step = steps.Count > 0 ? steps[0] : o.TargetMs;
+            plan = step == o.TargetMs ? finalPlan : TargetPlan.Make(model, modelLine, refLap.Trace, refLap.LapMs, idealMs, step);
+            StTarget = Lap.FormatTime(o.TargetMs) + " – " + finalPlan.Verdict();
+            StStep = finalPlan.Reached ? "cel osiągnięty" : step != o.TargetMs ? "teraz cel pośredni " + Lap.FormatTime(step) : "teraz cel końcowy";
+            if (!announce) return;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            foreach (string l in finalPlan.Describe(model, refCorners)) Console.WriteLine(l);
+            if (!finalPlan.Reached) Console.WriteLine("  " + StStep + " – głos podaje stratę do niego po każdym zakręcie i na mecie");
+            Console.ResetColor();
+            if (!o.Quiet)
+                Enqueue(finalPlan.Reached ? "Cel osiągnięty" : step != o.TargetMs ? "Cel pośredni " + SpokenTime(step) : "Cel " + SpokenTime(step), false);
+        }
         public void Stop() { stop = true; }
 
         public void SetTrain(bool on)
@@ -258,6 +332,11 @@ namespace ACCoach
             else Console.WriteLine("Brak wzorca – przejedź jedno czyste okrążenie, wtedy włączą się podpowiedzi.");
             if (o.Focus && focusNum == 0) ChooseFocus(true);
             SetupRival();
+            if (panelTargetPending >= 0) { o.TargetMs = panelTargetPending; TargetPlan.SaveTarget(comboDir, o.TargetMs); panelTargetPending = -1; }
+            else if (!cliTarget) o.TargetMs = TargetPlan.LoadTarget(comboDir);
+            model = null; modelLine = null; modelTried = false;
+            RebuildPlan(false);
+            RebuildModel();
         }
 
         void SetReference(Lap lap, bool announce)
@@ -510,6 +589,7 @@ namespace ACCoach
                     Console.WriteLine(string.Format(Inv, "   Z{0}: cel = Twój najlepszy przejazd tego zakrętu ({1}), szybszy o {2:0.00} s",
                         refCorners[k].Num, targetFrom[k], refSeg[k] - targetSeg[k]));
                 }
+            idealMs = gain > 0.005f ? refLap.LapMs - (int)Math.Round(gain * 1000) : 0;
             if (gain > 0.005f)
                 Console.WriteLine(string.Format(Inv, "Idealne okrążenie z Twoich najlepszych zakrętów: {0} (wzorzec {1})",
                     Lap.FormatTime(refLap.LapMs - (int)Math.Round(gain * 1000)), Lap.FormatTime(refLap.LapMs)));
@@ -662,6 +742,14 @@ namespace ACCoach
             }
             if (newBest) spoken += refLap == null ? ". Mam wzorzec" : ". Nowy rekord!";
             if (!cur.Valid) spoken += ", nieważne";
+            string targetTxt = "";
+            if (plan != null)
+            {
+                float gt = (lapMs - plan.TargetMs) / 1000f;
+                bool final = cur.Valid && o.TargetMs > 0 && lapMs <= o.TargetMs;
+                spoken += final ? ", cel końcowy osiągnięty!" : gt <= 0 ? ", cel osiągnięty" : ", do celu " + Corners.Sec(gt);
+                targetTxt = string.Format(Inv, "  cel {0}: {1}", Lap.FormatTime(plan.TargetMs), Corners.Sec2(gt));
+            }
             if (rival != null && sectorBounds != null && nextSector == sectorBounds.Length)
             {
                 SectorDone(nextSector, lapMs / 1000f - sectorStartS, false);
@@ -670,13 +758,13 @@ namespace ACCoach
                 if (cur.Valid) UpdateMySectors(cur);
             }
             Console.ForegroundColor = newBest ? ConsoleColor.Green : (cur.Valid ? ConsoleColor.White : ConsoleColor.DarkGray);
-            Console.WriteLine(string.Format("Okrążenie {0}: {1}{2}{3}{4}", t.CompletedLaps, Lap.FormatTime(lapMs), delta,
-                cur.Valid ? "" : "  NIEWAŻNE (" + (curPit ? "pit" : "poza torem") + ")", newBest ? "  ★ NOWY WZORZEC" : ""));
+            Console.WriteLine(string.Format("Okrążenie {0}: {1}{2}{3}{4}{5}", t.CompletedLaps, Lap.FormatTime(lapMs), delta,
+                cur.Valid ? "" : "  NIEWAŻNE (" + (curPit ? "pit" : "poza torem") + ")", newBest ? "  ★ NOWY WZORZEC" : "", targetTxt));
             Console.ResetColor();
             Enqueue(spoken, true);
             StLast = Lap.FormatTime(lapMs) + delta + (cur.Valid ? "" : "  nieważne") + (newBest ? "  ★ nowy wzorzec" : "");
             allLaps.Add(cur);
-            if (newBest) SetReference(cur, true);
+            if (newBest) { SetReference(cur, true); RebuildModel(); }
             else if (refCorners != null)
                 foreach (int k in ConsiderForTargets(cur))
                     Console.WriteLine(string.Format(Inv, "   Z{0}: nowy najlepszy przejazd tego zakrętu, cel szybszy o {1:0.00} s od wzorca", refCorners[k].Num, refSeg[k] - targetSeg[k]));
@@ -740,13 +828,23 @@ namespace ACCoach
                     CornerCmp tcmp = ownTarget ? Corners.Compare(targetTrace[k], targetCorners, k, live, evalD) : cmp;
                     Tip tip = Corners.MakeTip(tcmp, o.Train);
                     float total = live.TimeAt(evalD) - refLap.Trace.TimeAt(evalD);
-                    Console.WriteLine(string.Format(Inv, "  Z{0,-2} {1,6} s | hamowanie {2,6} siła {6,5} | szczyt {3,4:+0;-0;0} km/h | gaz {4,6} | linia szczyt {5} | łącznie {7}",
-                        cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total)));
+                    float vsPlan = float.NaN;
+                    string planHint = null, planTxt = "";
+                    if (plan != null)
+                    {
+                        vsPlan = (live.TimeAt(evalD) - live.TimeAt(rc.StartD)) - (plan.TimeAt(evalD) - plan.TimeAt(rc.StartD));
+                        float faster = plan.MinSpeed(rc.StartD, evalD) - LiveMinSpeed(rc.StartD, evalD);
+                        if (faster >= 4 && vsPlan >= 0.05f) planHint = string.Format(Inv, "szczyt szybciej o {0:0}", faster);
+                        planTxt = string.Format(Inv, " | cel {0} (łącznie {1}){2}", Corners.Sec2(vsPlan), Corners.Sec2(live.TimeAt(evalD) - plan.TimeAt(evalD)),
+                            planHint != null ? ", " + planHint + " km/h" : "");
+                    }
+                    Console.WriteLine(string.Format(Inv, "  Z{0,-2} {1,6} s | hamowanie {2,6} siła {6,5} | szczyt {3,4:+0;-0;0} km/h | gaz {4,6} | linia szczyt {5} | łącznie {7}{8}",
+                        cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total), planTxt));
                     if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);
                     DecayMargin(k);
                     if (!o.Quiet)
                     {
-                        string call = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip);
+                        string call = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint);
                         if (o.Focus && rc.Num == focusNum) Enqueue(FocusCall(k, cmp, call, tip), false);
                         else if (SpeakAbout(rc.Num)) Enqueue(call, false);
                     }
@@ -764,15 +862,35 @@ namespace ACCoach
 
         // "Zakręt 3, lepiej o 0,12" / "Zakręt 3, gorzej o 0,2, hamujesz za wcześnie" / "Zakręt 3, równo".
         // vsBest = against the best lap; vsTarget = against the best version of this corner (record / what to fix).
-        static string CornerCall(int num, float vsBest, float vsTarget, Tip tip)
+        // vsBest: against the best lap; vsTarget: against the best run of this corner; vsPlan: against the
+        // lap-time target's plan (NaN = no target)
+        static string CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null)
         {
             string s = "Zakręt " + num + ", ";
             if (vsBest <= -0.03f) s += "lepiej o " + SpokenDelta(-vsBest);
             else if (vsBest >= 0.03f) s += "gorzej o " + SpokenDelta(vsBest);
             else s += "równo";
+            bool tipSaid = false;
             if (vsTarget < -0.02f && vsBest < 0.03f) s += ", rekord zakrętu";
-            else if (tip != null && vsTarget > 0.05f) s += ", " + tip.Action;
+            else if (tip != null && vsTarget > 0.05f) { s += ", " + tip.Action; tipSaid = true; }
+            if (!float.IsNaN(vsPlan))
+            {
+                if (vsPlan <= 0.02f) s += ", w celu";
+                else if (vsPlan >= 0.05f)
+                {
+                    s += ", do celu " + SpokenDelta(vsPlan);
+                    if (planHint != null && !tipSaid) s += ", " + planHint;
+                }
+            }
             return s;
+        }
+
+        float LiveMinSpeed(float from, float to)
+        {
+            int a = Math.Max(0, (int)(from / Trace.Step)), b = Math.Min(live.Filled - 1, (int)(to / Trace.Step));
+            float m = float.MaxValue;
+            for (int i = a; i <= b; i++) m = Math.Min(m, live.Spd[i]);
+            return m == float.MaxValue ? 0 : m;
         }
 
         static string SpokenDelta(float s)

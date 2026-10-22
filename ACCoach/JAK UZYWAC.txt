@@ -50,6 +50,33 @@ OKNO "NA ŻYWO" (zmiana ustawień w trakcie jazdy)
   Gra w pełnym ekranie zasłania okno – przełącz się Alt+Tab albo graj w oknie
   bez ramki (borderless) / trzymaj panel na drugim monitorze.
 
+CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
+  W oknie "na żywo" wpisz czas (np. 1:35.000 albo 1:35:500) i kliknij "Ustaw cel".
+  Cel jest zapamiętany dla tego auta i toru:  <auto>__<tor>\cel.txt .
+  CZY CEL JEST REALNY – trener buduje MODEL AUTA z Twoich okrążeń: ile przyczepności
+  w zakręcie i ile hamowania auto utrzymało (nie chwilowe skoki na tarkach) i jak
+  przyspiesza, przy każdej prędkości. Potem "przejeżdża" Twoją linię na tych granicach
+  i porównuje z celem:
+      realny            – masz go już w swoich najlepszych zakrętach albo w granicach
+                          przyczepności, którą już osiągasz,
+      ambitny (+X%)     – trzeba wykorzystać o X% więcej przyczepności i hamowania
+                          niż Twoje dotychczasowe maksimum,
+      bardzo ambitny / bardzo daleko – najpierw cele pośrednie.
+  Model zna tylko to, co już wyjechałeś – im szybciej jeździsz, tym dokładniej ocenia.
+  Prawdziwy limit auta może być wyższy (dla Huracána ST na Vallelungi zawodowcy w realu
+  jeżdżą ok. 1:31–1:33).
+  CELE POŚREDNIE – trener nie każe od razu jechać po 1:35. Najpierw: idealne okrążenie
+  (Twoje najlepsze zakręty), potem co ok. sekundę. Po każdym nowym rekordzie przechodzi
+  do następnego i mówi np. "Cel pośredni 1 37,5".
+  CO MÓWI GŁOS – i o najlepszym okrążeniu, i o celu:
+      "Zakręt 4, gorzej o 0,1, do celu 0,4, szczyt szybciej o 8"
+      "Zakręt 6, lepiej o 0,4, w celu"
+      "Czas 1 38,9, minus 0,6, do celu 0,7"
+  W oknie z logiem przy każdym zakręcie: "cel +0.45 (łącznie +1.62)".
+  RAPORT I MAPA – sekcja "CEL CZASU": ocena, cele pośrednie i plan na zakręty:
+      Z7  -0,94 s   szczyt 99 → 110 km/h   (ile czasu i jaka prędkość w szczycie)
+  Bez okna: dopisz w pliku .bat np.  --cel 1:35.000
+
   WSKAZÓWKI
   - Assetto Corsa jest wyszukiwane samo: uruchomiona gra, Steam (wszystkie biblioteki,
     każdy dysk) i typowe foldery. Gdy się nie uda – wskaż folder gry w Konfiguracji

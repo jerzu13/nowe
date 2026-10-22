@@ -51,7 +51,9 @@ namespace ACCoach
         readonly List<string> voiceNames = new List<string>();
         bool closingFromCoach, loading = true;
 
-        Label stateLbl, comboLbl, refLbl, lastLbl, focusLbl, rateLbl, volLbl, beepVolLbl;
+        Label stateLbl, comboLbl, refLbl, lastLbl, focusLbl, rateLbl, volLbl, beepVolLbl, targetLbl, stepLbl;
+        TextBox targetBox;
+        int shownTarget = -1;
         CheckBox trainChk, tipsChk, focusChk, muteChk, learnChk, topChk, consoleChk;
         NumericUpDown focusNum, leadNum;
         ComboBox voiceBox;
@@ -79,6 +81,32 @@ namespace ACCoach
             refLbl = Row(g, "Wzorzec:");
             lastLbl = Row(g, "Ostatnie:");
             focusLbl = Row(g, "Fokus:");
+            End(g, ref top);
+
+            // --- target lap time
+            g = Group("Cel czasu okrążenia (dla tego auta i toru)", ref top);
+            targetBox = new TextBox { Width = 90 };
+            Add(g, targetBox, 10, y);
+            Button setT = new Button { Text = "Ustaw cel", Width = 90, Height = 25 };
+            Button offT = new Button { Text = "Wyłącz", Width = 70, Height = 25 };
+            Add(g, setT, 106, y - 1);
+            Add(g, offT, 202, y - 1);
+            Add(g, Lbl("np. 1:35.000"), 280, y + 3);
+            y += 30;
+            targetLbl = new Label { AutoSize = false, Width = W, Height = 34 };
+            Add(g, targetLbl, 10, y); y += 36;
+            stepLbl = new Label { AutoSize = false, Width = W, Height = 18, Font = new Font(Font, FontStyle.Bold) };
+            Add(g, stepLbl, 10, y); y += 22;
+            setT.Click += delegate
+            {
+                int ms = TargetPlan.ParseTime(targetBox.Text);
+                if (ms <= 0) { MessageBox.Show(this, "Wpisz czas okrążenia, np. 1:35.000", "AC Coach"); return; }
+                shownTarget = ms;
+                targetBox.Text = Lap.FormatTime(ms);
+                coach.SetTarget(ms);
+            };
+            offT.Click += delegate { shownTarget = 0; targetBox.Text = ""; coach.SetTarget(0); };
+            targetBox.KeyDown += delegate (object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { setT.PerformClick(); e.SuppressKeyPress = true; } };
             End(g, ref top);
 
             // --- live settings
@@ -199,6 +227,10 @@ namespace ACCoach
             comboLbl.Text = coach.StCombo;
             refLbl.Text = coach.StRef.Length > 0 ? coach.StRef : "– (przejedź jedno czyste okrążenie)";
             lastLbl.Text = coach.StLast.Length > 0 ? coach.StLast : "–";
+            int tm = coach.Opt.TargetMs;
+            if (tm != shownTarget && !targetBox.Focused) { shownTarget = tm; targetBox.Text = tm > 0 ? Lap.FormatTime(tm) : ""; }
+            targetLbl.Text = tm > 0 ? coach.StTarget : "Brak celu – wpisz czas i kliknij „Ustaw cel”. Trener oceni, czy jest realny, i rozpisze go na zakręty.";
+            stepLbl.Text = tm > 0 ? coach.StStep : "";
             focusLbl.Text = coach.Opt.Focus ? (coach.StFocus.Length > 0 ? coach.StFocus : "wybieram…") : "wyłączony";
         }
 
