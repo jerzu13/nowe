@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 RequestExecutionLevel user
 
 !define APP      "AC Coach"
-!define VERSION  "1.3.1"
+!define VERSION  "1.4.0"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ACCoach"
 !define SRC      ".."
 

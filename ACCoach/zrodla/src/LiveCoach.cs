@@ -139,6 +139,8 @@ namespace ACCoach
         TargetPlan finalPlan;         // the target itself
         int idealMs;
         int panelTargetPending = -1;
+        Grip.TyreStats refTyres;      // tyre temperatures of the best lap: "cold" is colder than that
+        bool tyresWereCold;
         bool cliTarget;
 
         // the limit model reads every saved lap: built off the coaching thread, swapped in between ticks
@@ -345,6 +347,7 @@ namespace ACCoach
             if (length <= 0) length = lap.EstimateLength();
             lap.BuildTrace(length);
             refCorners = Corners.Detect(lap.Trace);
+            try { refTyres = Grip.Tyres(lap.Samples.Count > 0 ? lap.Samples : Lap.Load(lap.File).Samples); } catch (Exception) { refTyres = null; }
             Corners.Renumber(refCorners, comboDir, lap.Trace);
             Console.WriteLine(string.Format("Wzorzec: {0}  ({1} m, zakrętów: {2})", Lap.FormatTime(lap.LapMs), (int)length, refCorners.Count));
             StRef = Lap.FormatTime(lap.LapMs) + "  (zakrętów: " + refCorners.Count + ")";
@@ -696,6 +699,7 @@ namespace ACCoach
             s.T = t.CurrentTimeMs; s.Pos = t.Pos; s.Speed = t.SpeedKmh; s.Gas = t.Gas; s.Brake = t.Brake;
             s.Clutch = t.Clutch; s.Steer = t.Steer; s.Gear = t.Gear; s.Rpm = t.Rpm; s.LatG = t.LatG; s.LonG = t.LonG;
             s.X = t.X; s.Z = t.Z; s.TyresOut = t.TyresOut;
+            s.Ext = t.Ext;
             cur.Samples.Add(s);
             lastSpeed = t.SpeedKmh;
             lastBrake = t.Brake;
@@ -742,6 +746,14 @@ namespace ACCoach
             }
             if (newBest) spoken += refLap == null ? ". Mam wzorzec" : ". Nowy rekord!";
             if (!cur.Valid) spoken += ", nieważne";
+            Grip.TyreStats tyres = Grip.Tyres(cur.Samples);
+            if (tyres != null)
+            {
+                bool cold = Grip.Cold(tyres, refTyres);
+                if (cold) spoken += ", opony zimne";
+                else if (tyresWereCold) spoken += ", opony rozgrzane";
+                tyresWereCold = cold;
+            }
             string targetTxt = "";
             if (plan != null)
             {
@@ -761,6 +773,7 @@ namespace ACCoach
             Console.WriteLine(string.Format("Okrążenie {0}: {1}{2}{3}{4}{5}", t.CompletedLaps, Lap.FormatTime(lapMs), delta,
                 cur.Valid ? "" : "  NIEWAŻNE (" + (curPit ? "pit" : "poza torem") + ")", newBest ? "  ★ NOWY WZORZEC" : "", targetTxt));
             Console.ResetColor();
+            if (tyres != null) Console.WriteLine("  " + Grip.Text(tyres) + (tyresWereCold ? "  – ZIMNE (chłodniejsze niż na najlepszym okrążeniu)" : ""));
             Enqueue(spoken, true);
             StLast = Lap.FormatTime(lapMs) + delta + (cur.Valid ? "" : "  nieważne") + (newBest ? "  ★ nowy wzorzec" : "");
             allLaps.Add(cur);
@@ -828,6 +841,9 @@ namespace ACCoach
                     CornerCmp tcmp = ownTarget ? Corners.Compare(targetTrace[k], targetCorners, k, live, evalD) : cmp;
                     Tip tip = Corners.MakeTip(tcmp, o.Train);
                     float total = live.TimeAt(evalD) - refLap.Trace.TimeAt(evalD);
+                    List<WheelEvent> wev = CornerWheelEvents(rc.StartD - 30, evalD);
+                    string wheelTxt = wev.Count > 0 ? " | koła: " + string.Join(", ", wev.Select(w => Grip.Name(w.Kind) + string.Format(Inv, " {0:0.00} s", w.Dur))) : "";
+                    string wheelKind = wev.Count > 0 ? Grip.Kinds.First(k2 => wev.Any(w => w.Kind == k2)) : null;
                     float vsPlan = float.NaN;
                     string planHint = null, planTxt = "";
                     if (plan != null)
@@ -839,12 +855,12 @@ namespace ACCoach
                             planHint != null ? ", " + planHint + " km/h" : "");
                     }
                     Console.WriteLine(string.Format(Inv, "  Z{0,-2} {1,6} s | hamowanie {2,6} siła {6,5} | szczyt {3,4:+0;-0;0} km/h | gaz {4,6} | linia szczyt {5} | łącznie {7}{8}",
-                        cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total), planTxt));
+                        cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total), planTxt + wheelTxt));
                     if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);
                     DecayMargin(k);
                     if (!o.Quiet)
                     {
-                        string call = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint);
+                        string call = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint, wheelKind);
                         if (o.Focus && rc.Num == focusNum) Enqueue(FocusCall(k, cmp, call, tip), false);
                         else if (SpeakAbout(rc.Num)) Enqueue(call, false);
                     }
@@ -864,7 +880,7 @@ namespace ACCoach
         // vsBest = against the best lap; vsTarget = against the best version of this corner (record / what to fix).
         // vsBest: against the best lap; vsTarget: against the best run of this corner; vsPlan: against the
         // lap-time target's plan (NaN = no target)
-        static string CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null)
+        static string CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null, string wheel = null)
         {
             string s = "Zakręt " + num + ", ";
             if (vsBest <= -0.03f) s += "lepiej o " + SpokenDelta(-vsBest);
@@ -873,6 +889,13 @@ namespace ACCoach
             bool tipSaid = false;
             if (vsTarget < -0.02f && vsBest < 0.03f) s += ", rekord zakrętu";
             else if (tip != null && vsTarget > 0.05f) { s += ", " + tip.Action; tipSaid = true; }
+            // what the tyres did: a locked wheel always, the rest when the corner cost time
+            bool lost = vsBest >= 0.05f || vsTarget > 0.05f || (!float.IsNaN(vsPlan) && vsPlan >= 0.05f);
+            if (wheel != null && !(wheel == "over" && tipSaid && tip.Action.Contains("uślizg")) && (wheel.StartsWith("lock") || (lost && !tipSaid)))
+            {
+                s += ", " + Grip.Spoken(wheel);
+                tipSaid = true;
+            }
             if (!float.IsNaN(vsPlan))
             {
                 if (vsPlan <= 0.02f) s += ", w celu";
@@ -883,6 +906,18 @@ namespace ACCoach
                 }
             }
             return s;
+        }
+
+        // wheel events of the current lap between two distances (scans back from the newest sample)
+        List<WheelEvent> CornerWheelEvents(float from, float to)
+        {
+            List<Sample> s = cur.Samples;
+            Func<int, float> d = i => { float p = s[i].Pos; if (s[i].T < 5000 && p > 0.5f) p -= 1; return p * length; };
+            int a = s.Count - 1;
+            while (a > 0 && d(a) > from) a--;
+            int b = s.Count;
+            while (b > a && d(b - 1) > to) b--;
+            return Grip.Detect(s, a, b, d);
         }
 
         float LiveMinSpeed(float from, float to)

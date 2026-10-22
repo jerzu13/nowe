@@ -57,6 +57,32 @@ static class AcSim
         return v;
     }
 
+    // Wheels and tyres (AC 1.14+ physics page): tyres warm up over the laps; lap 4 locks the fronts into
+    // corner 2, lap 5 spins the rears out of corner 3, lap 6 slides the rear out of corner 1.
+    static void Wheels(MemoryMappedViewAccessor p, float d, float v, float brake, float gas, int lap)
+    {
+        int near = -1;
+        for (int i = 0; i < 3; i++) if (Math.Abs(d - Dc[i]) < 110) near = i;
+        float lat = near >= 0 ? 1.3f * (float)Math.Exp(-Math.Pow((d - Dc[near]) / 70.0, 2)) : 0;
+        p.Write(44, lat);                                     // accG[0]
+        p.Write(52, brake > 0 ? -1.4f * brake : gas * 0.4f);  // accG[2]
+        p.Write(300, lat * 9.81f / Math.Max(v, 1f));          // yaw rate
+        float sa = 0.06f * lat, srF = 0.01f, srR = 0.02f * gas, saR = 0.8f * sa;
+        if (lap == 3 && brake > 0.5f && d > Dc[1] - 120 && d < Dc[1]) srF = -0.4f;
+        if (lap == 4 && gas > 0.5f && d > Dc[2] + 20 && d < Dc[2] + 100) srR = 0.3f;
+        if (lap == 5 && d > Dc[0] && d < Dc[0] + 80) saR = 1.8f * sa + 0.02f;
+        float core = Math.Min(88f, 55f + 6f * lap), press = Math.Min(27.5f, 24f + 0.6f * lap);
+        for (int w = 0; w < 4; w++)
+        {
+            p.Write(72 + 4 * w, 3200f + (w < 2 ? 400 * brake : 300 * gas));
+            p.Write(88 + 4 * w, press + 0.2f * w);
+            p.Write(152 + 4 * w, core + w);
+            p.Write(348 + 4 * w, 250f + 150f * brake);
+            p.Write(640 + 4 * w, w < 2 ? srF : srR);
+            p.Write(656 + 4 * w, w < 2 ? sa : saR);
+        }
+    }
+
     static int Main(string[] args)
     {
         int laps = 7;
@@ -115,6 +141,7 @@ static class AcSim
             p.Write(24, 0f);
             p.Write(28, v * 3.6f);
             p.Write(61 * 4, tyresOut);
+            Wheels(p, d, v, brake, gas, completed);
             g.Write(132, completed);
             g.Write(140, (int)(lapT * 1000));
             g.Write(144, lastMs);

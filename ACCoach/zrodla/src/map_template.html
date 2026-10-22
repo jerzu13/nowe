@@ -102,6 +102,7 @@ table.sec tr.pick:hover td, table.sec tr.sel td { background: color-mix(in srgb,
   </div>
   <aside>
     <div class="card"><h2>Na następną jazdę</h2><div id="tips"></div></div>
+    <div class="card" id="wheelsCard" hidden><h2>Koła i opony</h2><pre id="wheels" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
     <div class="card" id="targetCard" hidden><h2>Cel czasu</h2><pre id="target" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
     <div class="card" id="rivalCard" hidden><h2>Rywal</h2><pre id="rival" class="meta" style="white-space:pre-wrap;font:12px/1.45 Consolas,monospace;margin:0"></pre></div>
     <div class="card" id="inputsCard" hidden><h2>Wyjazdy z toru</h2><div id="inputs"></div></div>
@@ -237,6 +238,12 @@ function drawMarks() {
     if (b.brake) el('circle', { cx: b.brake[0], cy: b.brake[1], r: 4 * u, fill: css('--brake') }, gMarks)
       .appendChild(title('Z' + b.corner + ': tu wcisnąłeś hamulec' + (b.reaction != null ? ' (' + sign(b.reaction) + ' s po piknięciu)' : '')));
   });
+  (l.ev || []).forEach(e => {
+    const s = 6 * u;
+    el('path', { d: 'M' + e.x + ' ' + (e.z - s) + 'L' + (e.x + s) + ' ' + e.z + 'L' + e.x + ' ' + (e.z + s) + 'L' + (e.x - s) + ' ' + e.z + 'Z',
+      fill: css(e.kind.startsWith('lock') ? '--brake' : e.kind === 'spin' || e.kind === 'tc' ? '--mid' : '--cmp'), stroke: css('--panel'), 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, gMarks)
+      .appendChild(title(e.name + ' – ' + e.d + ' m, ' + e.dur.toFixed(2) + ' s'));
+  });
   l.off.forEach(p => {
     const s = 6 * u;
     const g = el('g', {}, gMarks);
@@ -306,6 +313,11 @@ function selectCorner(num) {
   if (num != null) document.querySelector('.corner[data-num="' + num + '"]').scrollIntoView({ block: 'nearest' });
 }
 
+function renderWheels() {
+  if (!D.wheels || !D.wheels.length) return;
+  $('wheelsCard').hidden = false;
+  $('wheels').textContent = D.wheels.join(String.fromCharCode(10));
+}
 function renderTarget() {
   if (!D.target || !D.target.length) return;
   $('targetCard').hidden = false;
@@ -366,6 +378,7 @@ function renderLegend() {
   rows.push('<span><span class="dot" style="border:3px solid var(--beep)"></span>ostatnie piknięcie</span>');
   rows.push('<span><span class="dot" style="background:var(--brake)"></span>Twoje hamowanie</span>');
   rows.push('<span style="color:var(--off);font-weight:700">✕ <span style="color:var(--text);font-weight:400">poza torem</span></span>');
+  if (D.laps.some(l => l.ev)) rows.push('<span><span class="dot" style="background:var(--mid);border-radius:2px;transform:rotate(45deg)"></span>koła: blokada / buksowanie / uślizg</span>');
   $('legend').innerHTML = rows.join('');
 }
 
@@ -436,6 +449,26 @@ function renderCharts() {
     { key: 'brk', name: 'hamulec [%]', series: [[a.brk.map(v => v * 100), '--brake', false]].concat(both ? [[b.brk.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
     { key: 'str', name: 'kierownica', series: [[a.str, '--text', false]].concat(both ? [[b.str, cmpCol, true]] : []), zero: true }
   ].filter(Boolean);
+  // wheels and tyres: only laps recorded with them (AC Coach 1.4+)
+  if (a.srF) {
+    const r2 = x => x == null ? '–' : x.toFixed(2), c0 = x => x == null ? '–' : Math.round(x);
+    specs.push(
+      { key: 'sr', name: 'poślizg wzdłużny kół – przód (czerwony), tył (niebieski); poniżej zera blokowanie, powyżej buksowanie',
+        series: [[a.srF, '--brake', false], [a.srR, '--ref', false]], min: -0.5, max: 0.5, zero: true,
+        tipf: i => 'przód ' + r2(a.srF[i]) + ', tył ' + r2(a.srR[i]) },
+      { key: 'sa', name: 'kąt poślizgu opon – przód (czerwony), tył (niebieski); tył wyżej = tył ucieka, przód wyżej = przód ucieka',
+        series: [[a.saF, '--brake', false], [a.saR, '--ref', false]],
+        tipf: i => 'przód ' + r2(a.saF[i]) + ', tył ' + r2(a.saR[i]) + (a.saR[i] > 1.4 * a.saF[i] ? ' – tył ucieka' : a.saF[i] > 1.7 * a.saR[i] ? ' – przód ucieka' : '') },
+      { key: 'yaw', name: 'obrót auta (prędkość odchylania)' + (both && b.yaw ? ' – przerywana: porównanie' : ''),
+        series: [[a.yaw, '--text', false]].concat(both && b.yaw ? [[b.yaw, cmpCol, true]] : []), zero: true,
+        tipf: i => r2(a.yaw[i]) + (both && b.yaw ? ' vs ' + r2(b.yaw[i]) : '') },
+      { key: 'core', name: 'temperatura opon, rdzeń [°C] – LP (czerwony), PP (zielony), LT (niebieski), PT (fiolet)',
+        series: a.core.map((v, w) => [v, ['--brake', '--gas', '--ref', '--cmp'][w], false]),
+        tipf: i => a.core.map(v => c0(v[i])).join(' / ') + ' °C' },
+      { key: 'press', name: 'ciśnienie opon [psi] – LP, PP, LT, PT',
+        series: a.press.map((v, w) => [v, ['--brake', '--gas', '--ref', '--cmp'][w], false]),
+        tipf: i => a.press.map(v => v[i] == null ? '–' : v[i].toFixed(1)).join(' / ') + ' psi' });
+  }
   specs.forEach(sp => host.appendChild(chart(sp, n, step, a, b, both, delta)));
 }
 
@@ -489,6 +522,7 @@ function chart(sp, n, step, a, b, both, delta) {
     else if (sp.key === 'dt') txt += gapTxt(delta[i]) + ' s';
     else if (sp.key === 'gas') txt += v(a.gas[i] * 100) + '%' + (both ? ' vs ' + v(b.gas[i] * 100) + '%' : '');
     else if (sp.key === 'brk') txt += v(a.brk[i] * 100) + '%' + (both ? ' vs ' + v(b.brk[i] * 100) + '%' : '');
+    else if (sp.tipf) txt += sp.tipf(i);
     else txt += v(a.str[i]) + (both ? ' vs ' + v(b.str[i]) : '');
     tip.textContent = txt; tip.style.display = 'block';
     const r = s.getBoundingClientRect(), x = X(i) / W * r.width;
@@ -559,6 +593,11 @@ function miniApply() {
     el('circle', { cx: c.apex[0], cy: c.apex[1], r: 9 * u, fill: css('--badge') }, mMarks);
     el('text', { x: c.apex[0], y: c.apex[1] + 3.8 * u, 'text-anchor': 'middle', 'font-size': 10.5 * u, 'font-weight': 700, fill: css('--badge-text') }, mMarks).textContent = c.num;
   });
+  (curLap().ev || []).forEach(e => {
+    const s = 6 * u;
+    el('path', { d: 'M' + e.x + ' ' + (e.z - s) + 'L' + (e.x + s) + ' ' + e.z + 'L' + e.x + ' ' + (e.z + s) + 'L' + (e.x - s) + ' ' + e.z + 'Z',
+      fill: css(e.kind.startsWith('lock') ? '--brake' : e.kind === 'spin' || e.kind === 'tc' ? '--mid' : '--cmp') }, mMarks);
+  });
   if (mPoint) mPoint.forEach(([x, z, col]) => el('circle', { cx: x, cy: z, r: 7 * u, fill: css(col), stroke: css('--panel'), 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, mHover));
 }
 // glide the view instead of jumping, so the eye can follow along the track
@@ -602,7 +641,9 @@ function miniHover(i) {
   info.innerHTML = '<b>' + where + '</b> · ' + Math.round(d) + ' m' + (pinned != null ? ' · <span class="meta">przypięte (kliknij wykres, aby odpiąć)</span>' : '') + '<br>'
     + 'prędkość ' + vs(a.spd[i], both && b.spd[i]) + ' km/h · hamulec ' + vs(a.brk[i], both && b.brk[i], true)
     + ' · gaz ' + vs(a.gas[i], both && b.gas[i], true) + ' · kierownica ' + (a.str[i] == null ? '–' : a.str[i].toFixed(2))
-    + (both && b.str[i] != null ? ' <span class="meta">vs ' + b.str[i].toFixed(2) + '</span>' : '');
+    + (both && b.str[i] != null ? ' <span class="meta">vs ' + b.str[i].toFixed(2) + '</span>' : '')
+    + (a.srF ? '<br>poślizg przód ' + a.srF[i].toFixed(2) + ' / tył ' + a.srR[i].toFixed(2) + ' · opony ' + a.core.map(c => Math.round(c[i])).join('/') + ' °C' : '')
+    + ((a.ev || []).filter(e => Math.abs(e.d - d) < 40).map(e => ' · <b>' + e.name + '</b>').join(''));
 }
 $('miniZoom').onchange = () => { if (!$('miniZoom').checked) miniGoTo(Object.assign({}, full)); };
 window.addEventListener('resize', miniApply);
@@ -636,7 +677,7 @@ $('colorLap').onchange = drawLap;
 $('sectorColors').onchange = drawSectors;
 window.addEventListener('resize', applyVb);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
-renderTips(); renderTarget(); renderRival(); renderInputs(); renderReaction(); renderLegend(); redrawAll();
+renderTips(); renderWheels(); renderTarget(); renderRival(); renderInputs(); renderReaction(); renderLegend(); redrawAll();
 </script>
 </body>
 </html>

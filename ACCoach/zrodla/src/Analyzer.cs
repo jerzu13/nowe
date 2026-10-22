@@ -161,6 +161,13 @@ namespace ACCoach
                 foreach (string l in reactionLines) r.AppendLine("  " + l);
             }
 
+            List<string> wheelLines = WheelSection(session, refLap, corners, length, measured, clean);
+            if (wheelLines.Count > 0)
+            {
+                r.AppendLine();
+                foreach (string l in wheelLines) r.AppendLine(l);
+            }
+
             List<string> rivalLines = RivalSection(dataDir, comboDir, laps, session, refLap, corners, prio);
             if (rivalLines.Count > 0)
             {
@@ -170,9 +177,12 @@ namespace ACCoach
 
             r.AppendLine();
             r.AppendLine("OKRĄŻENIA:");
+            Grip.TyreStats refTyres = Grip.Tyres(refLap.Samples);
             foreach (Lap l in session)
             {
                 string line = string.Format("  {0:HH:mm}  {1}  {2,6}", l.Date, Lap.FormatTime(l.LapMs), Corners.Sec2((l.LapMs - refLap.LapMs) / 1000f));
+                Grip.TyreStats ts = Grip.Tyres(l.Samples);
+                if (ts != null) line += string.Format(Inv, "  opony {0:0}°C{1}", ts.CoreAvg, Grip.Cold(ts, refTyres) ? " (zimne)" : "");
                 if (l.File == refLap.File) { r.AppendLine(line + "  ★ wzorzec"); continue; }
                 List<Measured> ml = measured.Where(m => m.Lap == l).ToList();
                 string[] outs = ml.Where(m => m.Off != 0).Select(m => "Z" + corners[m.K].Num).ToArray();
@@ -206,12 +216,58 @@ namespace ACCoach
             string map = Path.Combine(repDir, "mapa_" + stamp + ".html");
             string warn = TrackMap.Write(comboDir, map, length, refLap, info, session, tips, reactionLines, inputLines, rivalLines,
                 Sectors.Bounds(comboDir, refLap.Track, refLap.Config, refLap.Trace), Rival.Load(dataDir, refLap.Car, refLap.Track, refLap.Config),
-                Rival.LoadLaps(dataDir, refLap.Car, refLap.Track, refLap.Config), targetLines);
+                Rival.LoadLaps(dataDir, refLap.Car, refLap.Track, refLap.Config), targetLines, wheelLines);
             if (warn != null) Console.WriteLine("Uwaga: " + warn);
             Console.WriteLine("Mapa toru: " + map);
             if (open)
                 try { System.Diagnostics.Process.Start(map); } catch (Exception) { }
             return 0;
+        }
+
+        // KOŁA I OPONY: what the tyres did in each corner over the session and what it cost
+        static List<string> WheelSection(List<Lap> session, Lap refLap, List<Corner> corners, float length, List<Measured> measured, Func<Measured, bool> clean)
+        {
+            List<string> r = new List<string>();
+            List<Lap> withData = session.Where(l => Grip.Has(l.Samples)).ToList();
+            if (withData.Count == 0) return r;
+            // per lap and corner: which kinds happened
+            Dictionary<string, HashSet<string>> at = new Dictionary<string, HashSet<string>>();
+            foreach (Lap l in withData)
+                foreach (WheelEvent e in Grip.LapEvents(l, length))
+                {
+                    string key = l.File + "#" + Grip.CornerOf(corners, e.D);
+                    if (!at.ContainsKey(key)) at[key] = new HashSet<string>();
+                    at[key].Add(e.Kind);
+                }
+            r.Add(string.Format("KOŁA I OPONY ({0} okr. z danymi kół):", withData.Count));
+            List<string> advice = new List<string>();
+            for (int k = 0; k < corners.Count; k++)
+            {
+                List<string> parts = new List<string>();
+                foreach (string kind in Grip.Kinds)
+                {
+                    int cnt = withData.Count(l => at.ContainsKey(l.File + "#" + k) && at[l.File + "#" + k].Contains(kind));
+                    if (cnt == 0) continue;
+                    // cost: clean runs of this corner with vs without it
+                    List<float> with = new List<float>(), without = new List<float>();
+                    foreach (Measured m in measured.Where(m => m.K == k && clean(m) && withData.Contains(m.Lap)))
+                    {
+                        HashSet<string> h;
+                        (at.TryGetValue(m.Lap.File + "#" + k, out h) && h.Contains(kind) ? with : without).Add(m.Cmp.SegDelta);
+                    }
+                    string cost = with.Count >= 2 && without.Count >= 2 ? string.Format(Inv, ", kosztuje średnio {0} s", Corners.Sec2(with.Average() - without.Average())) : "";
+                    parts.Add(string.Format("{0} {1}/{2}{3}", Grip.Name(kind), cnt, withData.Count, cost));
+                    if (cnt * 3 >= withData.Count && advice.Count < 4) advice.Add(string.Format("Z{0} – {1}: {2}.", corners[k].Num, Grip.Name(kind), Grip.Advice(kind)));
+                }
+                if (parts.Count > 0) r.Add(string.Format("  Z{0,-2} {1}", corners[k].Num, string.Join("; ", parts)));
+            }
+            if (r.Count == 1) r.Add("  bez blokad, buksowania i wyraźnych uślizgów – koła pracują czysto.");
+            foreach (string a in advice) r.Add("  → " + a);
+            Grip.TyreStats best = Grip.Tyres(refLap.Samples);
+            if (best != null) r.Add("  najlepsze okrążenie: " + Grip.Text(best));
+            int cold = withData.Count(l => Grip.Cold(Grip.Tyres(l.Samples), best));
+            if (cold > 0) r.Add(string.Format("  {0} okr. na zimnych oponach (chłodniejsze niż na najlepszym) – ich czasy nie mówią wszystkiego.", cold));
+            return r;
         }
 
         // CEL CZASU: the target from --cel or <combo>\cel.txt, judged against the limit model

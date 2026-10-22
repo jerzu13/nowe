@@ -50,6 +50,24 @@ OKNO "NA ŻYWO" (zmiana ustawień w trakcie jazdy)
   Gra w pełnym ekranie zasłania okno – przełącz się Alt+Tab albo graj w oknie
   bez ramki (borderless) / trzymaj panel na drugim monitorze.
 
+KOŁA I OPONY (od wersji 1.4, bez żadnych dodatków – dane z samej gry)
+  Trener zapisuje teraz też: poślizg i obciążenie każdego koła, kąt poślizgu opon,
+  obrót auta, temperatury opon (rdzeń) i hamulców, ciśnienia, pracę TC i ABS.
+  (Okrążenia nagrane wcześniej tych danych nie mają – działają jak dotąd.)
+  W CZASIE JAZDY – po zakręcie głos dopowiada, co zrobiły koła:
+      "blokujesz przód" / "blokujesz tył"   – zawsze (blokada niszczy oponę),
+      "buksujesz na wyjściu", "tył ucieka", "przód ucieka", "kontrola trakcji..."
+                                            – gdy zakręt kosztował czas.
+  Na mecie: "opony zimne" (chłodniejsze niż na najlepszym okrążeniu), potem
+  "opony rozgrzane". W oknie z logiem temperatury i ciśnienia każdego okrążenia.
+  RAPORT – sekcja "KOŁA I OPONY": w których zakrętach i ile razy były blokady,
+  buksowanie, uślizgi, ile to kosztuje i co zmienić; przy okrążeniach temperatura opon
+  i oznaczenie "(zimne)".
+  MAPA HTML – nowe wykresy: poślizg wzdłużny (przód/tył), kąt poślizgu (przód/tył),
+  obrót auta, temperatury i ciśnienia opon; na mapie romby w miejscach blokad,
+  buksowania i uślizgów. Mapka "Gdzie to jest na torze" pokazuje też te dane.
+  Wymaga Assetto Corsa 1.14 lub nowszego (starsze wersje nie podają poślizgów).
+
 CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
   W oknie "na żywo" wpisz czas (np. 1:35.000 albo 1:35:500) i kliknij "Ustaw cel".
   Cel jest zapamiętany dla tego auta i toru:  <auto>__<tor>\cel.txt .

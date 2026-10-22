@@ -252,7 +252,7 @@ namespace ACCoach
         static float F(string s) { float v; return float.TryParse(s, NumberStyles.Float, Inv, out v) ? v : float.NaN; }
 
         public static string Write(string comboDir, string outFile, float length, Lap refLap, List<CornerInfo> corners, List<Lap> session, List<string> tips, List<string> reaction, List<string> inputs, List<string> rivalText,
-            float[] sectorBounds, Rival rival, List<KeyValuePair<string, Lap>> rivalLaps, List<string> targetText = null)
+            float[] sectorBounds, Rival rival, List<KeyValuePair<string, Lap>> rivalLaps, List<string> targetText = null, List<string> wheelText = null)
         {
             TrackAi ai = TrackAi.Load(TrackAi.FindAcRoot(), refLap.Track, refLap.Config);
             Dictionary<string, object> root = new Dictionary<string, object>();
@@ -263,6 +263,7 @@ namespace ACCoach
             root["inputs"] = inputs;
             root["rival"] = rivalText;
             root["target"] = targetText ?? new List<string>();
+            root["wheels"] = wheelText ?? new List<string>();
 
             if (ai != null)
             {
@@ -338,10 +339,55 @@ namespace ACCoach
             string name = rivalName != null
                 ? string.Format("{0}: {1}{2}", rivalName, Lap.FormatTime(l.LapMs), l.Valid ? "" : "  nieważne")
                 : string.Format("{0:HH:mm}  {1}{2}{3}", l.Date, Lap.FormatTime(l.LapMs), l.Valid ? "" : "  nieważne", l.File == refLap.File ? "  ★ wzorzec" : "");
-            return new Dictionary<string, object> {
+            Dictionary<string, object> d = new Dictionary<string, object> {
                 { "name", name }, { "isRef", rivalName == null && l.File == refLap.File }, { "rival", rivalName }, { "lapMs", l.LapMs }, { "valid", l.Valid },
                 { "x", p[0] }, { "z", p[1] }, { "brk", p[2] }, { "gas", p[3] }, { "spd", p[4] }, { "t", p[5] }, { "str", p[6] },
                 { "sectors", Sectors.Times(l.Trace, sectorBounds, l.LapMs) }, { "off", off }, { "beeps", bl } };
+            if (Grip.Has(l.Samples)) AddWheels(d, l, length, ((List<object>)p[0]).Count);
+            return d;
+        }
+
+        // wheel and tyre channels on the same 4 m grid as the rest, plus the wheel events as map markers
+        static void AddWheels(Dictionary<string, object> d, Lap l, float length, int n)
+        {
+            float cell = Trace.Step * GridEvery;
+            int ch = 6 + 8;   // srF, srR, saF, saR, yaw, tc, core x4, press x4
+            float[,] sum = new float[ch, n];
+            int[] cnt = new int[n];
+            int count = l.Samples.Count;
+            for (int i = 0; i < count; i++)
+            {
+                Sample s = l.Samples[i];
+                if (s.Ext == null) continue;
+                int g = (int)Math.Round(Lap.UnwrapPos(s.Pos, i, count) * length / cell);
+                if (g < 0 || g >= n) continue;
+                float[] e = s.Ext;
+                float[] v = {
+                    (e[Wheels.SlipRatio] + e[Wheels.SlipRatio + 1]) / 2, (e[Wheels.SlipRatio + 2] + e[Wheels.SlipRatio + 3]) / 2,
+                    (Math.Abs(e[Wheels.SlipAngle]) + Math.Abs(e[Wheels.SlipAngle + 1])) / 2, (Math.Abs(e[Wheels.SlipAngle + 2]) + Math.Abs(e[Wheels.SlipAngle + 3])) / 2,
+                    e[Wheels.Yaw], e[Wheels.Tc] > 0.5f ? 1 : 0,
+                    e[Wheels.Core], e[Wheels.Core + 1], e[Wheels.Core + 2], e[Wheels.Core + 3],
+                    e[Wheels.Pressure], e[Wheels.Pressure + 1], e[Wheels.Pressure + 2], e[Wheels.Pressure + 3] };
+                for (int c = 0; c < ch; c++) sum[c, g] += v[c];
+                cnt[g]++;
+            }
+            int[] digits = { 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 2, 2, 2, 2 };
+            object[][] outp = new object[ch][];
+            for (int c = 0; c < ch; c++)
+            {
+                outp[c] = new object[n];
+                float last = 0;
+                for (int g = 0; g < n; g++)
+                {
+                    if (cnt[g] > 0) last = sum[c, g] / cnt[g];
+                    outp[c][g] = Math.Round(last, digits[c]);
+                }
+            }
+            d["srF"] = outp[0]; d["srR"] = outp[1]; d["saF"] = outp[2]; d["saR"] = outp[3]; d["yaw"] = outp[4]; d["tc"] = outp[5];
+            d["core"] = new object[] { outp[6], outp[7], outp[8], outp[9] };
+            d["press"] = new object[] { outp[10], outp[11], outp[12], outp[13] };
+            d["ev"] = Grip.LapEvents(l, length).Select(e => new Dictionary<string, object> {
+                { "kind", e.Kind }, { "name", Grip.Name(e.Kind) }, { "x", R1(e.X) }, { "z", R1(e.Z) }, { "d", Math.Round(e.D) }, { "dur", Math.Round(e.Dur, 2) } }).ToList();
         }
 
         static string Template()

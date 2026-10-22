@@ -14,6 +14,7 @@ namespace ACCoach
         public float Pos, X, Z;
         public float Gas, Brake, Clutch, Steer, SpeedKmh, LatG, LonG;
         public int Gear, Rpm, TyresOut;
+        public float[] Ext = new float[Wheels.N];   // wheels and tyres, see Wheels
     }
 
     public class StaticInfo
@@ -31,7 +32,7 @@ namespace ACCoach
 
         MemoryMappedFile phys, gfx, stat;
         MemoryMappedViewAccessor pa, ga, sa;
-        readonly byte[] pbuf = new byte[400];
+        readonly byte[] pbuf = new byte[800];
         readonly byte[] gbuf = new byte[300];
         readonly byte[] sbuf = new byte[600];
 
@@ -89,6 +90,20 @@ namespace ACCoach
             t.LonG = F(pbuf, 52);              // accG[2]
             t.TyresOut = I(pbuf, 61 * 4);
             t.Clutch = F(pbuf, 91 * 4);
+            // wheels: FL, FR, RL, RR (slip ratio/angle and TC/ABS activity need AC 1.14+, older versions read 0)
+            float[] e = t.Ext;
+            e[Wheels.Yaw] = F(pbuf, 300);           // localAngularVel[1]
+            for (int w = 0; w < 4; w++)
+            {
+                e[Wheels.SlipRatio + w] = F(pbuf, 640 + 4 * w);
+                e[Wheels.SlipAngle + w] = F(pbuf, 656 + 4 * w);
+                e[Wheels.Load + w] = F(pbuf, 72 + 4 * w);
+                e[Wheels.Core + w] = F(pbuf, 152 + 4 * w);
+                e[Wheels.Pressure + w] = F(pbuf, 88 + 4 * w);
+                e[Wheels.BrakeTemp + w] = F(pbuf, 348 + 4 * w);
+            }
+            e[Wheels.Tc] = F(pbuf, 672);
+            e[Wheels.Abs] = F(pbuf, 676);
             // graphics page
             t.GraphicsPacket = I(gbuf, 0);
             t.Status = I(gbuf, 4);

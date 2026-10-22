@@ -71,6 +71,17 @@ static class AcReplay
                 p.Write(24, float.Parse(c[6], Inv));
                 p.Write(28, float.Parse(c[2], Inv));
                 p.Write(61 * 4, int.Parse(c[13], Inv));
+                p.Write(44, float.Parse(c[9], Inv));
+                p.Write(52, float.Parse(c[10], Inv));
+                if (c.Length >= 41)   // wheels and tyres, laps recorded by AC Coach 1.4+
+                {
+                    p.Write(300, float.Parse(c[14], Inv));
+                    int[] off = { 640, 656, 72, 152, 88, 348 };
+                    for (int g2 = 0; g2 < 6; g2++)
+                        for (int w = 0; w < 4; w++) p.Write(off[g2] + 4 * w, float.Parse(c[15 + g2 * 4 + w], Inv));
+                    p.Write(672, float.Parse(c[39], Inv));
+                    p.Write(676, float.Parse(c[40], Inv));
+                }
                 g.Write(132, completed);
                 g.Write(140, int.Parse(c[0], Inv));
                 g.Write(144, lastMs);

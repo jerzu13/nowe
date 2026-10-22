@@ -12,6 +12,21 @@ namespace ACCoach
         public float Pos;        // normalized position on track 0..1
         public float Speed, Gas, Brake, Clutch, Steer, LatG, LonG, X, Z;
         public int Gear, Rpm, TyresOut;
+        public float[] Ext;      // wheels and tyres (Wheels.*); null in laps recorded before they were saved
+    }
+
+    // Extra per-sample channels from the game's physics page, stored after the 14 basic CSV columns.
+    public static class Wheels
+    {
+        public const int Yaw = 0, SlipRatio = 1, SlipAngle = 5, Load = 9, Core = 13, Pressure = 17, BrakeTemp = 21, Tc = 25, Abs = 26, N = 27;
+        public static readonly string[] Wheel = { "lp", "pp", "lt", "pt" };   // lewy/prawy przód, lewy/prawy tył
+        public static string Header()
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder(",yaw");
+            foreach (string g in new[] { "slip_ratio", "slip_angle", "load", "tyre_core", "pressure", "brake_temp" })
+                foreach (string w in Wheel) sb.Append(',').Append(g).Append('_').Append(w);
+            return sb.Append(",tc,abs").ToString();
+        }
     }
 
     // A lap resampled onto a fixed distance grid (every Step metres), so laps can be compared point by point.
@@ -156,11 +171,20 @@ namespace ACCoach
             StringBuilder sb = new StringBuilder();
             sb.AppendFormat(Inv, "# car={0};track={1};config={2};lap_ms={3};valid={4};spline={5};date={6}\n",
                 Car, Track, Config, LapMs, Valid ? 1 : 0, SplineLength, Date.ToString("yyyy-MM-ddTHH:mm:ss", Inv));
-            sb.Append("t_ms,pos,speed,gas,brake,clutch,steer,gear,rpm,lat_g,lon_g,x,z,tyres_out\n");
+            // wheel channels only when the game filled them (tyre loads are never all zero on track)
+            bool ext = Samples.Exists(x => x.Ext != null && x.Ext[Wheels.Load] + x.Ext[Wheels.Load + 1] + x.Ext[Wheels.Load + 2] + x.Ext[Wheels.Load + 3] > 1);
+            sb.Append("t_ms,pos,speed,gas,brake,clutch,steer,gear,rpm,lat_g,lon_g,x,z,tyres_out" + (ext ? Wheels.Header() : "") + "\n");
             foreach (Sample s in Samples)
             {
-                sb.AppendFormat(Inv, "{0},{1:0.000000},{2:0.00},{3:0.000},{4:0.000},{5:0.000},{6:0.0000},{7},{8},{9:0.000},{10:0.000},{11:0.00},{12:0.00},{13}\n",
+                sb.AppendFormat(Inv, "{0},{1:0.000000},{2:0.00},{3:0.000},{4:0.000},{5:0.000},{6:0.0000},{7},{8},{9:0.000},{10:0.000},{11:0.00},{12:0.00},{13}",
                     s.T, s.Pos, s.Speed, s.Gas, s.Brake, s.Clutch, s.Steer, s.Gear, s.Rpm, s.LatG, s.LonG, s.X, s.Z, s.TyresOut);
+                if (ext)
+                    for (int i = 0; i < Wheels.N; i++)
+                    {
+                        float v = s.Ext != null ? s.Ext[i] : 0;
+                        sb.Append(',').Append(v.ToString(i == Wheels.Load || (i > Wheels.Load && i < Wheels.Core) ? "0" : "0.####", Inv));
+                    }
+                sb.Append('\n');
             }
             System.IO.File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
             File = path;
@@ -208,6 +232,11 @@ namespace ACCoach
                 s.X = float.Parse(p[11], Inv);
                 s.Z = float.Parse(p[12], Inv);
                 s.TyresOut = int.Parse(p[13], Inv);
+                if (p.Length >= 14 + Wheels.N)
+                {
+                    s.Ext = new float[Wheels.N];
+                    for (int i = 0; i < Wheels.N; i++) s.Ext[i] = float.Parse(p[14 + i], Inv);
+                }
                 lap.Samples.Add(s);
             }
             return lap;
