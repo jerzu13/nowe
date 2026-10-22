@@ -258,7 +258,12 @@ RYWAL (np. Mirek)
     żeby wybrać.
   - "Porównaj z": wykresy wzdłuż toru – prędkość, różnica czasu (gdzie tracisz
     i zyskujesz), gaz, hamulec, kierownica. Linia ciągła = wybrane okrążenie,
-    przerywana = porównanie. Najedź na wykres – punkt pokaże się na mapie.
+    przerywana = porównanie.
+  - Obok wykresów jest mapka "Gdzie to jest na torze" – zawsze widoczna, także gdy
+    przewijasz w dół. Najedź na wykres (hamulec, gaz, kierownica, prędkość): mapka sama
+    przybliża się do tego miejsca, pokazuje zakręt (wejście / szczyt / wyjście) i wartości.
+    Kliknij wykres, żeby przypiąć punkt; strzałki ← → przesuwają go o 10 m (Shift: 50 m).
+    W rogu mapki mały podgląd całego toru. Przybliżanie wyłączysz pod mapką.
   - Z pliku serwera są tylko CZASY sektorów rywala. Żeby porównać jego JAZDĘ
     (linię, prędkość, pedały), rywal musi jeździć z AC Coach i dać Ci swoje okrążenia:
     pliki .csv z jego folderu  <auto>__<tor>\laps  wrzuć do  AC Coach\rywale\Mirek\ .
