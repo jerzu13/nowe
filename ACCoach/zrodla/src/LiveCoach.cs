@@ -16,6 +16,9 @@ namespace ACCoach
         public bool NoOpen;          // analyze: do not open the map in the browser
         public bool TestShm;         // read the test tools' memory (acpmf_test_*) instead of the game's
         public int Rate = 1;
+        public string VoiceName;             // voice chosen in the settings window; null = first Polish voice
+        public int Volume = 100;
+        public bool Pause;                   // wait for a key before closing (Start menu shortcuts)
         public float BeepLead = float.NaN;   // seconds the final beep is played early; NaN = learn from your reactions
         public bool Focus;                   // focus mode: speak only about one corner at a time
         public int FocusCorner;              // corner chosen with --fokus N; 0 = pick automatically
@@ -104,7 +107,7 @@ namespace ACCoach
         {
             Console.CancelKeyPress += delegate (object s, ConsoleCancelEventArgs e) { e.Cancel = true; stop = true; };
             timeBeginPeriod(1);
-            voice = new Voice(o.Mute, o.Rate);
+            voice = new Voice(o.Mute, o.Rate, o.VoiceName, o.Volume);
             beeper = new Beeper(o.Mute || !o.Train);
             Console.WriteLine("AC Coach – nagrywanie okrążeń i trener głosowy");
             Console.WriteLine("Dane: " + o.DataDir);

@@ -15,22 +15,28 @@ namespace ACCoach
             CultureInfo.DefaultThreadCurrentCulture = pl;
             System.Threading.Thread.CurrentThread.CurrentCulture = pl;
             Options o = new Options();
-            string dataArg = null;
+            Settings st = Settings.Load();
+            st.Apply(o);
+            string dataArg = string.IsNullOrEmpty(st.DataDir) ? null : st.DataDir;
             string mode = "live", combo = null;
+            bool modeArg = false;   // the first --train/--no-train/--quiet/--fokus replaces the mode from the settings
 
             for (int i = 0; i < args.Length; i++)
             {
                 string a = args[i];
                 if (a == "analyze" || a == "analiza") mode = "analyze";
                 else if (a == "voicetest") mode = "voicetest";
+                else if (a == "config" || a == "konfiguracja") mode = "config";
+                else if (a == "--pause") o.Pause = true;
                 else if (a == "--mute") o.Mute = true;
-                else if (a == "--quiet") o.Quiet = true;
-                else if (a == "--train" || a == "--trening") o.Train = true;
-                else if (a == "--no-train" || a == "--bez-treningu") o.Train = false;
+                else if (a == "--quiet") { ResetMode(o, ref modeArg); o.Quiet = true; }
+                else if (a == "--train" || a == "--trening") { ResetMode(o, ref modeArg); o.Train = true; }
+                else if (a == "--no-train" || a == "--bez-treningu") { ResetMode(o, ref modeArg); o.Train = false; }
                 else if (a == "--no-open") o.NoOpen = true;
                 else if (a == "--test-shm") o.TestShm = true;
                 else if (a == "--fokus" || a == "--focus")
                 {
+                    ResetMode(o, ref modeArg);
                     o.Focus = true;
                     int num;
                     if (i + 1 < args.Length && int.TryParse(args[i + 1].TrimStart('Z', 'z'), out num)) { o.FocusCorner = num; i++; }
@@ -43,48 +49,81 @@ namespace ACCoach
                 else if (mode == "analyze" && !a.StartsWith("--")) combo = a;
                 else
                 {
-                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry]");
+                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry]");
                     return 2;
                 }
             }
+            if (mode == "config") return ConfigForm.Run(st);
+
             o.DataDir = dataArg ?? DefaultDataDir();
             Directory.CreateDirectory(o.DataDir);
-            Console.WriteLine("Dane: " + o.DataDir);
 
-            if (mode == "analyze") return Analyzer.Run(o.DataDir, combo, !o.NoOpen);
+            if (mode == "analyze")
+            {
+                Console.WriteLine("Dane: " + o.DataDir);
+                int r = Analyzer.Run(o.DataDir, combo, !o.NoOpen);
+                PauseIf(o);
+                return r;
+            }
             if (mode == "voicetest")
             {
-                using (Voice v = new Voice(o.Mute, o.Rate))
-                {
-                    Console.WriteLine("Głos: " + v.VoiceName);
-                    v.SayAndWait("Zakręt 3, hamujesz za wcześnie, o 15 metrów");
-                    v.SayAndWait("Czas 1 47,3, minus 0,4");
-                    v.SayAndWait("Teraz piknięcia do hamowania. Hamuj na ostatnim. Ostatnie mówi, jak mocno.");
-                    string[] names = { "Lekko albo krótko", "Średnio", "Cały hamulec" };
-                    using (Beeper b = new Beeper(o.Mute))
-                        for (int force = 2; force >= 0; force--)
-                        {
-                            v.SayAndWait(names[force]);
-                            for (int i = 0; i < 3; i++)
-                            {
-                                b.Beep(i == 2, force);
-                                System.Threading.Thread.Sleep(500);
-                            }
-                            System.Threading.Thread.Sleep(400);
-                        }
-                }
+                VoiceTest(o);
+                PauseIf(o);
                 return 0;
             }
             new LiveCoach(o).Run();
             return 0;
         }
 
+        static void ResetMode(Options o, ref bool modeArg)
+        {
+            if (modeArg) return;
+            modeArg = true;
+            o.Train = true;
+            o.Quiet = false;
+            o.Focus = false;
+            o.FocusCorner = 0;
+        }
+
+        static void PauseIf(Options o)
+        {
+            if (!o.Pause) return;
+            Console.WriteLine();
+            Console.WriteLine("Naciśnij dowolny klawisz, aby zamknąć okno...");
+            try { Console.ReadKey(true); } catch (InvalidOperationException) { }
+        }
+
+        public static void VoiceTest(Options o)
+        {
+            using (Voice v = new Voice(o.Mute, o.Rate, o.VoiceName, o.Volume))
+            {
+                Console.WriteLine("Głos: " + v.VoiceName);
+                v.SayAndWait("Zakręt 3, hamujesz za wcześnie, o 15 metrów");
+                v.SayAndWait("Czas 1 47,3, minus 0,4");
+                v.SayAndWait("Teraz piknięcia do hamowania. Hamuj na ostatnim. Ostatnie mówi, jak mocno.");
+                string[] names = { "Lekko albo krótko", "Średnio", "Cały hamulec" };
+                using (Beeper b = new Beeper(o.Mute))
+                    for (int force = 2; force >= 0; force--)
+                    {
+                        v.SayAndWait(names[force]);
+                        for (int i = 0; i < 3; i++)
+                        {
+                            b.Beep(i == 2, force);
+                            System.Threading.Thread.Sleep(500);
+                        }
+                        System.Threading.Thread.Sleep(400);
+                    }
+            }
+        }
+
         // Portable: data lives next to ACCoach.exe, so the folder can be copied to any PC, user or drive.
         // If that folder is read-only (e.g. Program Files), fall back to Documents\AC Coach of the current user.
-        static string DefaultDataDir()
+        // An installed copy (the installer leaves a ".zainstalowany" marker) keeps data in Documents instead,
+        // so uninstalling or updating never touches the laps.
+        public static string DefaultDataDir()
         {
             string exeDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
-            if (Writable(exeDir)) return exeDir;
+            if (!Installed && Writable(exeDir)) return exeDir;
             string docs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "AC Coach");
             string rivals = Path.Combine(exeDir, "rywale");
             try
@@ -99,6 +138,11 @@ namespace ACCoach
             }
             catch (Exception) { }
             return docs;
+        }
+
+        public static bool Installed
+        {
+            get { return File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".zainstalowany")); }
         }
 
         static bool Writable(string dir)

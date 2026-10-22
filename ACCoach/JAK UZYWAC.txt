@@ -2,29 +2,50 @@
 ==================================
 
 INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
-  1. Rozpakuj CAŁY folder "AC Coach" gdziekolwiek, np. na Pulpit, do Dokumentów
-     albo na D:\ . Nie uruchamiaj plików prosto z okna ZIP-a – najpierw "Wyodrębnij wszystkie".
-  2. Uruchom raz "0. Pierwsze uruchomienie.bat" – odblokuje pliki pobrane z internetu,
-     sprawdzi .NET Framework 4.8 i puści test głosu.
-  3. Gotowe. Uprawnienia administratora nie są potrzebne.
+  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup.exe.
+    - Instaluje tylko dla Ciebie (bieżący użytkownik Windows), bez uprawnień administratora,
+      do  %LOCALAPPDATA%\Programs\AC Coach .
+    - Dodaje skróty w menu Start (folder "AC Coach"): AC Coach, Analiza ostatniej sesji,
+      Konfiguracja AC Coach, Test głosu, Instrukcja, Odinstaluj – i opcjonalnie na pulpicie.
+    - Na końcu otwiera okno KONFIGURACJI. Odinstalowanie: menu Start albo
+      Ustawienia > Aplikacje. Twoje okrążenia i raporty zostają w Dokumentach.
+    - Windows może pokazać "System Windows ochronił ten komputer" (instalator nie ma
+      podpisu cyfrowego): kliknij "Więcej informacji" > "Uruchom mimo to".
+    - Każdy inny użytkownik tego komputera instaluje sobie AC Coach sam, ze swoim kontem.
 
-  - Wszystkie dane (okrążenia, raporty, rywale) zapisują się w tym samym folderze co
-    ACCoach.exe – folder można przenieść na inny komputer razem z historią jazd.
-    Jeśli folder jest tylko do odczytu (np. w Program Files), dane trafiają do
-    Dokumenty\AC Coach bieżącego użytkownika. Na górze okna trenera widać linię "Dane: ...".
+  Sposób 2 – BEZ INSTALACJI (folder przenośny, np. na pendrive):
+    1. Rozpakuj CAŁY folder "AC Coach" gdziekolwiek. Nie uruchamiaj plików prosto z okna
+       ZIP-a – najpierw "Wyodrębnij wszystkie".
+    2. Uruchom raz "0. Pierwsze uruchomienie.bat" – odblokuje pliki, sprawdzi .NET
+       Framework 4.8 i puści test głosu. Ustawienia: "Konfiguracja.bat".
+    - Dane zapisują się w tym samym folderze co ACCoach.exe (można go przenieść razem
+      z historią jazd). Folder tylko do odczytu -> dane w Dokumenty\AC Coach.
+
+KONFIGURACJA (okno ustawień – osobne dla każdego użytkownika Windows)
+  Menu Start > AC Coach > Konfiguracja AC Coach  (albo "Konfiguracja.bat").
+  - Tryb jazdy: z sygnałami / bez piknięć / cichy / fokus (+ numer zakrętu). Tak startuje
+    skrót "AC Coach". Pliki .bat z numerami 1–5 nadal wymuszają swój tryb.
+  - Głos: wybór głosu Windows, tempo, głośność, wyciszenie, przycisk "Test głosu i piknięć".
+  - Piknięcia: uczenie się Twojego czasu reakcji albo stała wartość w sekundach.
+  - Foldery: gdzie zapisywać dane (puste = domyślnie) i folder Assetto Corsa
+    (puste = szukaj samemu; przycisk "Wykryj").
+  - Czy po analizie otwierać mapę toru.
+  - Ustawienia zapisują się w  %APPDATA%\AC Coach\ustawienia.ini .
+    Przyciski: "Zapisz i uruchom trenera", "Analiza ostatniej sesji".
+
+  WSKAZÓWKI
   - Assetto Corsa jest wyszukiwane samo: uruchomiona gra, Steam (wszystkie biblioteki,
-    każdy dysk) i typowe foldery. Gra w nietypowym miejscu? Utwórz obok ACCoach.exe plik
-    sciezka_ac.txt z jedną linią, np.:   E:\Gry\assettocorsa
+    każdy dysk) i typowe foldery. Gdy się nie uda – wskaż folder gry w Konfiguracji
     (bez gry mapa toru jest bez krawędzi, reszta działa normalnie).
-  - Polski głos: trener szuka polskiego głosu Windows. Jeśli go nie ma, okno pokaże
-    ostrzeżenie i mówi głosem domyślnym. Dodaj go: Ustawienia > Czas i język > Mowa >
-    Dodaj głosy (Zarządzaj głosami) > Polski, potem uruchom trenera ponownie.
+  - Polski głos: jeśli go nie ma, trener mówi głosem domyślnym. Dodaj go: Ustawienia >
+    Czas i język > Mowa > Dodaj głosy > Polski, potem wybierz go w Konfiguracji.
   - Działa na Windows z dowolnymi ustawieniami regionalnymi (liczby zawsze po polsku).
 
 SZYBKI START
-  1. Uruchom jeden z plików .bat (przed albo po starcie gry) i zostaw okno w tle.
+  1. Uruchom skrót "AC Coach" z menu Start (albo jeden z plików .bat) przed albo po starcie gry
+     i zostaw okno w tle.
   2. Jedź. Trener nagrywa każde okrążenie i podpowiada głosem.
-  3. Po jeździe uruchom "3. Analiza ostatniej sesji.bat".
+  3. Po jeździe: "Analiza ostatniej sesji" z menu Start (albo "3. Analiza ostatniej sesji.bat").
   4. Napisz do Claude "przeanalizuj" – dostaniesz wskazówki do następnej jazdy.
 
   Działa offline i online. Zamykasz okno trenera: Ctrl+C albo krzyżykiem.
@@ -216,5 +237,6 @@ DOBRZE WIEDZIEĆ
   - Z CrewChiefem używaj trybu cichego, żeby głosy się nie nakładały.
   - Folder "zrodla" to kod programu – do zwykłej jazdy niepotrzebny.
     Przebudowa ACCoach.exe na dowolnym Windows (bez Visual Studio): zrodla\build.bat
+    Instalator: instalator\ACCoach.nsi (NSIS 3).
   - Opcje dla zaawansowanych w pliku .bat:  --data "folder"  (inny folder danych),
     --ac "folder gry"  (ścieżka do Assetto Corsa).

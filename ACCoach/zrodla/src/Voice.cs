@@ -9,7 +9,7 @@ namespace ACCoach
         SpeechSynthesizer synth;
         public string VoiceName = "(wyciszony)";
 
-        public Voice(bool mute, int rate)
+        public Voice(bool mute, int rate, string voiceName = null, int volume = 100)
         {
             if (mute) return;
             try
@@ -17,6 +17,17 @@ namespace ACCoach
                 synth = new SpeechSynthesizer();
                 synth.SetOutputToDefaultAudioDevice();
                 bool polish = false;
+                foreach (InstalledVoice v in synth.GetInstalledVoices())
+                {
+                    if (!string.IsNullOrEmpty(voiceName) && v.Enabled && v.VoiceInfo.Name == voiceName)
+                    {
+                        // the voice picked in the settings window
+                        synth.SelectVoice(v.VoiceInfo.Name);
+                        polish = true;
+                        break;
+                    }
+                }
+                if (!polish)
                 foreach (InstalledVoice v in synth.GetInstalledVoices())
                 {
                     if (v.Enabled && v.VoiceInfo.Culture != null && v.VoiceInfo.Culture.TwoLetterISOLanguageName == "pl")
@@ -31,10 +42,11 @@ namespace ACCoach
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("Brak polskiego głosu w Windows – trener mówi domyślnym głosem.");
                     Console.WriteLine("Dodaj głos: Ustawienia > Czas i język > Mowa > Dodaj głosy > Polski,");
-                    Console.WriteLine("potem uruchom ponownie trenera. Szczegóły w pliku JAK UZYWAC.txt.");
+                    Console.WriteLine("potem uruchom ponownie trenera (albo wybierz głos w oknie Konfiguracja).");
                     Console.ResetColor();
                 }
                 synth.Rate = Math.Max(-10, Math.Min(10, rate));
+                synth.Volume = Math.Max(0, Math.Min(100, volume));
                 VoiceName = synth.Voice.Name;
             }
             catch (Exception e)
@@ -61,6 +73,20 @@ namespace ACCoach
         {
             Console.WriteLine("  [GŁOS] " + text);
             if (synth != null) synth.Speak(text);
+        }
+
+        // Enabled Windows voices as "name|culture", for the settings window.
+        public static System.Collections.Generic.List<string[]> Installed()
+        {
+            var list = new System.Collections.Generic.List<string[]>();
+            try
+            {
+                using (SpeechSynthesizer s = new SpeechSynthesizer())
+                    foreach (InstalledVoice v in s.GetInstalledVoices())
+                        if (v.Enabled) list.Add(new[] { v.VoiceInfo.Name, v.VoiceInfo.Culture != null ? v.VoiceInfo.Culture.Name : "" });
+            }
+            catch (Exception) { }
+            return list;
         }
 
         public void Dispose()

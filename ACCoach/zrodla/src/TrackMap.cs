@@ -22,9 +22,9 @@ namespace ACCoach
 
         // The Assetto Corsa folder on this PC: --ac, the AC_ROOT variable or sciezka_ac.txt next to ACCoach.exe,
         // then the running game, Steam (registry + every Steam library) and the usual folders on every drive.
-        public static string FindAcRoot()
+        public static string FindAcRoot(bool fresh = false)
         {
-            if (acRoot != null) return acRoot;
+            if (acRoot != null && !fresh) return acRoot;
             List<string> cand = new List<string>();
             cand.Add(AcRootOverride);
             cand.Add(Environment.GetEnvironmentVariable("AC_ROOT"));
