@@ -1,15 +1,19 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Forms;
 
 namespace ACCoach
 {
     static class Program
     {
+        [DllImport("kernel32.dll")] static extern bool AttachConsole(int pid);
+
+        [STAThread]
         static int Main(string[] args)
         {
-            Console.OutputEncoding = Encoding.UTF8;
             // Polish number format everywhere (spoken "0,12", reports), whatever the Windows region settings are.
             CultureInfo pl = CultureInfo.GetCultureInfo("pl-PL");
             CultureInfo.DefaultThreadCurrentCulture = pl;
@@ -20,6 +24,7 @@ namespace ACCoach
             string dataArg = string.IsNullOrEmpty(st.DataDir) ? null : st.DataDir;
             string mode = "live", combo = null;
             bool modeArg = false;   // the first --train/--no-train/--quiet/--fokus replaces the mode from the settings
+            bool driveArgs = false; // any driving option on the command line: start the trainer right away
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -28,17 +33,17 @@ namespace ACCoach
                 else if (a == "voicetest") mode = "voicetest";
                 else if (a == "config" || a == "konfiguracja") mode = "config";
                 else if (a == "--pause") o.Pause = true;
-                else if (a == "--no-panel" || a == "--bez-okna") o.Panel = false;
                 else if (a == "--mute") o.Mute = true;
-                else if (a == "--quiet") { ResetMode(o, ref modeArg); o.Quiet = true; }
-                else if (a == "--train" || a == "--trening") { ResetMode(o, ref modeArg); o.Train = true; }
-                else if (a == "--no-train" || a == "--bez-treningu") { ResetMode(o, ref modeArg); o.Train = false; }
+                else if (a == "--quiet") { ResetMode(o, ref modeArg); o.Quiet = true; driveArgs = true; }
+                else if (a == "--train" || a == "--trening") { ResetMode(o, ref modeArg); o.Train = true; driveArgs = true; }
+                else if (a == "--no-train" || a == "--bez-treningu") { ResetMode(o, ref modeArg); o.Train = false; driveArgs = true; }
                 else if (a == "--no-open") o.NoOpen = true;
                 else if (a == "--test-shm") o.TestShm = true;
                 else if (a == "--fokus" || a == "--focus")
                 {
                     ResetMode(o, ref modeArg);
                     o.Focus = true;
+                    driveArgs = true;
                     int num;
                     if (i + 1 < args.Length && int.TryParse(args[i + 1].TrimStart('Z', 'z'), out num)) { o.FocusCorner = num; i++; }
                 }
@@ -51,13 +56,23 @@ namespace ACCoach
                 else if (mode == "analyze" && !a.StartsWith("--")) combo = a;
                 else
                 {
-                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--no-panel] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry] [--cel 1:35.000]");
+                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry] [--cel 1:35.000]");
                     return 2;
                 }
             }
-            if (mode == "config") return ConfigForm.Run(st);
-
             o.DataDir = dataArg ?? DefaultDataDir();
+
+            // typed in a command prompt: analysis and the voice test print there, as before
+            bool console = (mode == "analyze" || mode == "voicetest") && AttachConsole(-1);
+            if (!console)
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new MainForm(st, o, o.TargetMs, dataArg == st.DataDir || dataArg == "" ? null : dataArg, driveArgs || (mode == "live" && st.AutoStart), mode));
+                return 0;
+            }
+            try { Console.OutputEncoding = Encoding.UTF8; } catch (IOException) { }
+            Console.WriteLine();
             Directory.CreateDirectory(o.DataDir);
 
             if (mode == "analyze")
@@ -73,10 +88,6 @@ namespace ACCoach
                 PauseIf(o);
                 return 0;
             }
-            LiveCoach coach = new LiveCoach(o);
-            if (o.Panel) LivePanel.Start(coach, st);
-            coach.Run();
-            LivePanel.CloseIfOpen();
             return 0;
         }
 

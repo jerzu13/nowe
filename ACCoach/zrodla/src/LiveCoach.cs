@@ -21,7 +21,6 @@ namespace ACCoach
         public int Volume = 100;
         public int BeepVolume = 100;
         public int TargetMs;                 // --cel: target lap time; 0 = from <combo>\cel.txt
-        public bool Panel = true;            // live settings window next to the console (--no-panel: console only)
         public bool Pause;                   // wait for a key before closing (Start menu shortcuts)
         public float BeepLead = float.NaN;   // seconds the final beep is played early; NaN = learn from your reactions
         public bool Focus;                   // focus mode: speak only about one corner at a time
@@ -239,7 +238,7 @@ namespace ACCoach
 
         public void Run()
         {
-            Console.CancelKeyPress += delegate (object s, ConsoleCancelEventArgs e) { e.Cancel = true; stop = true; };
+            try { Console.CancelKeyPress += delegate (object s, ConsoleCancelEventArgs e) { e.Cancel = true; stop = true; }; } catch (Exception) { }   // no console in the window app
             try { timeBeginPeriod(1); } catch (Exception) { }   // finer Sleep on Windows
             voice = new Voice(false, o.Rate, o.VoiceName, o.Volume) { Muted = o.Mute };
             beeper = new Beeper(o.Mute || !o.Train, o.BeepVolume);
@@ -249,7 +248,7 @@ namespace ACCoach
             if (o.Train) Console.WriteLine("TRYB TRENINGOWY: piknięcia do hamowania + uwagi o linii");
             else Console.WriteLine("Piknięcia do hamowania WYŁĄCZONE (--no-train)");
             if (o.Focus) Console.WriteLine("TRYB FOKUS: uwagi głosowe tylko o jednym zakręcie" + (o.FocusCorner > 0 ? " (Z" + o.FocusCorner + ")" : ", wybieranym automatycznie"));
-            Console.WriteLine("Zakończ: Ctrl+C\n");
+            Console.WriteLine("Zatrzymanie: przycisk „Zatrzymaj trenera” albo zamknięcie okna\n");
 
             bool wasLive = false, waitingShown = false;
             try

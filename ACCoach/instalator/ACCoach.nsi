@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 RequestExecutionLevel user
 
 !define APP      "AC Coach"
-!define VERSION  "1.4.0"
+!define VERSION  "1.5.0"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ACCoach"
 !define SRC      ".."
 
@@ -29,10 +29,9 @@ VIAddVersionKey /LANG=1045 "LegalCopyright" " "
 !define MUI_ICON "${SRC}\zrodla\ACCoach.ico"
 !define MUI_UNICON "${SRC}\zrodla\ACCoach.ico"
 !define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TEXT "Instalator zainstaluje AC Coach – trenera do Assetto Corsa – dla bieżącego użytkownika Windows.$\r$\n$\r$\nNie są potrzebne uprawnienia administratora. Każdy użytkownik Windows ma własne ustawienia i własne dane jazd.$\r$\n$\r$\nPo instalacji otworzy się okno konfiguracji."
+!define MUI_WELCOMEPAGE_TEXT "Instalator zainstaluje AC Coach – trenera do Assetto Corsa – dla bieżącego użytkownika Windows.$\r$\n$\r$\nNie są potrzebne uprawnienia administratora. Każdy użytkownik Windows ma własne ustawienia i własne dane jazd.$\r$\n$\r$\nWszystko – jazda, ustawienia, analiza i pomoc – jest w jednym oknie AC Coach."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\ACCoach.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "config"
-!define MUI_FINISHPAGE_RUN_TEXT "Otwórz konfigurację AC Coach"
+!define MUI_FINISHPAGE_RUN_TEXT "Uruchom AC Coach"
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\JAK UZYWAC.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Pokaż instrukcję"
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
@@ -72,10 +71,12 @@ Section "AC Coach (wymagane)" SecMain
   SetFileAttributes "$INSTDIR\.zainstalowany" HIDDEN
 
   CreateDirectory "$SMPROGRAMS\AC Coach"
-  CreateShortcut "$SMPROGRAMS\AC Coach\AC Coach.lnk" "$INSTDIR\ACCoach.exe" "" "$INSTDIR\ACCoach.ico" 0 SW_SHOWNORMAL "" "Start trenera (tryb z konfiguracji)"
-  CreateShortcut "$SMPROGRAMS\AC Coach\Analiza ostatniej sesji.lnk" "$INSTDIR\ACCoach.exe" "analyze --pause" "$INSTDIR\ACCoach.ico" 0 SW_SHOWNORMAL "" "Raport i mapa toru z ostatniej jazdy"
-  CreateShortcut "$SMPROGRAMS\AC Coach\Konfiguracja AC Coach.lnk" "$INSTDIR\ACCoach.exe" "config" "$INSTDIR\ACCoach.ico" 0 SW_SHOWMINIMIZED "" "Ustawienia tego użytkownika"
-  CreateShortcut "$SMPROGRAMS\AC Coach\Test głosu.lnk" "$INSTDIR\ACCoach.exe" "voicetest --pause" "$INSTDIR\ACCoach.ico" 0
+  ; shortcuts of versions up to 1.4 (separate settings, analysis and voice test) – all of it is in the window now
+  Delete "$SMPROGRAMS\AC Coach\Analiza ostatniej sesji.lnk"
+  Delete "$SMPROGRAMS\AC Coach\Konfiguracja AC Coach.lnk"
+  Delete "$SMPROGRAMS\AC Coach\Test głosu.lnk"
+  Delete "$DESKTOP\Konfiguracja AC Coach.lnk"
+  CreateShortcut "$SMPROGRAMS\AC Coach\AC Coach.lnk" "$INSTDIR\ACCoach.exe" "" "$INSTDIR\ACCoach.ico" 0 SW_SHOWNORMAL "" "Trener do Assetto Corsa"
   CreateShortcut "$SMPROGRAMS\AC Coach\Instrukcja.lnk" "$INSTDIR\JAK UZYWAC.txt"
   CreateShortcut "$SMPROGRAMS\AC Coach\Odinstaluj AC Coach.lnk" "$INSTDIR\Odinstaluj.exe"
 
@@ -96,13 +97,12 @@ SectionEnd
 
 Section "Skrót na pulpicie" SecDesktop
   SetShellVarContext current
-  CreateShortcut "$DESKTOP\AC Coach.lnk" "$INSTDIR\ACCoach.exe" "" "$INSTDIR\ACCoach.ico" 0 SW_SHOWNORMAL "" "Start trenera"
-  CreateShortcut "$DESKTOP\Konfiguracja AC Coach.lnk" "$INSTDIR\ACCoach.exe" "config" "$INSTDIR\ACCoach.ico" 0 SW_SHOWMINIMIZED "" "Ustawienia AC Coach"
+  CreateShortcut "$DESKTOP\AC Coach.lnk" "$INSTDIR\ACCoach.exe" "" "$INSTDIR\ACCoach.ico" 0 SW_SHOWNORMAL "" "Trener do Assetto Corsa"
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "Program, skróty w menu Start i odinstalowywanie."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Skróty „AC Coach” i „Konfiguracja AC Coach” na pulpicie."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Skrót „AC Coach” na pulpicie."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Uninstall"

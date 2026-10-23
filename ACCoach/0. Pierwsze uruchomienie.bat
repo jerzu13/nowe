@@ -27,9 +27,5 @@ if not exist ACCoach.exe (
   exit /b 1
 )
 echo.
-echo Teraz test glosu i pikniec (sprawdz, czy slychac):
-echo.
-ACCoach.exe voicetest
-echo.
-echo Gotowe. Dalej uruchamiaj pliki 1-5 (opis w JAK UZYWAC.txt).
-pause
+echo Gotowe. Uruchamiam AC Coach - dalej otwieraj po prostu ACCoach.exe.
+start "" ACCoach.exe
