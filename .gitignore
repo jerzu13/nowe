@@ -1,3 +1,4 @@
 # build output (ACCoach/zrodla/build.sh)
 dist/
 ACCoach/zrodla/tools/test/bin/
+ACCoach/zrodla/tools/test/*.dll
