@@ -1,0 +1,309 @@
+﻿AC Coach – trener do Assetto Corsa
+==================================
+
+INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
+  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup.exe.
+    - Instaluje tylko dla Ciebie (bieżący użytkownik Windows), bez uprawnień administratora,
+      do  %LOCALAPPDATA%\Programs\AC Coach .
+    - Dodaje skróty w menu Start (folder "AC Coach"): AC Coach, Analiza ostatniej sesji,
+      Konfiguracja AC Coach, Test głosu, Instrukcja, Odinstaluj – i opcjonalnie na pulpicie.
+    - Na końcu otwiera okno KONFIGURACJI. Odinstalowanie: menu Start albo
+      Ustawienia > Aplikacje. Twoje okrążenia i raporty zostają w Dokumentach.
+    - Windows może pokazać "System Windows ochronił ten komputer" (instalator nie ma
+      podpisu cyfrowego): kliknij "Więcej informacji" > "Uruchom mimo to".
+    - Każdy inny użytkownik tego komputera instaluje sobie AC Coach sam, ze swoim kontem.
+
+  Sposób 2 – BEZ INSTALACJI (folder przenośny, np. na pendrive):
+    1. Rozpakuj CAŁY folder "AC Coach" gdziekolwiek. Nie uruchamiaj plików prosto z okna
+       ZIP-a – najpierw "Wyodrębnij wszystkie".
+    2. Uruchom raz "0. Pierwsze uruchomienie.bat" – odblokuje pliki, sprawdzi .NET
+       Framework 4.8 i puści test głosu. Ustawienia: "Konfiguracja.bat".
+    - Dane zapisują się w tym samym folderze co ACCoach.exe (można go przenieść razem
+      z historią jazd). Folder tylko do odczytu -> dane w Dokumenty\AC Coach.
+
+KONFIGURACJA (okno ustawień – osobne dla każdego użytkownika Windows)
+  Menu Start > AC Coach > Konfiguracja AC Coach  (albo "Konfiguracja.bat").
+  - Tryb jazdy: z sygnałami / bez piknięć / cichy / fokus (+ numer zakrętu). Tak startuje
+    skrót "AC Coach". Pliki .bat z numerami 1–5 nadal wymuszają swój tryb.
+  - Głos: wybór głosu Windows, tempo, głośność głosu i piknięć, wyciszenie,
+    przycisk "Test głosu i piknięć".
+  - Piknięcia: uczenie się Twojego czasu reakcji albo stała wartość w sekundach.
+  - Foldery: gdzie zapisywać dane (puste = domyślnie) i folder Assetto Corsa
+    (puste = szukaj samemu; przycisk "Wykryj").
+  - Czy po analizie otwierać mapę toru.
+  - Ustawienia zapisują się w  %APPDATA%\AC Coach\ustawienia.ini .
+    Przyciski: "Zapisz i uruchom trenera", "Analiza ostatniej sesji".
+
+OKNO "NA ŻYWO" (zmiana ustawień w trakcie jazdy)
+  Po uruchomieniu trenera obok okna z logiem otwiera się okno "AC Coach – na żywo".
+  Wszystko, co tu zmienisz, działa OD RAZU, bez restartu:
+  - piknięcia do hamowania (wł./wył.), uwagi głosowe po zakrętach (wył. = tylko czasy),
+    fokus na jednym zakręcie (0 = trener wybiera sam), wycisz wszystko,
+  - głos, głośność głosu, głośność piknięć, tempo mowy,
+  - ostatnie piknięcie: uczenie się Twojej reakcji albo stała liczba sekund.
+  Na górze: stan, auto i tor, czas wzorca, ostatnie okrążenie, zakręt fokusu.
+  "Zapisz jako domyślne" – trener tak wystartuje następnym razem.
+  "Zawsze na wierzchu" – przydatne na drugim monitorze. "Pokaż okno z logiem" – chowa
+  albo pokazuje czarne okno z logiem. "Zakończ" (albo krzyżyk) kończy trenera.
+  Nie chcesz tego okna? W Konfiguracji odznacz "Podczas jazdy pokazuj okno na żywo"
+  (albo dopisz  --no-panel  w pliku .bat).
+  Gra w pełnym ekranie zasłania okno – przełącz się Alt+Tab albo graj w oknie
+  bez ramki (borderless) / trzymaj panel na drugim monitorze.
+
+KOŁA I OPONY (od wersji 1.4, bez żadnych dodatków – dane z samej gry)
+  Trener zapisuje teraz też: poślizg i obciążenie każdego koła, kąt poślizgu opon,
+  obrót auta, temperatury opon (rdzeń) i hamulców, ciśnienia, pracę TC i ABS.
+  (Okrążenia nagrane wcześniej tych danych nie mają – działają jak dotąd.)
+  W CZASIE JAZDY – po zakręcie głos dopowiada, co zrobiły koła:
+      "blokujesz przód" / "blokujesz tył"   – zawsze (blokada niszczy oponę),
+      "buksujesz na wyjściu", "tył ucieka", "przód ucieka", "kontrola trakcji..."
+                                            – gdy zakręt kosztował czas.
+  Na mecie: "opony zimne" (chłodniejsze niż na najlepszym okrążeniu), potem
+  "opony rozgrzane". W oknie z logiem temperatury i ciśnienia każdego okrążenia.
+  RAPORT – sekcja "KOŁA I OPONY": w których zakrętach i ile razy były blokady,
+  buksowanie, uślizgi, ile to kosztuje i co zmienić; przy okrążeniach temperatura opon
+  i oznaczenie "(zimne)".
+  MAPA HTML – nowe wykresy: poślizg wzdłużny (przód/tył), kąt poślizgu (przód/tył),
+  obrót auta, temperatury i ciśnienia opon; na mapie romby w miejscach blokad,
+  buksowania i uślizgów. Mapka "Gdzie to jest na torze" pokazuje też te dane.
+  Wymaga Assetto Corsa 1.14 lub nowszego (starsze wersje nie podają poślizgów).
+
+CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
+  W oknie "na żywo" wpisz czas (np. 1:35.000 albo 1:35:500) i kliknij "Ustaw cel".
+  Cel jest zapamiętany dla tego auta i toru:  <auto>__<tor>\cel.txt .
+  CZY CEL JEST REALNY – trener buduje MODEL AUTA z Twoich okrążeń: ile przyczepności
+  w zakręcie i ile hamowania auto utrzymało (nie chwilowe skoki na tarkach) i jak
+  przyspiesza, przy każdej prędkości. Potem "przejeżdża" Twoją linię na tych granicach
+  i porównuje z celem:
+      realny            – masz go już w swoich najlepszych zakrętach albo w granicach
+                          przyczepności, którą już osiągasz,
+      ambitny (+X%)     – trzeba wykorzystać o X% więcej przyczepności i hamowania
+                          niż Twoje dotychczasowe maksimum,
+      bardzo ambitny / bardzo daleko – najpierw cele pośrednie.
+  Model zna tylko to, co już wyjechałeś – im szybciej jeździsz, tym dokładniej ocenia.
+  Prawdziwy limit auta może być wyższy (dla Huracána ST na Vallelungi zawodowcy w realu
+  jeżdżą ok. 1:31–1:33).
+  CELE POŚREDNIE – trener nie każe od razu jechać po 1:35. Najpierw: idealne okrążenie
+  (Twoje najlepsze zakręty), potem co ok. sekundę. Po każdym nowym rekordzie przechodzi
+  do następnego i mówi np. "Cel pośredni 1 37,5".
+  CO MÓWI GŁOS – i o najlepszym okrążeniu, i o celu:
+      "Zakręt 4, gorzej o 0,1, do celu 0,4, szczyt szybciej o 8"
+      "Zakręt 6, lepiej o 0,4, w celu"
+      "Czas 1 38,9, minus 0,6, do celu 0,7"
+  W oknie z logiem przy każdym zakręcie: "cel +0.45 (łącznie +1.62)".
+  RAPORT I MAPA – sekcja "CEL CZASU": ocena, cele pośrednie i plan na zakręty:
+      Z7  -0,94 s   szczyt 99 → 110 km/h   (ile czasu i jaka prędkość w szczycie)
+  Bez okna: dopisz w pliku .bat np.  --cel 1:35.000
+
+  WSKAZÓWKI
+  - Assetto Corsa jest wyszukiwane samo: uruchomiona gra, Steam (wszystkie biblioteki,
+    każdy dysk) i typowe foldery. Gdy się nie uda – wskaż folder gry w Konfiguracji
+    (bez gry mapa toru jest bez krawędzi, reszta działa normalnie).
+  - Polski głos: jeśli go nie ma, trener mówi głosem domyślnym. Dodaj go: Ustawienia >
+    Czas i język > Mowa > Dodaj głosy > Polski, potem wybierz go w Konfiguracji.
+  - Działa na Windows z dowolnymi ustawieniami regionalnymi (liczby zawsze po polsku).
+
+SZYBKI START
+  1. Uruchom skrót "AC Coach" z menu Start (albo jeden z plików .bat) przed albo po starcie gry
+     i zostaw okno w tle.
+  2. Jedź. Trener nagrywa każde okrążenie i podpowiada głosem.
+  3. Po jeździe: "Analiza ostatniej sesji" z menu Start (albo "3. Analiza ostatniej sesji.bat").
+  4. Napisz do Claude "przeanalizuj" – dostaniesz wskazówki do następnej jazdy.
+
+  Działa offline i online. Zamykasz okno trenera: Ctrl+C albo krzyżykiem.
+
+
+KTÓRY PLIK URUCHOMIĆ
+  ACCoach.exe  albo  4. Trening z sygnalami (pikniecia + linia).bat
+       To samo: pełny trening – piknięcia do hamowania + uwagi o linii. Opis niżej.
+       Na górze okna zobaczysz: "TRYB TRENINGOWY: piknięcia do hamowania..."
+  1. Start trenera (przed jazda).bat
+       BEZ piknięć: po zakręcie mówi najważniejszą uwagę, na mecie czas i różnicę.
+  2. Start trenera - tryb cichy.bat
+       BEZ piknięć, tylko czasy okrążeń i Twoje notatki. Dobre z CrewChiefem albo w wyścigu.
+  5. Trening fokus (jeden zakret).bat
+       Trening jak wyżej, ale głos mówi tylko o JEDNYM zakręcie – tym, który kosztuje
+       Cię najwięcej. Opis niżej (TRYB FOKUS).
+  3. Analiza ostatniej sesji.bat
+       Po jeździe: robi raport z sesji i otwiera MAPĘ TORU w przeglądarce (bez gry).
+  Test glosu.bat
+       Sprawdza głos i pokazuje, jak brzmią piknięcia. Uruchom raz na początku.
+
+
+JAK TRENER SIĘ UCZY
+  - Każde okrążenie zapisuje się w folderze  <auto>__<tor>\laps
+  - Twoje najlepsze WAŻNE okrążenie to wzorzec. Wszystko jest porównywane z nim.
+    Pierwsze czyste okrążenie = pierwszy wzorzec; pojedziesz szybciej -> nowy wzorzec.
+  - Nieważne okrążenie: 3 lub więcej kół poza torem albo przejazd przez pit.
+    Nie zostanie wzorcem, ale jest zapisane.
+  - CEL dla każdego zakrętu = Twój NAJSZYBSZY przejazd tego zakrętu z wszystkich okrążeń
+    (także z nieważnych, jeśli w tym zakręcie byłeś na torze). Razem to "idealne okrążenie"
+    – trener podaje jego czas na starcie. Piknięcia i wskazówki celują w ten przejazd,
+    żebyś poprawiał swój najlepszy czas, a nie tylko go powtarzał.
+
+  PO KAŻDYM ZAKRĘCIE (ok. 60 m za pełnym gazem) słyszysz od razu, jak poszło
+  w porównaniu z Twoim najlepszym okrążeniem:
+      "Zakręt 3, lepiej o 0,12"
+      "Zakręt 3, gorzej o 0,2, hamujesz za wcześnie, o 15 metrów"   <- co poprawić
+      "Zakręt 3, równo"
+      "Zakręt 3, lepiej o 0,15, rekord zakrętu"   <- najszybciej w historii
+  - W oknie trenera przy każdym zakręcie jest też "łącznie": strata/zysk na całym
+    okrążeniu do tego miejsca.
+  - Piknięcia grają razem z głosem – niczego nie przerywają, więc żadna uwaga nie ginie.
+
+  PRACA PEDAŁÓW I KIEROWNICY – tylko to, co na Twoich okrążeniach naprawdę kosztowało
+  czas albo kończyło się wyjazdem (sprawdzone na 26 okrążeniach):
+      "uślizg tyłu, łagodniej gaz"   – kontrujesz kierownicą na wyjściu; przy kontrze
+                                       wyjazdów było 2× więcej (36% vs 15%)
+      "gaz i hamulec naraz"          – oba pedały przed szczytem; średnio +0,2 s,
+                                       w Z3 nawet +1 s
+      "prowadź hamulec dalej w zakręt" / "za długo na hamulcu" – puszczasz hamulec
+                                       wyraźnie inaczej niż w najlepszym przejeździe
+  Nie są już mówione (dane pokazały, że nie kosztują czasu): gaz przy mocnym hamowaniu,
+  korekty kierownicą, odpuszczanie gazu, jazda bez gazu i hamulca, a pełny gaz przy
+  skręconych kołach był w tym aucie wręcz szybszy. Pomiary nadal są w analysis.json.
+
+
+TRYB TRENINGOWY – PIKNIĘCIA DO HAMOWANIA
+  Przed każdym zakrętem z hamowaniem słyszysz 3 piknięcia, w równym rytmie:
+
+      pik ...... pik ...... OSTATNIE  <- tu zaczynasz hamować
+
+  Ostatnie piknięcie mówi też, JAK MOCNO hamować (tak jak na Twoim wzorcu):
+      wysokie, długie         = cały hamulec
+      średnie, krótsze        = średnio, mniej więcej pół hamulca
+      dwa niskie "tik-tik"    = lekko albo krótkie dotknięcie
+
+  - Łap rytm: pierwsze dwa piknięcia to odliczanie, noga idzie na hamulec
+    razem z ostatnim.
+  - W oknie trenera każde piknięcie jest widoczne jako [PIK 1/3], [PIK 2/3], [HAMUJ].
+    Widzisz te linie, a nie słyszysz piknięć? To problem z dźwiękiem – sprawdź
+    "Test glosu.bat" i głośność aplikacji ACCoach w Mikserze głośności Windows.
+  - Jedziesz szybciej niż na wzorcu -> pika wcześniej; wolniej -> później.
+  - Od razu po wciśnięciu hamulca usłyszysz:
+      "Późno"    – hamulec wyraźnie (ponad 0,35 s) po ostatnim piknięciu,
+      "Wcześnie" – hamulec wyraźnie przed ostatnim piknięciem.
+    Zahamujesz przed ostatnim piknięciem -> odliczanie się urywa, nie pika w trakcie hamowania.
+  - Trener MIERZY Twoją reakcję przy każdym hamowaniu i pisze w oknie, np.:
+      piknięcie -> hamulec: +0.17 s | punkt hamowania: +8 m
+    (+8 m = wcisnąłeś hamulec 8 m za punktem, w który celowało piknięcie).
+  - Trener UCZY SIĘ Twojego czasu reakcji: ostatnie piknięcie gra tyle wcześniej,
+    ile zwykle mija od piknięcia do Twojej nogi na hamulcu (0,10–0,60 s),
+    OSOBNO DLA KAŻDEGO ZAKRĘTU, gdy ma z niego 4 hamowania (np. w szybkich
+    zakrętach reagujesz wolniej). Na górze okna: "Ostatnie piknięcie 0,17 s przed
+    punktem hamowania" i lista zakrętów z innym ustawieniem.
+  - Podsumowanie reakcji (mediana, odchyłka od punktu w metrach, ile razy za późno
+    / za wcześnie) jest w raporcie po jeździe i na mapie toru.
+  - Po zakręcie trener powie "hamuj mocniej" albo "za mocno hamujesz",
+    jeśli siła hamowania wyraźnie różni się od wzorca.
+
+  MARGINES BEZPIECZEŃSTWA
+  - Wypadniesz z toru w zakręcie -> następnym razem ostatnie piknięcie gra tam wcześniej:
+    +10 m po wyjeździe na wejściu, +5 m po wyjeździe na wyjściu (najwyżej 30 m).
+    Trener mówi np. "Zakręt 5, następnym razem piknę 10 metrów wcześniej".
+  - Każdy czysty przejazd tego zakrętu zdejmuje 3 m, aż margines zniknie.
+  - Margines zostaje między jazdami: plik  <auto>__<tor>\margines.txt
+    (usuń go, żeby wyzerować).
+
+  TRYB FOKUS ("5. Trening fokus (jeden zakret).bat")
+  - Na starcie trener wybiera zakręt, w którym tracisz najwięcej (średnia strata,
+    wyjazdy, ile pokazał Twój najlepszy przejazd) i pisze dlaczego, np.
+    "FOKUS: zakręt 4 (średnio +0.65 s, wyjazdy 1/26 ...)".
+  - Głos mówi tylko o tym zakręcie: przypomina przed nim, co poprawić
+    ("Zakręt 4: szczyt za szeroko"), a po nim mówi wynik i serię ("dobrze 1 z 3").
+  - 3 dobre przejazdy z rzędu (nie gorzej niż wzorzec, bez wyjazdu) = zakręt opanowany,
+    trener sam przechodzi do następnego.
+  - Piknięcia działają we wszystkich zakrętach. Czasy okrążeń też są mówione.
+  - Konkretny zakręt: w pliku .bat zmień linię na np.  ACCoach.exe --train --fokus 4
+
+  Uwagi o linii (też tylko w trybie treningowym):
+  - "Szerzej" – na prostej przed zakrętem, gdy jesteś za blisko wewnętrznej.
+  - Po zakręcie: "szczyt za szeroko", "za ciasno", "wykorzystaj całe wyjście".
+  - Linia = Twoja linia z wzorca. "Wewnętrzna/zewnętrzna" oznacza stronę zakrętu,
+    nie lewo/prawo. W walce online uwagi o linii po prostu ignoruj.
+
+  Chcesz ustawić to ręcznie? Otwórz "4. Trening z sygnalami (pikniecia + linia).bat"
+  w Notatniku i zmień linię  ACCoach.exe --train  na np.:
+      ACCoach.exe --train --beep-lead 0.30     (sekundy przed punktem hamowania)
+
+
+PO JEŹDZIE
+  - "3. Analiza ostatniej sesji.bat" zapisuje raport w  <auto>__<tor>\reports
+    i otwiera mapę toru (plik mapa_....html w tym samym folderze).
+
+  - Raport (i mapa) ma 4 części:
+      NA NASTĘPNĄ JAZDĘ – 3 zakręty, które kosztują najwięcej (średnia strata + wyjazdy),
+        przy każdym: gdzie wypadasz i dlaczego, oraz co robisz inaczej w swoich
+        SZYBKICH przejazdach tego zakrętu niż w wolnych (np. "pełny gaz 88 m wcześniej").
+      ZAKRĘTY – jedna linia na zakręt: strata, powtarzalność, wyjazdy (wejście/wyjście).
+      PIKNIĘCIA – jak trafiasz w punkt hamowania i tylko zakręty, które wymagają uwagi.
+      OKRĄŻENIA – czas, gdzie był wyjazd i gdzie najwięcej straciłeś.
+  - Wszystkie szczegółowe pomiary (pedały, kierownica, każdy zakręt każdego okrążenia)
+    są w analysis.json – do analizy z Claude ("przeanalizuj").
+
+  MAPA TORU
+  - Prawdziwe krawędzie toru i LINIA WZORCOWA (przerywana zielona) – to linia AI
+    z plików gry. Niebieska = Twoja najlepsza linia.
+  - Wybrane okrążenie jest pokolorowane: czerwony = hamulec, zielony = pełny gaz,
+    żółty = częściowo / bez gazu. Okrążenie zmieniasz na liście u góry.
+  - Niebieska kreska = punkt hamowania z wzorca, żółte kółko = ostatnie piknięcie,
+    czerwona kropka = gdzie naprawdę wcisnąłeś hamulec, czerwony X = wyjazd poza tor.
+  - Po prawej: wskazówki i lista zakrętów (piknięcie -> hamulec dla każdego).
+    Kliknij zakręt (na mapie albo na liście), żeby go przybliżyć.
+    Kółko myszy = zoom, przeciąganie = przesuwanie, ⤢ = cały tor.
+  - Napisz do Claude "przeanalizuj" – przeczyta analysis.json i powie, co poprawić.
+  - Do porównań liczy się każdy zakręt przejechany bez wyjazdu – także z okrążeń
+    nieważnych przez inny zakręt (pomija tylko zakręt z wyjazdem i ten tuż po nim).
+
+
+RYWAL (np. Mirek)
+  - Wrzuć plik z wynikami z serwera (.json, ten sam, który serwer zapisuje po sesji)
+    do folderu  AC Coach\rywale . Trener sam wybiera najszybszego kierowcę w tym samym
+    aucie i na tym samym torze.
+  - W czasie jazdy po każdym sektorze: "Sektor 1, plus 0,6 do rywala", a na mecie
+    "..., do rywala plus 1,3". W oknie trenera dokładnie: Twój sektor, sektor rywala
+    (z jego najlepszego okrążenia, najlepszy i średni) i Twój najlepszy sektor.
+  - Raport i mapa mają sekcję RYWAL: tabela sektorów (najlepsze okrążenie, najlepsze
+    sektory, średnio) i wnioski – gdzie tracisz najwięcej i które to zakręty.
+  - Sektory są te same co na serwerze – trener czyta linie pomiaru czasu z plików toru
+    i zapisuje je w  <auto>__<tor>\sektory.txt .
+
+  PORÓWNANIE NA MAPIE (raport HTML)
+  - "sektory vs rywal": wybrane okrążenie pokolorowane na mapie sektorami –
+    zielony szybciej niż rywal, żółty do 0,3 s wolniej, czerwony więcej.
+  - Tabela sektorów: rywal (najlepsze okrążenie, najlepsze sektory, średnio)
+    i Twoje okrążenie z różnicami. Pod nią wszystkie okrążenia sesji – kliknij,
+    żeby wybrać.
+  - "Porównaj z": wykresy wzdłuż toru – prędkość, różnica czasu (gdzie tracisz
+    i zyskujesz), gaz, hamulec, kierownica. Linia ciągła = wybrane okrążenie,
+    przerywana = porównanie.
+  - Obok wykresów jest mapka "Gdzie to jest na torze" – zawsze widoczna, także gdy
+    przewijasz w dół. Najedź na wykres (hamulec, gaz, kierownica, prędkość): mapka sama
+    przybliża się do tego miejsca, pokazuje zakręt (wejście / szczyt / wyjście) i wartości.
+    Kliknij wykres, żeby przypiąć punkt; strzałki ← → przesuwają go o 10 m (Shift: 50 m).
+    W rogu mapki mały podgląd całego toru. Przybliżanie wyłączysz pod mapką.
+  - Z pliku serwera są tylko CZASY sektorów rywala. Żeby porównać jego JAZDĘ
+    (linię, prędkość, pedały), rywal musi jeździć z AC Coach i dać Ci swoje okrążenia:
+    pliki .csv z jego folderu  <auto>__<tor>\laps  wrzuć do  AC Coach\rywale\Mirek\ .
+    Wtedy pojawi się on na liście "Porównaj z", a jego linia na mapie (fioletowa).
+
+NOTATKI (Twoje podpowiedzi przed zakrętem)
+  Utwórz plik  <auto>__<tor>\notes.txt , jedna linia na zakręt, np.:
+    Z3: Hamuj przy tablicy 100
+    Z8: Krótko na hamulec
+  Trener przeczyta notatkę na prostej przed tym zakrętem.
+  Zmiany działają od następnego okrążenia.
+
+
+DOBRZE WIEDZIEĆ
+  - Zakręty są numerowane po kolei na torze (Z1, Z2...), może to różnić się
+    od oficjalnej numeracji. Numeracja jest STAŁA – zapisana w  <auto>__<tor>\zakrety.txt
+    (numer i metr szczytu). Usuń ten plik, a trener ponumeruje zakręty od nowa.
+  - Każde piknięcie jest zapisywane w  <auto>__<tor>\pikniecia.csv  (kiedy piknęło,
+    kiedy wcisnąłeś hamulec, siła, wyjazd poza tor) – z tego korzysta analiza i mapa.
+  - Z CrewChiefem używaj trybu cichego, żeby głosy się nie nakładały.
+  - Folder "zrodla" to kod programu – do zwykłej jazdy niepotrzebny.
+    Przebudowa ACCoach.exe na dowolnym Windows (bez Visual Studio): zrodla\build.bat
+    Instalator: instalator\ACCoach.nsi (NSIS 3).
+  - Opcje dla zaawansowanych w pliku .bat:  --data "folder"  (inny folder danych),
+    --ac "folder gry"  (ścieżka do Assetto Corsa).
