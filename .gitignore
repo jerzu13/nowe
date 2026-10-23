@@ -1,0 +1,3 @@
+# build output (ACCoach/zrodla/build.sh)
+dist/
+ACCoach/zrodla/tools/test/bin/

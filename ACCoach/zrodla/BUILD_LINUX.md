@@ -1,14 +1,12 @@
-# Budowanie bez Windows (opcjonalne)
+# Building and testing on Linux
 
-Na Windows wystarczy `build.bat`. Na Linuksie z Mono (`mono-devel`) potrzebny jest
-tylko plik referencyjny `System.Speech.dll` (Mono go nie ma) – np. skopiowany z
-`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\System.Speech.dll`:
+Windows: `build.bat` (C# compiler of .NET Framework 4.8, no Visual Studio).
 
-    mcs -codepage:65001 -optimize -target:winexe -sdk:4.8 -out:../ACCoach.exe -win32icon:ACCoach.ico \
-      -r:System.Core.dll -r:System.Speech.dll -r:System.Web.Extensions.dll \
-      -r:System.Windows.Forms.dll -r:System.Drawing.dll \
-      -resource:src/map_template.html,ACCoach.map_template.html src/*.cs
+Linux (Mono + NSIS; cloud sessions install them via `.claude/hooks/session-start.sh`):
 
-Instalator (NSIS, `apt install nsis` albo NSIS dla Windows):
+    ./build.sh            # ACCoach.exe + test tools (tools/test/bin)
+    ./build.sh release    # + installer and portable ZIP in <repo>/dist
+    ./test.sh             # simulated session, analysis EN/PL, track map in a browser (~2.5 min)
 
-    makensis ../instalator/ACCoach.nsi      # -> instalator/AC_Coach_Setup.exe
+Mono has no System.Speech: `build.sh` compiles a reference-only stub (`tools/test/SpeechStub.cs`) with the same
+name and Microsoft public key, so the exe binds to the real assembly on Windows. Never ship the stub.
