@@ -25,6 +25,7 @@ namespace ACCoach
         public bool AutoStart = true;        // start the trainer as soon as the window opens
         public string DataDir = "";          // "" = default (see Program.DefaultDataDir)
         public string AcRoot = "";           // "" = find automatically
+        public string Lang = L.InstallerDefault();   // "en" | "pl"
 
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -67,17 +68,18 @@ namespace ACCoach
                         case "AutoStart": s.AutoStart = v != "0"; break;
                         case "FolderDanych": s.DataDir = v; break;
                         case "FolderGry": s.AcRoot = v; break;
+                        case "Jezyk": s.Lang = v == "pl" ? "pl" : "en"; break;
                     }
                 }
             }
-            catch (Exception e) { Console.WriteLine("Nie udało się wczytać ustawień (" + FilePath + "): " + e.Message); }
+            catch (Exception e) { Console.WriteLine(L.T("Nie udało się wczytać ustawień (", "Could not read the settings (") + FilePath + "): " + e.Message); }
             return s;
         }
 
         public void Save()
         {
             List<string> l = new List<string>();
-            l.Add("# AC Coach – ustawienia tego użytkownika Windows (zmieniaj w oknie AC Coach)");
+            l.Add("# AC Coach – settings of this Windows user (change them in the AC Coach window)");
             l.Add("Piknięcia=" + B(Train));
             l.Add("TylkoCzasy=" + B(Quiet));
             l.Add("Fokus=" + B(Focus));
@@ -93,6 +95,7 @@ namespace ACCoach
             l.Add("AutoStart=" + B(AutoStart));
             l.Add("FolderDanych=" + DataDir);
             l.Add("FolderGry=" + AcRoot);
+            l.Add("Jezyk=" + Lang);
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
             File.WriteAllLines(FilePath, l, new UTF8Encoding(false));
         }

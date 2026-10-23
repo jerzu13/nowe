@@ -14,12 +14,13 @@ namespace ACCoach
         [STAThread]
         static int Main(string[] args)
         {
-            // Polish number format everywhere (spoken "0,12", reports), whatever the Windows region settings are.
-            CultureInfo pl = CultureInfo.GetCultureInfo("pl-PL");
-            CultureInfo.DefaultThreadCurrentCulture = pl;
-            System.Threading.Thread.CurrentThread.CurrentCulture = pl;
+            // language first: it decides the number format (spoken "0.12" / "0,12"), whatever the Windows region settings are
             Options o = new Options();
             Settings st = Settings.Load();
+            L.En = st.Lang != "pl";
+            for (int i = 0; i + 1 < args.Length; i++) if (args[i] == "--lang") L.En = args[i + 1] != "pl";
+            CultureInfo.DefaultThreadCurrentCulture = L.Culture;
+            System.Threading.Thread.CurrentThread.CurrentCulture = L.Culture;
             st.Apply(o);
             string dataArg = string.IsNullOrEmpty(st.DataDir) ? null : st.DataDir;
             string mode = "live", combo = null;
@@ -49,21 +50,22 @@ namespace ACCoach
                 }
                 else if (a == "--once") o.Once = true;
                 else if (a == "--data" && i + 1 < args.Length) dataArg = args[++i];
-                else if (a == "--cel" && i + 1 < args.Length) o.TargetMs = TargetPlan.ParseTime(args[++i]);
+                else if ((a == "--cel" || a == "--target") && i + 1 < args.Length) o.TargetMs = TargetPlan.ParseTime(args[++i]);
+                else if (a == "--lang" && i + 1 < args.Length) i++;
                 else if (a == "--ac" && i + 1 < args.Length) TrackAi.AcRootOverride = args[++i];
                 else if (a == "--rate" && i + 1 < args.Length) o.Rate = int.Parse(args[++i], CultureInfo.InvariantCulture);
                 else if (a == "--beep-lead" && i + 1 < args.Length) o.BeepLead = float.Parse(args[++i], CultureInfo.InvariantCulture);
                 else if (mode == "analyze" && !a.StartsWith("--")) combo = a;
                 else
                 {
-                    Console.WriteLine("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry] [--cel 1:35.000]");
+                    Console.WriteLine(L.T("Użycie: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--fokus [N]] [--quiet] [--mute] [--rate N] [--beep-lead sekundy] [--data folder] [--ac folder_gry] [--cel 1:35.000]", "Usage: ACCoach.exe [analyze [folder]] [voicetest] [config] [--train | --no-train] [--focus [N]] [--quiet] [--mute] [--rate N] [--beep-lead seconds] [--data folder] [--ac game_folder] [--target 1:35.000] [--lang en|pl]"));
                     return 2;
                 }
             }
             o.DataDir = dataArg ?? DefaultDataDir();
 
             // typed in a command prompt: analysis and the voice test print there, as before
-            bool console = (mode == "analyze" || mode == "voicetest") && AttachConsole(-1);
+            bool console = (mode == "analyze" || mode == "voicetest") && ParentConsole();
             if (!console)
             {
                 Application.EnableVisualStyles();
@@ -77,7 +79,7 @@ namespace ACCoach
 
             if (mode == "analyze")
             {
-                Console.WriteLine("Dane: " + o.DataDir);
+                Console.WriteLine(L.T("Dane: ", "Data: ") + o.DataDir);
                 int r = Analyzer.Run(o.DataDir, combo, !o.NoOpen, o.TargetMs);
                 PauseIf(o);
                 return r;
@@ -89,6 +91,12 @@ namespace ACCoach
                 return 0;
             }
             return 0;
+        }
+
+        static bool ParentConsole()
+        {
+            try { return AttachConsole(-1); }
+            catch (Exception) { return true; }   // not Windows (Mono test runs): plain console output
         }
 
         static void ResetMode(Options o, ref bool modeArg)
@@ -105,7 +113,7 @@ namespace ACCoach
         {
             if (!o.Pause) return;
             Console.WriteLine();
-            Console.WriteLine("Naciśnij dowolny klawisz, aby zamknąć okno...");
+            Console.WriteLine(L.T("Naciśnij dowolny klawisz, aby zamknąć okno...", "Press any key to close this window..."));
             try { Console.ReadKey(true); } catch (InvalidOperationException) { }
         }
 
@@ -113,11 +121,11 @@ namespace ACCoach
         {
             using (Voice v = new Voice(o.Mute, o.Rate, o.VoiceName, o.Volume))
             {
-                Console.WriteLine("Głos: " + v.VoiceName);
-                v.SayAndWait("Zakręt 3, hamujesz za wcześnie, o 15 metrów");
-                v.SayAndWait("Czas 1 47,3, minus 0,4");
-                v.SayAndWait("Teraz piknięcia do hamowania. Hamuj na ostatnim. Ostatnie mówi, jak mocno.");
-                string[] names = { "Lekko albo krótko", "Średnio", "Cały hamulec" };
+                Console.WriteLine(L.T("Głos: ", "Voice: ") + v.VoiceName);
+                v.SayAndWait(L.T("Zakręt 3, hamujesz za wcześnie, o 15 metrów", "Turn 3, braking too early, by 15 metres"));
+                v.SayAndWait(L.T("Czas 1 47,3, minus 0,4", "Time 1 47.3, minus 0.4"));
+                v.SayAndWait(L.T("Teraz piknięcia do hamowania. Hamuj na ostatnim. Ostatnie mówi, jak mocno.", "Now the braking beeps. Brake on the last one. The last one tells you how hard."));
+                string[] names = { L.T("Lekko albo krótko", "Light or short"), L.T("Średnio", "Medium"), L.T("Cały hamulec", "Full brake") };
                 using (Beeper b = new Beeper(o.Mute, o.BeepVolume))
                     for (int force = 2; force >= 0; force--)
                     {

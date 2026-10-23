@@ -110,7 +110,7 @@ namespace ACCoach
         // "+0,6" style for speech, from seconds
         public static string Spoken(float s)
         {
-            return (s >= 0 ? "plus " : "minus ") + Math.Abs(s).ToString(Math.Abs(s) < 0.1f ? "0.00" : "0.0", CultureInfo.GetCultureInfo("pl-PL"));
+            return (s >= 0 ? L.T("plus ", "plus ") : L.T("minus ", "minus ")) + Math.Abs(s).ToString(Math.Abs(s) < 0.1f ? "0.00" : "0.0", L.Culture);
         }
     }
 
@@ -137,7 +137,7 @@ namespace ACCoach
             if (refTrace == null) return null;
             float[] found = FromTrack(TrackAi.FindAcRoot(), track, config, refTrace);
             if (found == null || found.Length == 0) return null;
-            List<string> lines = new List<string> { "# początki sektorów (metry od linii mety), z linii pomiaru czasu toru (AC_TIME_*)" };
+            List<string> lines = new List<string> { L.T("# początki sektorów (metry od linii mety), z linii pomiaru czasu toru (AC_TIME_*)", "# sector starts (metres from the start/finish line), from the track's timing lines (AC_TIME_*)") };
             lines.AddRange(found.Select(x => x.ToString("0", Inv)));
             try { File.WriteAllLines(f, lines); } catch (IOException) { }
             return found;

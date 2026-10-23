@@ -16,7 +16,7 @@ INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
   Sposób 2 – BEZ INSTALACJI (folder przenośny, np. na pendrive):
     1. Rozpakuj CAŁY folder "AC Coach" gdziekolwiek. Nie uruchamiaj plików prosto z okna
        ZIP-a – najpierw "Wyodrębnij wszystkie".
-    2. Uruchom raz "0. Pierwsze uruchomienie.bat" – odblokuje pliki, sprawdzi .NET
+    2. Uruchom raz "0. First run.bat" – odblokuje pliki, sprawdzi .NET
        Framework 4.8 i otworzy AC Coach. Dalej otwieraj po prostu ACCoach.exe.
     - Dane zapisują się w tym samym folderze co ACCoach.exe (można go przenieść razem
       z historią jazd). Folder tylko do odczytu -> dane w Dokumenty\AC Coach.
@@ -45,6 +45,8 @@ OKNO AC COACH – wszystko w jednym miejscu
     - Foldery: gdzie zapisywać dane (puste = domyślnie) i folder Assetto Corsa
       (puste = szukaj samemu; przycisk "Wykryj"). Kliknij "Zastosuj foldery".
     - Startuj trenera od razu po otwarciu AC Coach; otwieraj mapę po analizie.
+    - Language / Język: English albo Polski (zmiana po ponownym uruchomieniu).
+      Nowe instalacje startują po angielsku – tu przełączysz na polski.
     - Wszystko zapisuje się samo, osobno dla każdego użytkownika Windows:
       %APPDATA%\AC Coach\ustawienia.ini .
   POMOC
@@ -101,9 +103,11 @@ CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
   - Assetto Corsa jest wyszukiwane samo: uruchomiona gra, Steam (wszystkie biblioteki,
     każdy dysk) i typowe foldery. Gdy się nie uda – wskaż folder gry w zakładce Ustawienia
     (bez gry mapa toru jest bez krawędzi, reszta działa normalnie).
-  - Polski głos: jeśli go nie ma, trener mówi głosem domyślnym. Dodaj go: Ustawienia >
-    Czas i język > Mowa > Dodaj głosy > Polski, potem wybierz go w zakładce Jazda.
-  - Działa na Windows z dowolnymi ustawieniami regionalnymi (liczby zawsze po polsku).
+  - Głos: trener używa głosu Windows w języku aplikacji. Jeśli polskiego nie ma, mówi
+    głosem domyślnym. Dodaj go: Ustawienia > Czas i język > Mowa > Dodaj głosy > Polski,
+    potem wybierz go w zakładce Jazda.
+  - Działa na Windows z dowolnymi ustawieniami regionalnymi (liczby zgodnie z językiem
+    aplikacji: po polsku "0,12", po angielsku "0.12").
 
 SZYBKI START
   1. Otwórz AC Coach (skrót w menu Start albo ACCoach.exe) przed albo po starcie gry.
@@ -290,4 +294,4 @@ DOBRZE WIEDZIEĆ
     Przebudowa ACCoach.exe na dowolnym Windows (bez Visual Studio): zrodla\build.bat
     Instalator: instalator\ACCoach.nsi (NSIS 3).
   - Opcje dla zaawansowanych (skrót do ACCoach.exe z parametrami):  --data "folder"  (inny folder danych),
-    --ac "folder gry"  (ścieżka do Assetto Corsa).
+    --ac "folder gry"  (ścieżka do Assetto Corsa),  --lang en|pl  (język).

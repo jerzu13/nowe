@@ -7,7 +7,7 @@ namespace ACCoach
     public sealed class Voice : IDisposable
     {
         SpeechSynthesizer synth;
-        public string VoiceName = "(wyciszony)";
+        public string VoiceName = L.T("(wyciszony)", "(muted)");
 
         public Voice(bool mute, int rate, string voiceName = null, int volume = 100)
         {
@@ -16,14 +16,11 @@ namespace ACCoach
             {
                 synth = new SpeechSynthesizer();
                 synth.SetOutputToDefaultAudioDevice();
-                bool polish = Select(voiceName);
-                if (!polish)
+                if (!Select(voiceName))
                 {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Brak polskiego głosu w Windows – trener mówi domyślnym głosem.");
-                    Console.WriteLine("Dodaj głos: Ustawienia > Czas i język > Mowa > Dodaj głosy > Polski,");
-                    Console.WriteLine("potem uruchom ponownie trenera (albo wybierz głos w oknie Konfiguracja).");
-                    Console.ResetColor();
+                    Console.WriteLine(L.T("Brak polskiego głosu w Windows – trener mówi domyślnym głosem.", "No English voice in Windows – the trainer speaks with the default voice."));
+                    Console.WriteLine(L.T("Dodaj głos: Ustawienia > Czas i język > Mowa > Dodaj głosy > Polski, potem wybierz go w zakładce Jazda.",
+                        "Add one: Settings > Time & language > Speech > Add voices > English, then pick it on the Drive tab."));
                 }
                 synth.Rate = Math.Max(-10, Math.Min(10, rate));
                 synth.Volume = Math.Max(0, Math.Min(100, volume));
@@ -31,28 +28,32 @@ namespace ACCoach
             }
             catch (Exception e)
             {
-                Console.WriteLine("Nie udało się uruchomić głosu: " + e.Message);
+                Console.WriteLine(L.T("Nie udało się uruchomić głosu: ", "Could not start the voice: ") + e.Message);
                 synth = null;
             }
         }
 
-        // Picks the named voice, else the first Polish one; false when neither exists.
+        // Picks the named voice, else the first one in the app's language; false when neither exists.
+        // A named voice of another language is skipped: after switching the language the trainer would
+        // otherwise read English with a Polish voice (or the other way round).
         bool Select(string voiceName)
         {
             foreach (InstalledVoice v in synth.GetInstalledVoices())
-                if (!string.IsNullOrEmpty(voiceName) && v.Enabled && v.VoiceInfo.Name == voiceName)
+                if (!string.IsNullOrEmpty(voiceName) && v.Enabled && v.VoiceInfo.Name == voiceName && Lang(v) == L.Code)
                 {
                     synth.SelectVoice(v.VoiceInfo.Name);
                     return true;
                 }
             foreach (InstalledVoice v in synth.GetInstalledVoices())
-                if (v.Enabled && v.VoiceInfo.Culture != null && v.VoiceInfo.Culture.TwoLetterISOLanguageName == "pl")
+                if (v.Enabled && Lang(v) == L.Code)
                 {
                     synth.SelectVoice(v.VoiceInfo.Name);
                     return true;
                 }
             return false;
         }
+
+        static string Lang(InstalledVoice v) { return v.VoiceInfo.Culture != null ? v.VoiceInfo.Culture.TwoLetterISOLanguageName : ""; }
 
         // Live changes from the panel window. Muted keeps the console log but says nothing.
         public bool Muted;
@@ -81,14 +82,14 @@ namespace ACCoach
         public void Say(string text)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [GŁOS] " + text);
+            Console.WriteLine(L.T("  [GŁOS] ", "  [VOICE] ") + text);
             Console.ResetColor();
             if (synth != null && !Muted) synth.SpeakAsync(text);
         }
 
         public void SayAndWait(string text)
         {
-            Console.WriteLine("  [GŁOS] " + text);
+            Console.WriteLine(L.T("  [GŁOS] ", "  [VOICE] ") + text);
             if (synth != null && !Muted) synth.Speak(text);
         }
 

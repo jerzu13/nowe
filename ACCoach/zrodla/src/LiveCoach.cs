@@ -125,7 +125,7 @@ namespace ACCoach
                 o.TargetMs = ms;
                 if (comboDir == null) panelTargetPending = ms;
                 else TargetPlan.SaveTarget(comboDir, ms);
-                Console.WriteLine(ms > 0 ? "[PANEL] Cel czasu: " + Lap.FormatTime(ms) : "[PANEL] Cel czasu wyłączony");
+                Console.WriteLine(ms > 0 ? L.T("[PANEL] Cel czasu: ", "[SET] Lap time target: ") + Lap.FormatTime(ms) : L.T("[PANEL] Cel czasu wyłączony", "[SET] Lap time target off"));
                 RebuildPlan(true);
             });
         }
@@ -169,10 +169,10 @@ namespace ACCoach
             plan = finalPlan = null;
             StStep = "";
             if (o.TargetMs <= 0) { StTarget = ""; return; }
-            if (refLap == null) { StTarget = Lap.FormatTime(o.TargetMs) + " – czekam na wzorzec"; return; }
+            if (refLap == null) { StTarget = Lap.FormatTime(o.TargetMs) + L.T(" – czekam na wzorzec", " – waiting for a best lap"); return; }
             if (model == null || modelLine == null)
             {
-                StTarget = Lap.FormatTime(o.TargetMs) + (modelTried ? " – za mało danych (przejedź kilka czystych okrążeń)" : " – liczę model auta…");
+                StTarget = Lap.FormatTime(o.TargetMs) + (modelTried ? L.T(" – za mało danych (przejedź kilka czystych okrążeń)", " – not enough data (drive a few clean laps)") : L.T(" – liczę model auta…", " – building the car model…"));
                 return;
             }
             finalPlan = TargetPlan.Make(model, modelLine, refLap.Trace, refLap.LapMs, idealMs, o.TargetMs);
@@ -180,14 +180,14 @@ namespace ACCoach
             int step = steps.Count > 0 ? steps[0] : o.TargetMs;
             plan = step == o.TargetMs ? finalPlan : TargetPlan.Make(model, modelLine, refLap.Trace, refLap.LapMs, idealMs, step);
             StTarget = Lap.FormatTime(o.TargetMs) + " – " + finalPlan.Verdict();
-            StStep = finalPlan.Reached ? "cel osiągnięty" : step != o.TargetMs ? "teraz cel pośredni " + Lap.FormatTime(step) : "teraz cel końcowy";
+            StStep = finalPlan.Reached ? L.T("cel osiągnięty", "target reached") : step != o.TargetMs ? L.T("teraz cel pośredni ", "now the intermediate goal ") + Lap.FormatTime(step) : L.T("teraz cel końcowy", "now the final target");
             if (!announce) return;
             Console.ForegroundColor = ConsoleColor.Yellow;
             foreach (string l in finalPlan.Describe(model, refCorners)) Console.WriteLine(l);
-            if (!finalPlan.Reached) Console.WriteLine("  " + StStep + " – głos podaje stratę do niego po każdym zakręcie i na mecie");
+            if (!finalPlan.Reached) Console.WriteLine("  " + StStep + L.T(" – głos podaje stratę do niego po każdym zakręcie i na mecie", " – the voice gives the gap to it after every turn and at the line"));
             Console.ResetColor();
             if (!o.Quiet)
-                Enqueue(finalPlan.Reached ? "Cel osiągnięty" : step != o.TargetMs ? "Cel pośredni " + SpokenTime(step) : "Cel " + SpokenTime(step), false);
+                Enqueue(finalPlan.Reached ? L.T("Cel osiągnięty", "Target reached") : step != o.TargetMs ? L.T("Cel pośredni ", "Intermediate goal ") + SpokenTime(step) : L.T("Cel ", "Target ") + SpokenTime(step), false);
         }
         public void Stop() { stop = true; }
 
@@ -197,13 +197,13 @@ namespace ACCoach
             {
                 o.Train = on;
                 beeper.Muted = o.Mute || !on;
-                Console.WriteLine(on ? "[PANEL] Piknięcia do hamowania WŁĄCZONE" : "[PANEL] Piknięcia do hamowania WYŁĄCZONE");
+                Console.WriteLine(on ? L.T("[PANEL] Piknięcia do hamowania WŁĄCZONE", "[SET] Braking beeps ON") : L.T("[PANEL] Piknięcia do hamowania WYŁĄCZONE", "[SET] Braking beeps OFF"));
             });
         }
 
         public void SetQuiet(bool quiet)
         {
-            Post(delegate { o.Quiet = quiet; Console.WriteLine(quiet ? "[PANEL] Tryb cichy: tylko czasy i notatki" : "[PANEL] Uwagi głosowe po zakrętach WŁĄCZONE"); });
+            Post(delegate { o.Quiet = quiet; Console.WriteLine(quiet ? L.T("[PANEL] Tryb cichy: tylko czasy i notatki", "[SET] Quiet: lap times and notes only") : L.T("[PANEL] Uwagi głosowe po zakrętach WŁĄCZONE", "[SET] Voice tips after turns ON")); });
         }
 
         public void SetFocusMode(bool on, int corner)
@@ -214,19 +214,19 @@ namespace ACCoach
                 o.FocusCorner = corner;
                 focusNum = 0; focusStreak = 0; focusTip = null; focusReminded = false;
                 focusDone.Clear();
-                StFocus = on ? "wybieram…" : "";
-                if (!on) Console.WriteLine("[PANEL] Fokus WYŁĄCZONY – uwagi o wszystkich zakrętach");
+                StFocus = on ? L.T("wybieram…", "choosing…") : "";
+                if (!on) Console.WriteLine(L.T("[PANEL] Fokus WYŁĄCZONY – uwagi o wszystkich zakrętach", "[SET] Focus OFF – tips for all turns"));
                 else if (refCorners != null && refCorners.Count > 0) ChooseFocus(true);
-                else Console.WriteLine("[PANEL] Fokus włączy się, gdy będzie wzorzec");
+                else Console.WriteLine(L.T("[PANEL] Fokus włączy się, gdy będzie wzorzec", "[SET] Focus starts once there is a best lap"));
             });
         }
 
         public void SetMute(bool mute)
         {
-            Post(delegate { o.Mute = mute; voice.Muted = mute; beeper.Muted = mute || !o.Train; Console.WriteLine(mute ? "[PANEL] Wyciszone" : "[PANEL] Dźwięk włączony"); });
+            Post(delegate { o.Mute = mute; voice.Muted = mute; beeper.Muted = mute || !o.Train; Console.WriteLine(mute ? L.T("[PANEL] Wyciszone", "[SET] Muted") : L.T("[PANEL] Dźwięk włączony", "[SET] Sound on")); });
         }
 
-        public void SetVoice(string name) { Post(delegate { o.VoiceName = name; voice.SetVoice(name); Console.WriteLine("[PANEL] Głos: " + voice.VoiceName); }); }
+        public void SetVoice(string name) { Post(delegate { o.VoiceName = name; voice.SetVoice(name); Console.WriteLine(L.T("[PANEL] Głos: ", "[SET] Voice: ") + voice.VoiceName); }); }
         public void SetRate(int rate) { Post(delegate { o.Rate = rate; voice.SetRate(rate); }); }
         public void SetVolume(int vol) { Post(delegate { o.Volume = vol; voice.SetVolume(vol); }); }
         public void SetBeepVolume(int vol) { Post(delegate { o.BeepVolume = vol; beeper.SetVolume(vol); }); }
@@ -242,13 +242,13 @@ namespace ACCoach
             try { timeBeginPeriod(1); } catch (Exception) { }   // finer Sleep on Windows
             voice = new Voice(false, o.Rate, o.VoiceName, o.Volume) { Muted = o.Mute };
             beeper = new Beeper(o.Mute || !o.Train, o.BeepVolume);
-            Console.WriteLine("AC Coach – nagrywanie okrążeń i trener głosowy");
-            Console.WriteLine("Dane: " + o.DataDir);
-            Console.WriteLine("Głos: " + voice.VoiceName + (o.Quiet ? " (tryb cichy: tylko czasy i notatki)" : ""));
-            if (o.Train) Console.WriteLine("TRYB TRENINGOWY: piknięcia do hamowania + uwagi o linii");
-            else Console.WriteLine("Piknięcia do hamowania WYŁĄCZONE (--no-train)");
-            if (o.Focus) Console.WriteLine("TRYB FOKUS: uwagi głosowe tylko o jednym zakręcie" + (o.FocusCorner > 0 ? " (Z" + o.FocusCorner + ")" : ", wybieranym automatycznie"));
-            Console.WriteLine("Zatrzymanie: przycisk „Zatrzymaj trenera” albo zamknięcie okna\n");
+            Console.WriteLine(L.T("AC Coach – nagrywanie okrążeń i trener głosowy", "AC Coach – lap recording and voice coach"));
+            Console.WriteLine(L.T("Dane: ", "Data: ") + o.DataDir);
+            Console.WriteLine(L.T("Głos: ", "Voice: ") + voice.VoiceName + (o.Quiet ? L.T(" (tryb cichy: tylko czasy i notatki)", " (quiet: lap times and notes only)") : ""));
+            if (o.Train) Console.WriteLine(L.T("TRYB TRENINGOWY: piknięcia do hamowania + uwagi o linii", "TRAINING MODE: braking beeps + racing line cues"));
+            else Console.WriteLine(L.T("Piknięcia do hamowania WYŁĄCZONE (--no-train)", "Braking beeps OFF"));
+            if (o.Focus) Console.WriteLine(L.T("TRYB FOKUS: uwagi głosowe tylko o jednym zakręcie", "FOCUS MODE: voice tips about one turn only") + (o.FocusCorner > 0 ? L.T(" (Z", " (T") + o.FocusCorner + ")" : L.T(", wybieranym automatycznie", ", picked automatically")));
+            Console.WriteLine(L.T("Zatrzymanie: przycisk „Zatrzymaj trenera” albo zamknięcie okna\n", "Stop: the “Stop trainer” button or closing the window\n"));
 
             bool wasLive = false, waitingShown = false;
             try
@@ -262,7 +262,7 @@ namespace ACCoach
                         shm = AcShm.TryOpen(o.TestShm ? "acpmf_test" : "acpmf");
                         if (shm == null)
                         {
-                            if (!waitingShown) { Console.WriteLine("Czekam na Assetto Corsa..."); waitingShown = true; StState = "Czekam na Assetto Corsa…"; }
+                            if (!waitingShown) { Console.WriteLine(L.T("Czekam na Assetto Corsa...", "Waiting for Assetto Corsa...")); waitingShown = true; StState = L.T("Czekam na Assetto Corsa…", "Waiting for Assetto Corsa…"); }
                             Thread.Sleep(1000);
                             continue;
                         }
@@ -273,8 +273,8 @@ namespace ACCoach
                         if (wasLive && t.Status == AcShm.STATUS_OFF)
                         {
                             wasLive = false;
-                            Console.WriteLine("Sesja zakończona. Zapisanych okrążeń: " + lapsThisSession);
-                            StState = "Sesja zakończona – czekam na następną";
+                            Console.WriteLine(L.T("Sesja zakończona. Zapisanych okrążeń: ", "Session over. Laps saved: ") + lapsThisSession);
+                            StState = L.T("Sesja zakończona – czekam na następną", "Session over – waiting for the next one");
                             if (o.Once) break;
                         }
                         Thread.Sleep(100);
@@ -283,7 +283,7 @@ namespace ACCoach
                     if (!wasLive)
                     {
                         wasLive = true;
-                        StState = "Jazda – nagrywam okrążenia";
+                        StState = L.T("Jazda – nagrywam okrążenia", "Driving – recording laps");
                         SetupCombo(shm.ReadStatic());
                         lastCompleted = t.CompletedLaps;
                         StartLap(t, false);
@@ -322,7 +322,7 @@ namespace ACCoach
             si = info;
             comboDir = Lap.ComboDir(o.DataDir, si.Car, si.Track, si.Config);
             Directory.CreateDirectory(Path.Combine(comboDir, "laps"));
-            Console.WriteLine(string.Format("Auto: {0}   Tor: {1} {2}", si.Car, si.Track, si.Config));
+            Console.WriteLine(string.Format(L.T("Auto: {0}   Tor: {1} {2}", "Car: {0}   Track: {1} {2}"), si.Car, si.Track, si.Config));
             StCombo = si.Car + "  |  " + si.Track + (string.IsNullOrEmpty(si.Config) ? "" : " " + si.Config);
             length = (si.SplineLength > 200 && si.SplineLength < 50000) ? si.SplineLength : 0;
             allLaps = Lap.LoadAll(comboDir, length);
@@ -330,7 +330,7 @@ namespace ACCoach
             UpdateBeepLead(true);
             LoadMargins();
             if (refLap != null) SetReference(refLap, false);
-            else Console.WriteLine("Brak wzorca – przejedź jedno czyste okrążenie, wtedy włączą się podpowiedzi.");
+            else Console.WriteLine(L.T("Brak wzorca – przejedź jedno czyste okrążenie, wtedy włączą się podpowiedzi.", "No best lap yet – drive one clean lap and the tips will start."));
             if (o.Focus && focusNum == 0) ChooseFocus(true);
             SetupRival();
             if (panelTargetPending >= 0) { o.TargetMs = panelTargetPending; TargetPlan.SaveTarget(comboDir, o.TargetMs); panelTargetPending = -1; }
@@ -348,13 +348,13 @@ namespace ACCoach
             refCorners = Corners.Detect(lap.Trace);
             try { refTyres = Grip.Tyres(lap.Samples.Count > 0 ? lap.Samples : Lap.Load(lap.File).Samples); } catch (Exception) { refTyres = null; }
             Corners.Renumber(refCorners, comboDir, lap.Trace);
-            Console.WriteLine(string.Format("Wzorzec: {0}  ({1} m, zakrętów: {2})", Lap.FormatTime(lap.LapMs), (int)length, refCorners.Count));
-            StRef = Lap.FormatTime(lap.LapMs) + "  (zakrętów: " + refCorners.Count + ")";
+            Console.WriteLine(string.Format(L.T("Wzorzec: {0}  ({1} m, zakrętów: {2})", "Best lap: {0}  ({1} m, turns: {2})"), Lap.FormatTime(lap.LapMs), (int)length, refCorners.Count));
+            StRef = Lap.FormatTime(lap.LapMs) + L.T("  (zakrętów: ", "  (turns: ") + refCorners.Count + ")";
             if (announce)
                 foreach (Corner c in refCorners)
-                    Console.WriteLine(string.Format(Inv, "   Z{0,-2} szczyt {1,5:0} m  {2,4:0} km/h", c.Num, c.ApexD, c.MinSpeed));
+                    Console.WriteLine(string.Format(Inv, L.T("   Z{0,-2} szczyt {1,5:0} m  {2,4:0} km/h", "   T{0,-2} apex {1,5:0} m  {2,4:0} km/h"), c.Num, c.ApexD, c.MinSpeed));
             if (o.Train && !Corners.HasPositions(lap.Trace))
-                Console.WriteLine("Uwaga: brak pozycji auta we wzorcu – uwagi o linii będą wyłączone.");
+                Console.WriteLine(L.T("Uwaga: brak pozycji auta we wzorcu – uwagi o linii będą wyłączone.", "Note: no car positions in the best lap – racing line cues are off."));
             BuildTargets();
             ResetTraining();
         }
@@ -390,8 +390,8 @@ namespace ACCoach
                     margin[num] = Math.Min(MarginMax, m);
             }
             if (margin.Count > 0)
-                Console.WriteLine("Margines bezpieczeństwa (piknięcie wcześniej): " +
-                    string.Join(", ", margin.OrderBy(x => x.Key).Select(x => string.Format(Inv, "Z{0} {1:0} m", x.Key, x.Value)).ToArray()));
+                Console.WriteLine(L.T("Margines bezpieczeństwa (piknięcie wcześniej): ", "Safety margin (earlier beep): ") +
+                    string.Join(", ", margin.OrderBy(x => x.Key).Select(x => string.Format(Inv, L.T("Z{0} {1:0} m", "T{0} {1:0} m"), x.Key, x.Value)).ToArray()));
         }
 
         void SaveMargins()
@@ -410,11 +410,11 @@ namespace ACCoach
             offThisLap[k] = true;
             Corner c = refCorners[k];
             bool entry = d < c.ApexD;
-            Console.WriteLine(string.Format(Inv, "  [WYJAZD] Z{0} {1} ({2:0} m {3} szczytem)", c.Num, entry ? "na wejściu" : "na wyjściu", Math.Abs(d - c.ApexD), entry ? "przed" : "za"));
+            Console.WriteLine(string.Format(Inv, L.T("  [WYJAZD] Z{0} {1} ({2:0} m {3} szczytem)", "  [OFF TRACK] T{0} {1} ({2:0} m {3} the apex)"), c.Num, entry ? L.T("na wejściu", "on entry") : L.T("na wyjściu", "on exit"), Math.Abs(d - c.ApexD), entry ? L.T("przed", "before") : L.T("za", "after")));
             if (o.Focus && c.Num == focusNum)
             {
                 focusStreak = 0;
-                focusTip = entry ? "hamuj wcześniej" : "spokojniej z gazem na wyjściu";
+                focusTip = entry ? L.T("hamuj wcześniej", "brake earlier") : L.T("spokojniej z gazem na wyjściu", "calmer throttle on the exit");
             }
             if (!o.Train || !targetCorners[k].Braked) return;
             float old = MarginFor(c.Num);
@@ -422,8 +422,8 @@ namespace ACCoach
             if (now <= old) return;
             margin[c.Num] = now;
             SaveMargins();
-            Console.WriteLine(string.Format(Inv, "      margines Z{0}: ostatnie piknięcie {1:0} m wcześniej", c.Num, now));
-            Enqueue(string.Format("Zakręt {0}, następnym razem piknę {1:0} metrów wcześniej", c.Num, now), false);
+            Console.WriteLine(string.Format(Inv, L.T("      margines Z{0}: ostatnie piknięcie {1:0} m wcześniej", "      margin T{0}: last beep {1:0} m earlier"), c.Num, now));
+            Enqueue(string.Format(L.T("Zakręt {0}, następnym razem piknę {1:0} metrów wcześniej", "Turn {0}, next time I will beep {1:0} metres earlier"), c.Num, now), false);
         }
 
         // A clean run through a corner (and the one before it) gives some of the margin back.
@@ -436,7 +436,7 @@ namespace ACCoach
             float now = Math.Max(0, old - MarginDecay);
             if (now > 0) margin[num] = now; else margin.Remove(num);
             SaveMargins();
-            Console.WriteLine(string.Format(Inv, "      margines Z{0}: {1:0} m{2}", num, now, now <= 0 ? " – zdjęty, czysty przejazd" : ""));
+            Console.WriteLine(string.Format(Inv, L.T("      margines Z{0}: {1:0} m{2}", "      margin T{0}: {1:0} m{2}"), num, now, now <= 0 ? L.T(" – zdjęty, czysty przejazd", " – removed, clean run") : ""));
         }
 
         // ---------- rival ----------
@@ -448,19 +448,19 @@ namespace ACCoach
             sectorBounds = Sectors.Bounds(comboDir, si.Track, si.Config, refLap != null ? refLap.Trace : null);
             if (sectorBounds == null || sectorBounds.Length + 1 != rival.SectorCount)
             {
-                Console.WriteLine(string.Format("Rywal {0}: nie znam granic sektorów tego toru – porównanie tylko na mecie.", rival.Name));
+                Console.WriteLine(string.Format(L.T("Rywal {0}: nie znam granic sektorów tego toru – porównanie tylko na mecie.", "Rival {0}: sector boundaries of this track unknown – compared at the line only."), rival.Name));
                 sectorBounds = null;
                 return;
             }
             mySectorBest = null;
             foreach (Lap l in allLaps.Where(l => l.Valid)) UpdateMySectors(l, false);
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(string.Format(Inv, "RYWAL: {0} – najlepsze {1} ({2}), z najlepszych sektorów {3}",
+            Console.WriteLine(string.Format(Inv, L.T("RYWAL: {0} – najlepsze {1} ({2}), z najlepszych sektorów {3}", "RIVAL: {0} – best {1} ({2}), from best sectors {3}"),
                 rival.Name, Lap.FormatTime(rival.BestLapMs), string.Join(" / ", rival.BestLapSectors.Select(x => (x / 1000.0).ToString("0.000", Inv)).ToArray()),
                 Lap.FormatTime(rival.IdealMs)));
             Console.ResetColor();
             if (mySectorBest != null)
-                Console.WriteLine(string.Format(Inv, "      Twoje najlepsze sektory: {0}, razem {1}",
+                Console.WriteLine(string.Format(Inv, L.T("      Twoje najlepsze sektory: {0}, razem {1}", "      Your best sectors: {0}, total {1}"),
                     string.Join(" / ", mySectorBest.Select(x => (x / 1000.0).ToString("0.000", Inv)).ToArray()), Lap.FormatTime(mySectorBest.Sum())));
         }
 
@@ -475,7 +475,7 @@ namespace ACCoach
                 if (s[i] < mySectorBest[i])
                 {
                     mySectorBest[i] = s[i];
-                    if (announce) Console.WriteLine(string.Format(Inv, "      Twój najlepszy sektor {0}: {1:0.000} s", i + 1, s[i] / 1000.0));
+                    if (announce) Console.WriteLine(string.Format(Inv, L.T("      Twój najlepszy sektor {0}: {1:0.000} s", "      Your best sector {0}: {1:0.000} s"), i + 1, s[i] / 1000.0));
                 }
         }
 
@@ -485,10 +485,10 @@ namespace ACCoach
         {
             if (i >= rival.SectorCount) return;
             float gap = s - rival.BestLapSectors[i] / 1000f;
-            Console.WriteLine(string.Format(Inv, "  [SEKTOR {0}] {1:0.000} s | {2} {3:0.000} (najlepszy {4:0.000}, średnio {5:0.000}) | {6:+0.00;-0.00}{7}",
+            Console.WriteLine(string.Format(Inv, L.T("  [SEKTOR {0}] {1:0.000} s | {2} {3:0.000} (najlepszy {4:0.000}, średnio {5:0.000}) | {6:+0.00;-0.00}{7}", "  [SECTOR {0}] {1:0.000} s | {2} {3:0.000} (best {4:0.000}, average {5:0.000}) | {6:+0.00;-0.00}{7}"),
                 i + 1, s, rival.Name, rival.BestLapSectors[i] / 1000.0, rival.BestSectors[i] / 1000.0, rival.AvgSectors[i] / 1000.0, gap,
-                mySectorBest != null ? string.Format(Inv, " | Twój najlepszy {0:0.000}", mySectorBest[i] / 1000.0) : ""));
-            if (speak && !o.Quiet) Enqueue(string.Format("Sektor {0}, {1} do rywala", i + 1, Rival.Spoken(gap)), false);
+                mySectorBest != null ? string.Format(Inv, L.T(" | Twój najlepszy {0:0.000}", " | your best {0:0.000}"), mySectorBest[i] / 1000.0) : ""));
+            if (speak && !o.Quiet) Enqueue(string.Format(L.T("Sektor {0}, {1} do rywala", "Sector {0}, {1} to the rival"), i + 1, Rival.Spoken(gap)), false);
         }
 
         // ---------- focus mode ----------
@@ -503,7 +503,7 @@ namespace ACCoach
             int n = refCorners.Count;
             if (o.FocusCorner > 0 && focusNum == 0 && refCorners.Any(c => c.Num == o.FocusCorner) && !focusDone.Contains(o.FocusCorner))
             {
-                SetFocus(o.FocusCorner, "wybrany ręcznie", announce);
+                SetFocus(o.FocusCorner, L.T("wybrany ręcznie", "picked by you"), announce);
                 return;
             }
             List<Lap> recent = allLaps.Where(l => l.File != refLap.File && l.Trace != null && l.Trace.Filled >= l.Trace.N - 5).ToList();
@@ -530,27 +530,27 @@ namespace ACCoach
                 if (score > bestScore)
                 {
                     bestScore = score; best = k;
-                    why = string.Format(Inv, "średnio {0:+0.00;-0.00} s, wyjazdy {1}/{2}, Twój najlepszy przejazd szybszy o {3:0.00} s", loss, offs, attempts, potential);
+                    why = string.Format(Inv, L.T("średnio {0:+0.00;-0.00} s, wyjazdy {1}/{2}, Twój najlepszy przejazd szybszy o {3:0.00} s", "average {0:+0.00;-0.00} s, off-tracks {1}/{2}, your best run {3:0.00} s faster"), loss, offs, attempts, potential);
                 }
             }
             if (best >= 0) SetFocus(refCorners[best].Num, why, announce);
             else if (focusDone.Count >= n)
-                StFocus = "wszystkie zakręty opanowane";
-            else if (StFocus != "wybiorę po następnym okrążeniu")
+                StFocus = L.T("wszystkie zakręty opanowane", "all turns mastered");
+            else if (StFocus != L.T("wybiorę po następnym okrążeniu", "picking after the next lap"))
             {
-                StFocus = "wybiorę po następnym okrążeniu";
-                Console.WriteLine("FOKUS: za mało okrążeń do porównania – wybiorę zakręt po następnym okrążeniu.");
+                StFocus = L.T("wybiorę po następnym okrążeniu", "picking after the next lap");
+                Console.WriteLine(L.T("FOKUS: za mało okrążeń do porównania – wybiorę zakręt po następnym okrążeniu.", "FOCUS: too few laps to compare – I will pick a turn after the next lap."));
             }
         }
 
         void SetFocus(int num, string why, bool announce)
         {
             focusNum = num; focusStreak = 0; focusTip = null; focusReminded = false;
-            StFocus = "zakręt " + num;
+            StFocus = L.T("zakręt ", "turn ") + num;
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(string.Format("FOKUS: zakręt {0} ({1}). Uwagi głosowe tylko o nim, piknięcia wszędzie.", num, why));
+            Console.WriteLine(string.Format(L.T("FOKUS: zakręt {0} ({1}). Uwagi głosowe tylko o nim, piknięcia wszędzie.", "FOCUS: turn {0} ({1}). Voice tips only about it, beeps everywhere."), num, why));
             Console.ResetColor();
-            if (announce) Enqueue(string.Format("Fokus: zakręt {0}", num), false);
+            if (announce) Enqueue(string.Format(L.T("Fokus: zakręt {0}", "Focus: turn {0}"), num), false);
         }
 
         // After the focus corner: result, the streak of good runs, and moving on once it is mastered.
@@ -560,16 +560,16 @@ namespace ACCoach
             focusStreak = good ? focusStreak + 1 : 0;
             if (tip != null) focusTip = tip.Action;
             else if (good) focusTip = null;
-            if (good) call += string.Format(", dobrze {0} z {1}", focusStreak, FocusStreakToMaster);
-            Console.WriteLine(string.Format("      fokus Z{0}: {1}, seria {2}/{3}", focusNum, good ? "dobrze" : "do poprawy", focusStreak, FocusStreakToMaster));
+            if (good) call += string.Format(L.T(", dobrze {0} z {1}", ", good {0} of {1}"), focusStreak, FocusStreakToMaster);
+            Console.WriteLine(string.Format(L.T("      fokus Z{0}: {1}, seria {2}/{3}", "      focus T{0}: {1}, streak {2}/{3}"), focusNum, good ? L.T("dobrze", "good") : L.T("do poprawy", "to improve"), focusStreak, FocusStreakToMaster));
             if (focusStreak >= FocusStreakToMaster)
             {
                 int done = focusNum;
                 focusDone.Add(done);
                 focusNum = 0;
                 ChooseFocus(false);
-                call += focusNum > 0 ? string.Format(". Zakręt {0} opanowany, nowy fokus: zakręt {1}", done, focusNum)
-                                     : string.Format(". Zakręt {0} opanowany", done);
+                call += focusNum > 0 ? string.Format(L.T(". Zakręt {0} opanowany, nowy fokus: zakręt {1}", ". Turn {0} mastered, new focus: turn {1}"), done, focusNum)
+                                     : string.Format(L.T(". Zakręt {0} opanowany", ". Turn {0} mastered"), done);
             }
             return call;
         }
@@ -588,12 +588,12 @@ namespace ACCoach
                 if (targetFrom[k] != null)
                 {
                     gain += refSeg[k] - targetSeg[k];
-                    Console.WriteLine(string.Format(Inv, "   Z{0}: cel = Twój najlepszy przejazd tego zakrętu ({1}), szybszy o {2:0.00} s",
+                    Console.WriteLine(string.Format(Inv, L.T("   Z{0}: cel = Twój najlepszy przejazd tego zakrętu ({1}), szybszy o {2:0.00} s", "   T{0}: target = your best run through this turn ({1}), {2:0.00} s faster"),
                         refCorners[k].Num, targetFrom[k], refSeg[k] - targetSeg[k]));
                 }
             idealMs = gain > 0.005f ? refLap.LapMs - (int)Math.Round(gain * 1000) : 0;
             if (gain > 0.005f)
-                Console.WriteLine(string.Format(Inv, "Idealne okrążenie z Twoich najlepszych zakrętów: {0} (wzorzec {1})",
+                Console.WriteLine(string.Format(Inv, L.T("Idealne okrążenie z Twoich najlepszych zakrętów: {0} (wzorzec {1})", "Ideal lap from your best turns: {0} (best lap {1})"),
                     Lap.FormatTime(refLap.LapMs - (int)Math.Round(gain * 1000)), Lap.FormatTime(refLap.LapMs)));
         }
 
@@ -662,7 +662,7 @@ namespace ACCoach
                 if (line.Length == 0 || line.StartsWith("#")) continue;
                 int colon = line.IndexOf(':');
                 if (colon < 0) continue;
-                string key = line.Substring(0, colon).Trim().TrimStart('Z', 'z');
+                string key = line.Substring(0, colon).Trim().TrimStart('Z', 'z', 'T', 't');
                 int num;
                 if (int.TryParse(key, out num)) notes[num] = line.Substring(colon + 1).Trim();
             }
@@ -718,7 +718,7 @@ namespace ACCoach
         {
             if (!curFromLine || cur.Samples.Count < 100)
             {
-                Console.WriteLine("Okrążenie wyjazdowe / niepełne – pomijam.");
+                Console.WriteLine(L.T("Okrążenie wyjazdowe / niepełne – pomijam.", "Out lap / incomplete lap – skipped."));
                 return;
             }
             int lastSampleT = cur.Samples[cur.Samples.Count - 1].T;
@@ -735,22 +735,22 @@ namespace ACCoach
             lapsThisSession++;
 
             string delta = "";
-            string spoken = "Czas " + SpokenTime(lapMs);
+            string spoken = L.T("Czas ", "Time ") + SpokenTime(lapMs);
             bool newBest = cur.Valid && (refLap == null || lapMs < refLap.LapMs);
             if (refLap != null)
             {
                 float d = (lapMs - refLap.LapMs) / 1000f;
                 delta = "  (" + Corners.Sec2(d) + ")";
-                if (!newBest) spoken += (d >= 0 ? ", plus " : ", minus ") + Corners.Sec(d);
+                if (!newBest) spoken += (d >= 0 ? L.T(", plus ", ", plus ") : L.T(", minus ", ", minus ")) + Corners.Sec(d);
             }
-            if (newBest) spoken += refLap == null ? ". Mam wzorzec" : ". Nowy rekord!";
-            if (!cur.Valid) spoken += ", nieważne";
+            if (newBest) spoken += refLap == null ? L.T(". Mam wzorzec", ". Best lap set") : L.T(". Nowy rekord!", ". New record!");
+            if (!cur.Valid) spoken += L.T(", nieważne", ", invalid");
             Grip.TyreStats tyres = Grip.Tyres(cur.Samples);
             if (tyres != null)
             {
                 bool cold = Grip.Cold(tyres, refTyres);
-                if (cold) spoken += ", opony zimne";
-                else if (tyresWereCold) spoken += ", opony rozgrzane";
+                if (cold) spoken += L.T(", opony zimne", ", tyres cold");
+                else if (tyresWereCold) spoken += L.T(", opony rozgrzane", ", tyres warm");
                 tyresWereCold = cold;
             }
             string targetTxt = "";
@@ -758,28 +758,28 @@ namespace ACCoach
             {
                 float gt = (lapMs - plan.TargetMs) / 1000f;
                 bool final = cur.Valid && o.TargetMs > 0 && lapMs <= o.TargetMs;
-                spoken += final ? ", cel końcowy osiągnięty!" : gt <= 0 ? ", cel osiągnięty" : ", do celu " + Corners.Sec(gt);
-                targetTxt = string.Format(Inv, "  cel {0}: {1}", Lap.FormatTime(plan.TargetMs), Corners.Sec2(gt));
+                spoken += final ? L.T(", cel końcowy osiągnięty!", ", final target reached!") : gt <= 0 ? L.T(", cel osiągnięty", ", target reached") : L.T(", do celu ", ", to target ") + Corners.Sec(gt);
+                targetTxt = string.Format(Inv, L.T("  cel {0}: {1}", "  target {0}: {1}"), Lap.FormatTime(plan.TargetMs), Corners.Sec2(gt));
             }
             if (rival != null && sectorBounds != null && nextSector == sectorBounds.Length)
             {
                 SectorDone(nextSector, lapMs / 1000f - sectorStartS, false);
-                spoken += ", do rywala " + Rival.Spoken((lapMs - rival.BestLapMs) / 1000f);
-                Console.WriteLine(string.Format(Inv, "  rywal {0}: {1:+0.000;-0.000} s (najlepsze rywala {2})", rival.Name, (lapMs - rival.BestLapMs) / 1000f, Lap.FormatTime(rival.BestLapMs)));
+                spoken += L.T(", do rywala ", ", to rival ") + Rival.Spoken((lapMs - rival.BestLapMs) / 1000f);
+                Console.WriteLine(string.Format(Inv, L.T("  rywal {0}: {1:+0.000;-0.000} s (najlepsze rywala {2})", "  rival {0}: {1:+0.000;-0.000} s (rival's best {2})"), rival.Name, (lapMs - rival.BestLapMs) / 1000f, Lap.FormatTime(rival.BestLapMs)));
                 if (cur.Valid) UpdateMySectors(cur);
             }
             Console.ForegroundColor = newBest ? ConsoleColor.Green : (cur.Valid ? ConsoleColor.White : ConsoleColor.DarkGray);
-            Console.WriteLine(string.Format("Okrążenie {0}: {1}{2}{3}{4}{5}", t.CompletedLaps, Lap.FormatTime(lapMs), delta,
-                cur.Valid ? "" : "  NIEWAŻNE (" + (curPit ? "pit" : "poza torem") + ")", newBest ? "  ★ NOWY WZORZEC" : "", targetTxt));
+            Console.WriteLine(string.Format(L.T("Okrążenie {0}: {1}{2}{3}{4}{5}", "Lap {0}: {1}{2}{3}{4}{5}"), t.CompletedLaps, Lap.FormatTime(lapMs), delta,
+                cur.Valid ? "" : L.T("  NIEWAŻNE (", "  INVALID (") + (curPit ? "pit" : L.T("poza torem", "off track")) + ")", newBest ? L.T("  ★ NOWY WZORZEC", "  ★ NEW BEST LAP") : "", targetTxt));
             Console.ResetColor();
-            if (tyres != null) Console.WriteLine("  " + Grip.Text(tyres) + (tyresWereCold ? "  – ZIMNE (chłodniejsze niż na najlepszym okrążeniu)" : ""));
+            if (tyres != null) Console.WriteLine("  " + Grip.Text(tyres) + (tyresWereCold ? L.T("  – ZIMNE (chłodniejsze niż na najlepszym okrążeniu)", "  – COLD (colder than on the best lap)") : ""));
             Enqueue(spoken, true);
-            StLast = Lap.FormatTime(lapMs) + delta + (cur.Valid ? "" : "  nieważne") + (newBest ? "  ★ nowy wzorzec" : "");
+            StLast = Lap.FormatTime(lapMs) + delta + (cur.Valid ? "" : L.T("  nieważne", "  invalid")) + (newBest ? L.T("  ★ nowy wzorzec", "  ★ new best lap") : "");
             allLaps.Add(cur);
             if (newBest) { SetReference(cur, true); RebuildModel(); }
             else if (refCorners != null)
                 foreach (int k in ConsiderForTargets(cur))
-                    Console.WriteLine(string.Format(Inv, "   Z{0}: nowy najlepszy przejazd tego zakrętu, cel szybszy o {1:0.00} s od wzorca", refCorners[k].Num, refSeg[k] - targetSeg[k]));
+                    Console.WriteLine(string.Format(Inv, L.T("   Z{0}: nowy najlepszy przejazd tego zakrętu, cel szybszy o {1:0.00} s od wzorca", "   T{0}: new best run through this turn, target {1:0.00} s faster than the best lap"), refCorners[k].Num, refSeg[k] - targetSeg[k]));
             if (o.Focus && focusNum == 0) ChooseFocus(true);   // also when focus was switched on from the panel
         }
 
@@ -787,7 +787,7 @@ namespace ACCoach
         {
             int m = ms / 60000;
             double s = (ms % 60000) / 1000.0;
-            string ss = s.ToString("0.0", CultureInfo.GetCultureInfo("pl-PL"));
+            string ss = s.ToString("0.0", L.Culture);
             return m > 0 ? m + " " + ss : ss;
         }
 
@@ -817,7 +817,7 @@ namespace ACCoach
                     if (fc != null && d >= fc.OnsetD - 350 && d < fc.OnsetD - 100)
                     {
                         focusReminded = true;
-                        Enqueue(focusTip != null ? string.Format("Zakręt {0}: {1}", focusNum, focusTip) : string.Format("Fokus, zakręt {0}", focusNum), true);
+                        Enqueue(focusTip != null ? string.Format(L.T("Zakręt {0}: {1}", "Turn {0}: {1}"), focusNum, focusTip) : string.Format(L.T("Fokus, zakręt {0}", "Focus, turn {0}"), focusNum), true);
                     }
                 }
                 if (rival != null && sectorBounds != null)
@@ -841,7 +841,7 @@ namespace ACCoach
                     Tip tip = Corners.MakeTip(tcmp, o.Train);
                     float total = live.TimeAt(evalD) - refLap.Trace.TimeAt(evalD);
                     List<WheelEvent> wev = CornerWheelEvents(rc.StartD - 30, evalD);
-                    string wheelTxt = wev.Count > 0 ? " | koła: " + string.Join(", ", wev.Select(w => Grip.Name(w.Kind) + string.Format(Inv, " {0:0.00} s", w.Dur))) : "";
+                    string wheelTxt = wev.Count > 0 ? L.T(" | koła: ", " | wheels: ") + string.Join(", ", wev.Select(w => Grip.Name(w.Kind) + string.Format(Inv, " {0:0.00} s", w.Dur))) : "";
                     string wheelKind = wev.Count > 0 ? Grip.Kinds.First(k2 => wev.Any(w => w.Kind == k2)) : null;
                     float vsPlan = float.NaN;
                     string planHint = null, planTxt = "";
@@ -849,11 +849,11 @@ namespace ACCoach
                     {
                         vsPlan = (live.TimeAt(evalD) - live.TimeAt(rc.StartD)) - (plan.TimeAt(evalD) - plan.TimeAt(rc.StartD));
                         float faster = plan.MinSpeed(rc.StartD, evalD) - LiveMinSpeed(rc.StartD, evalD);
-                        if (faster >= 4 && vsPlan >= 0.05f) planHint = string.Format(Inv, "szczyt szybciej o {0:0}", faster);
-                        planTxt = string.Format(Inv, " | cel {0} (łącznie {1}){2}", Corners.Sec2(vsPlan), Corners.Sec2(live.TimeAt(evalD) - plan.TimeAt(evalD)),
+                        if (faster >= 4 && vsPlan >= 0.05f) planHint = string.Format(Inv, L.T("szczyt szybciej o {0:0}", "apex faster by {0:0}"), faster);
+                        planTxt = string.Format(Inv, L.T(" | cel {0} (łącznie {1}){2}", " | target {0} (total {1}){2}"), Corners.Sec2(vsPlan), Corners.Sec2(live.TimeAt(evalD) - plan.TimeAt(evalD)),
                             planHint != null ? ", " + planHint + " km/h" : "");
                     }
-                    Console.WriteLine(string.Format(Inv, "  Z{0,-2} {1,6} s | hamowanie {2,6} siła {6,5} | szczyt {3,4:+0;-0;0} km/h | gaz {4,6} | linia szczyt {5} | łącznie {7}{8}",
+                    Console.WriteLine(string.Format(Inv, L.T("  Z{0,-2} {1,6} s | hamowanie {2,6} siła {6,5} | szczyt {3,4:+0;-0;0} km/h | gaz {4,6} | linia szczyt {5} | łącznie {7}{8}", "  T{0,-2} {1,6} s | braking {2,6} force {6,5} | apex {3,4:+0;-0;0} km/h | throttle {4,6} | line apex {5} | total {7}{8}"),
                         cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total), planTxt + wheelTxt));
                     if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);
                     DecayMargin(k);
@@ -881,26 +881,26 @@ namespace ACCoach
         // lap-time target's plan (NaN = no target)
         static string CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null, string wheel = null)
         {
-            string s = "Zakręt " + num + ", ";
-            if (vsBest <= -0.03f) s += "lepiej o " + SpokenDelta(-vsBest);
-            else if (vsBest >= 0.03f) s += "gorzej o " + SpokenDelta(vsBest);
-            else s += "równo";
+            string s = L.T("Zakręt ", "Turn ") + num + ", ";
+            if (vsBest <= -0.03f) s += L.T("lepiej o ", "faster by ") + SpokenDelta(-vsBest);
+            else if (vsBest >= 0.03f) s += L.T("gorzej o ", "slower by ") + SpokenDelta(vsBest);
+            else s += L.T("równo", "even");
             bool tipSaid = false;
-            if (vsTarget < -0.02f && vsBest < 0.03f) s += ", rekord zakrętu";
+            if (vsTarget < -0.02f && vsBest < 0.03f) s += L.T(", rekord zakrętu", ", turn record");
             else if (tip != null && vsTarget > 0.05f) { s += ", " + tip.Action; tipSaid = true; }
             // what the tyres did: a locked wheel always, the rest when the corner cost time
             bool lost = vsBest >= 0.05f || vsTarget > 0.05f || (!float.IsNaN(vsPlan) && vsPlan >= 0.05f);
-            if (wheel != null && !(wheel == "over" && tipSaid && tip.Action.Contains("uślizg")) && (wheel.StartsWith("lock") || (lost && !tipSaid)))
+            if (wheel != null && !(wheel == "over" && tipSaid && (tip.Action.Contains("uślizg") || tip.Action.Contains("rear sliding"))) && (wheel.StartsWith("lock") || (lost && !tipSaid)))
             {
                 s += ", " + Grip.Spoken(wheel);
                 tipSaid = true;
             }
             if (!float.IsNaN(vsPlan))
             {
-                if (vsPlan <= 0.02f) s += ", w celu";
+                if (vsPlan <= 0.02f) s += L.T(", w celu", ", on target");
                 else if (vsPlan >= 0.05f)
                 {
-                    s += ", do celu " + SpokenDelta(vsPlan);
+                    s += L.T(", do celu ", ", to target ") + SpokenDelta(vsPlan);
                     if (planHint != null && !tipSaid) s += ", " + planHint;
                 }
             }
@@ -929,7 +929,7 @@ namespace ACCoach
 
         static string SpokenDelta(float s)
         {
-            return s.ToString(s < 0.1f ? "0.00" : "0.0", CultureInfo.GetCultureInfo("pl-PL"));
+            return s.ToString(s < 0.1f ? "0.00" : "0.0", L.Culture);
         }
 
         static float EvalD(Corner c)
@@ -945,10 +945,10 @@ namespace ACCoach
             float target = beepPoint[k] > 0 ? beepPoint[k] : float.NaN;
             float miss = brakeD[k] - target;
             if (!float.IsNaN(reaction[k]) || !float.IsNaN(miss))
-                Console.WriteLine(string.Format(Inv, "      piknięcie -> hamulec: {0} | punkt hamowania: {1} | siła {2:0}% (cel {3:0}%){4}",
+                Console.WriteLine(string.Format(Inv, L.T("      piknięcie -> hamulec: {0} | punkt hamowania: {1} | siła {2:0}% (cel {3:0}%){4}", "      beep -> brake: {0} | braking point: {1} | force {2:0}% (target {3:0}%){4}"),
                     float.IsNaN(reaction[k]) ? "–" : reaction[k].ToString("+0.00;-0.00", Inv) + " s",
                     float.IsNaN(miss) ? "–" : miss.ToString("+0;-0;0", Inv) + " m", cmp.Lap.BrakeForce * 100, c.BrakeForce * 100,
-                    cornerTyresOut[k] >= 3 ? ", WYJAZD POZA TOR" : ""));
+                    cornerTyresOut[k] >= 3 ? L.T(", WYJAZD POZA TOR", ", OFF TRACK") : ""));
             beepLog.Add(string.Format(Inv, "{0},{1:0},{2:0},{3:0},{4:0.00},{5:0},{6:0},{7:0},{8:0},{9},{10:0.00},{11:0},{12:0},{13:0.00}",
                 c.Num, c.BrakeD, finalBeepD[k], brakeD[k], reaction[k], c.BrakeForce * 100, cmp.Lap.BrakeForce * 100,
                 cmp.Lap.MinSpeed, c.MinSpeed, cornerTyresOut[k], cmp.SegDelta, target, miss, LeadFor(c.Num)));
@@ -986,14 +986,14 @@ namespace ACCoach
             }
             if (!o.Train) return;
             if (announce || Math.Abs(beepLead - old) >= 0.02f)
-                Console.WriteLine(string.Format(Inv, "Ostatnie piknięcie {0:0.00} s przed punktem hamowania ({1})", beepLead,
-                    !float.IsNaN(o.BeepLead) ? "ustawione ręcznie" : "dopasowane do Twojej reakcji"));
+                Console.WriteLine(string.Format(Inv, L.T("Ostatnie piknięcie {0:0.00} s przed punktem hamowania ({1})", "Last beep {0:0.00} s before the braking point ({1})"), beepLead,
+                    !float.IsNaN(o.BeepLead) ? L.T("ustawione ręcznie", "set by you") : L.T("dopasowane do Twojej reakcji", "matched to your reaction")));
             foreach (KeyValuePair<int, float> kv in cornerLead.OrderBy(x => x.Key))
             {
                 float prev;
                 bool changed = !oldCorner.TryGetValue(kv.Key, out prev) || Math.Abs(prev - kv.Value) >= 0.02f;
                 if ((announce || changed) && Math.Abs(kv.Value - beepLead) >= 0.03f)
-                    Console.WriteLine(string.Format(Inv, "   Z{0}: {1:0.00} s (tu reagujesz {2})", kv.Key, kv.Value, kv.Value > beepLead ? "wolniej" : "szybciej"));
+                    Console.WriteLine(string.Format(Inv, L.T("   Z{0}: {1:0.00} s (tu reagujesz {2})", "   T{0}: {1:0.00} s (you react {2} here)"), kv.Key, kv.Value, kv.Value > beepLead ? L.T("wolniej", "slower") : L.T("szybciej", "faster")));
             }
         }
 
@@ -1035,8 +1035,8 @@ namespace ACCoach
                     float off = Corners.Offset(refLap.Trace, live, d, c.TurnSign);
                     if (d < c.OnsetD - 90 && off > 1.5f)
                     {
-                        Console.WriteLine(string.Format(Inv, "  Z{0}: {1:0.0} m za blisko wewnętrznej przed zakrętem", c.Num, off));
-                        if (SpeakAbout(c.Num)) Enqueue("Szerzej", true);
+                        Console.WriteLine(string.Format(Inv, L.T("  Z{0}: {1:0.0} m za blisko wewnętrznej przed zakrętem", "  T{0}: {1:0.0} m too close to the inside before the turn"), c.Num, off));
+                        if (SpeakAbout(c.Num)) Enqueue(L.T("Szerzej", "Wider"), true);
                     }
                 }
 
@@ -1055,7 +1055,7 @@ namespace ACCoach
                     if (!float.IsNaN(finalBeepT[k]))
                     {
                         reaction[k] = brakeT[k] - finalBeepT[k];
-                        if (reaction[k] > LateS) { Console.WriteLine(string.Format(Inv, "  [PÓŹNO] Z{0}: hamulec {1:0.00} s po piknięciu", t.Num, reaction[k])); if (SpeakAbout(t.Num)) Enqueue("Późno", true); }
+                        if (reaction[k] > LateS) { Console.WriteLine(string.Format(Inv, L.T("  [PÓŹNO] Z{0}: hamulec {1:0.00} s po piknięciu", "  [LATE] T{0}: brake {1:0.00} s after the beep"), t.Num, reaction[k])); if (SpeakAbout(t.Num)) Enqueue(L.T("Późno", "Late"), true); }
                     }
                     else if (beepStage[k] < BeepAt.Length && beepPoint[k] > 0)
                     {
@@ -1063,7 +1063,7 @@ namespace ACCoach
                         float early = (beepPoint[k] - d) / v - lead;
                         reaction[k] = -early;
                         beepStage[k] = BeepAt.Length;
-                        if (early > EarlyS) { Console.WriteLine(string.Format(Inv, "  [WCZEŚNIE] Z{0}: hamulec {1:0.00} s przed piknięciem", t.Num, early)); if (SpeakAbout(t.Num)) Enqueue("Wcześnie", true); }
+                        if (early > EarlyS) { Console.WriteLine(string.Format(Inv, L.T("  [WCZEŚNIE] Z{0}: hamulec {1:0.00} s przed piknięciem", "  [EARLY] T{0}: brake {1:0.00} s before the beep"), t.Num, early)); if (SpeakAbout(t.Num)) Enqueue(L.T("Wcześnie", "Early"), true); }
                     }
                 }
 
@@ -1087,8 +1087,8 @@ namespace ACCoach
                 beepStage[k] = stage;
                 if (final) { finalBeepT[k] = lastT / 1000f; finalBeepD[k] = d; }
                 beeper.Beep(final, t.ForceLevel);
-                if (!final) Console.WriteLine(string.Format(Inv, "  [PIK {0}/3] Z{1}", stage, t.Num));
-                if (final) Console.WriteLine(string.Format(Inv, "  [HAMUJ] Z{0} @{1:0} m {2} ({3:0}%)", t.Num, beepPoint[k], t.ForceName, t.BrakeForce * 100));
+                if (!final) Console.WriteLine(string.Format(Inv, L.T("  [PIK {0}/3] Z{1}", "  [BEEP {0}/3] T{1}"), stage, t.Num));
+                if (final) Console.WriteLine(string.Format(Inv, L.T("  [HAMUJ] Z{0} @{1:0} m {2} ({3:0}%)", "  [BRAKE] T{0} @{1:0} m {2} ({3:0}%)"), t.Num, beepPoint[k], t.ForceName, t.BrakeForce * 100));
             }
         }
 
@@ -1096,7 +1096,7 @@ namespace ACCoach
         {
             if (float.IsNaN(off)) return "–";
             if (Math.Abs(off) < 0.5f) return "ok";
-            return string.Format(Inv, "{0:0.0} m {1}", Math.Abs(off), off < 0 ? "szerzej" : "ciaśniej");
+            return string.Format(Inv, "{0:0.0} m {1}", Math.Abs(off), off < 0 ? L.T("szerzej", "wider") : L.T("ciaśniej", "tighter"));
         }
 
         static string Metres(float v)

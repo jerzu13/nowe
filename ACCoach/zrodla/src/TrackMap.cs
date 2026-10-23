@@ -264,6 +264,7 @@ namespace ACCoach
             root["rival"] = rivalText;
             root["target"] = targetText ?? new List<string>();
             root["wheels"] = wheelText ?? new List<string>();
+            root["lang"] = L.Code;
 
             if (ai != null)
             {
@@ -312,12 +313,43 @@ namespace ACCoach
 
             JavaScriptSerializer js = new JavaScriptSerializer();
             js.MaxJsonLength = int.MaxValue;
-            string html = Template().Replace("/*__DATA__*/null", js.Serialize(root));
+            string page = Template();
+            if (L.En) foreach (string[] t in TemplateEn) page = page.Replace(t[0], t[1]);
+            string html = page.Replace("/*__DATA__*/null", js.Serialize(root));
             File.WriteAllText(outFile, html, new UTF8Encoding(false));
-            return ai == null ? "brak linii AI z gry (nie znaleziono Assetto Corsa) – mapa bez krawędzi toru" : null;
+            return ai == null ? L.T("brak linii AI z gry (nie znaleziono Assetto Corsa) – mapa bez krawędzi toru", "no AI line from the game (Assetto Corsa not found) – map without track edges") : null;
         }
 
         static object J(float v) { return float.IsNaN(v) ? null : (object)Math.Round(v); }
+
+        // the page's fixed HTML in English (texts made by the script are switched in the page itself, see T())
+        static readonly string[][] TemplateEn = {
+            new[] { "<html lang=\"pl\">", "<html lang=\"en\">" },
+            new[] { "<title>Mapa toru</title>", "<title>Track map</title>" },
+            new[] { "<h1 id=\"title\">Mapa toru</h1>", "<h1 id=\"title\">Track map</h1>" },
+            new[] { "<label>Okrążenie <select", "<label>Lap <select" },
+            new[] { "> linia wzorcowa (AI)</label>", "> AI racing line</label>" },
+            new[] { "<label>Porównaj z <select", "<label>Compare with <select" },
+            new[] { "> linia porównania</label>", "> comparison line</label>" },
+            new[] { "> kolor: hamulec / gaz</label>", "> colour: brake / throttle</label>" },
+            new[] { "> sektory vs rywal</label>", "> sectors vs rival</label>" },
+            new[] { "title=\"Przybliż\"", "title=\"Zoom in\"" },
+            new[] { "title=\"Oddal\"", "title=\"Zoom out\"" },
+            new[] { "title=\"Cały tor\"", "title=\"Whole track\"" },
+            new[] { "<h2>Na następną jazdę</h2>", "<h2>For the next run</h2>" },
+            new[] { "<h2>Koła i opony</h2>", "<h2>Wheels and tyres</h2>" },
+            new[] { "<h2>Cel czasu</h2>", "<h2>Lap time target</h2>" },
+            new[] { "<h2>Rywal</h2>", "<h2>Rival</h2>" },
+            new[] { "<h2>Wyjazdy z toru</h2>", "<h2>Off-tracks</h2>" },
+            new[] { "<h2>Piknięcia</h2>", "<h2>Braking beeps</h2>" },
+            new[] { "<h2>Zakręty <span class=\"meta\">(kliknij, aby przybliżyć)</span></h2>", "<h2>Turns <span class=\"meta\">(click to zoom in)</span></h2>" },
+            new[] { "<h2 id=\"secTitle\">Sektory</h2>", "<h2 id=\"secTitle\">Sectors</h2>" },
+            new[] { "<h2 id=\"chartTitle\">Porównanie okrążeń</h2>", "<h2 id=\"chartTitle\">Lap comparison</h2>" },
+            new[] { "<h2>Gdzie to jest na torze</h2>", "<h2>Where it is on the track</h2>" },
+            new[] { "> przybliżaj do miejsca na wykresie</label>", "> zoom to the spot on the chart</label>" },
+            new[] { "<h2 id=\"heatTitle\">Wszystkie okrążenia sesji – sektory</h2>", "<h2 id=\"heatTitle\">All laps of the session – sectors</h2>" },
+            new[] { "<div class=\"meta\">Kliknij okrążenie, żeby je wybrać.</div>", "<div class=\"meta\">Click a lap to select it.</div>" },
+        };
 
         // One lap for the page: path and inputs on the 4 m grid, sector times, off-track spots and beeps.
         static Dictionary<string, object> LapData(Lap l, float length, Lap refLap, float[] sectorBounds, Dictionary<string, List<string[]>> beeps, string rivalName)
@@ -337,8 +369,8 @@ namespace ACCoach
                         { "reaction", float.IsNaN(F(r[5])) ? null : (object)Math.Round(F(r[5]), 2) },
                         { "beepM", J(F(r[3])) }, { "brakeM", J(F(r[4])) }, { "miss", r.Length > 13 ? J(F(r[13])) : null }, { "out", int.Parse(r[10], Inv) >= 3 } });
             string name = rivalName != null
-                ? string.Format("{0}: {1}{2}", rivalName, Lap.FormatTime(l.LapMs), l.Valid ? "" : "  nieważne")
-                : string.Format("{0:HH:mm}  {1}{2}{3}", l.Date, Lap.FormatTime(l.LapMs), l.Valid ? "" : "  nieważne", l.File == refLap.File ? "  ★ wzorzec" : "");
+                ? string.Format("{0}: {1}{2}", rivalName, Lap.FormatTime(l.LapMs), l.Valid ? "" : L.T("  nieważne", "  invalid"))
+                : string.Format("{0:HH:mm}  {1}{2}{3}", l.Date, Lap.FormatTime(l.LapMs), l.Valid ? "" : L.T("  nieważne", "  invalid"), l.File == refLap.File ? L.T("  ★ wzorzec", "  ★ best lap") : "");
             Dictionary<string, object> d = new Dictionary<string, object> {
                 { "name", name }, { "isRef", rivalName == null && l.File == refLap.File }, { "rival", rivalName }, { "lapMs", l.LapMs }, { "valid", l.Valid },
                 { "x", p[0] }, { "z", p[1] }, { "brk", p[2] }, { "gas", p[3] }, { "spd", p[4] }, { "t", p[5] }, { "str", p[6] },

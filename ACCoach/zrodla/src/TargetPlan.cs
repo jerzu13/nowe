@@ -21,7 +21,7 @@ namespace ACCoach
 
         const float MaxGrip = 1.3f;
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
-        static readonly CultureInfo Pl = CultureInfo.GetCultureInfo("pl-PL");
+        static CultureInfo Pl { get { return L.Culture; } }
 
         public static TargetPlan Make(LimitModel m, LimitModel.Line line, Trace refTrace, int refMs, int idealMs, int targetMs)
         {
@@ -116,16 +116,16 @@ namespace ACCoach
 
         public string Verdict()
         {
-            if (Reached) return "osiągnięty – Twój wzorzec jest już szybszy.";
-            if (IdealMs > 0 && TargetMs >= IdealMs) return "realny – masz go już w swoich najlepszych przejazdach zakrętów, wystarczy je połączyć.";
-            if (GripNeeded <= 1f) return "realny – w granicach przyczepności i hamowania, które już osiągasz.";
-            if (GripNeeded <= 1.02f) return "realny, ale na samej granicy przyczepności i hamowania, które już osiągasz.";
+            if (Reached) return L.T("osiągnięty – Twój wzorzec jest już szybszy.", "reached – your best lap is already faster.");
+            if (IdealMs > 0 && TargetMs >= IdealMs) return L.T("realny – masz go już w swoich najlepszych przejazdach zakrętów, wystarczy je połączyć.", "realistic – you already have it in your best runs through the corners, you just need to put them together.");
+            if (GripNeeded <= 1f) return L.T("realny – w granicach przyczepności i hamowania, które już osiągasz.", "realistic – within the grip and braking you already reach.");
+            if (GripNeeded <= 1.02f) return L.T("realny, ale na samej granicy przyczepności i hamowania, które już osiągasz.", "realistic, but right at the limit of the grip and braking you already reach.");
             if (float.IsNaN(GripNeeded))
-                return "poza zasięgiem modelu – potrzeba ponad 30% więcej przyczepności niż Twoje maksimum. Ustaw cel pośredni.";
+                return L.T("poza zasięgiem modelu – potrzeba ponad 30% więcej przyczepności niż Twoje maksimum. Ustaw cel pośredni.", "beyond the model – it needs over 30% more grip than your maximum. Set an intermediate goal.");
             int pct = (int)Math.Round((GripNeeded - 1) * 100);
-            if (GripNeeded <= 1.08f) return string.Format("ambitny – wymaga ok. {0}% więcej przyczepności i siły hamowania niż Twoje dotychczasowe maksimum.", pct);
-            if (GripNeeded <= 1.15f) return string.Format("bardzo ambitny – ok. {0}% więcej przyczepności i hamowania niż Twoje maksimum; to już kwestia techniki, a może i ustawień auta.", pct);
-            return string.Format("bardzo daleko – ok. {0}% ponad Twoje maksimum przyczepności. Najpierw cele pośrednie.", pct);
+            if (GripNeeded <= 1.08f) return string.Format(L.T("ambitny – wymaga ok. {0}% więcej przyczepności i siły hamowania niż Twoje dotychczasowe maksimum.", "ambitious – it needs about {0}% more grip and braking than your maximum so far."), pct);
+            if (GripNeeded <= 1.15f) return string.Format(L.T("bardzo ambitny – ok. {0}% więcej przyczepności i hamowania niż Twoje maksimum; to już kwestia techniki, a może i ustawień auta.", "very ambitious – about {0}% more grip and braking than your maximum; that is down to technique, and maybe the car setup."), pct);
+            return string.Format(L.T("bardzo daleko – ok. {0}% ponad Twoje maksimum przyczepności. Najpierw cele pośrednie.", "very far – about {0}% above your maximum grip. Intermediate goals first."), pct);
         }
 
         // Goals on the way, slowest first: the ideal lap, the model at today's grip, then whole seconds.
@@ -180,21 +180,21 @@ namespace ACCoach
         public List<string> Describe(LimitModel m, List<Corner> corners)
         {
             List<string> r = new List<string>();
-            r.Add(string.Format("CEL CZASU {0}: {1}", Lap.FormatTime(TargetMs), Verdict()));
-            r.Add(string.Format("  wzorzec {0}{1} | model przy Twojej dotychczasowej przyczepności {2}",
-                Lap.FormatTime(RefMs), IdealMs > 0 && IdealMs < RefMs ? " | idealne (Twoje najlepsze zakręty) " + Lap.FormatTime(IdealMs) : "",
+            r.Add(string.Format(L.T("CEL CZASU {0}: {1}", "LAP TIME TARGET {0}: {1}"), Lap.FormatTime(TargetMs), Verdict()));
+            r.Add(string.Format(L.T("  wzorzec {0}{1} | model przy Twojej dotychczasowej przyczepności {2}", "  best lap {0}{1} | model at the grip you have used so far {2}"),
+                Lap.FormatTime(RefMs), IdealMs > 0 && IdealMs < RefMs ? L.T(" | idealne (Twoje najlepsze zakręty) ", " | ideal (your best turns) ") + Lap.FormatTime(IdealMs) : "",
                 Lap.FormatTime(LimitMs)));
             if (Reached) return r;
             List<int> steps = Steps();
-            if (steps.Count > 1) r.Add("  cele pośrednie: " + string.Join(" → ", steps.Select(x => Lap.FormatTime(x))));
+            if (steps.Count > 1) r.Add(L.T("  cele pośrednie: ", "  intermediate goals: ") + string.Join(" → ", steps.Select(x => Lap.FormatTime(x))));
             List<CornerPlan> cps = PerCorner(corners).Where(c => c.Gain >= 0.05f).OrderByDescending(c => c.Gain).ToList();
             if (cps.Count > 0)
             {
-                r.Add("  gdzie szukać czasu (plan na ten cel):");
+                r.Add(L.T("  gdzie szukać czasu (plan na ten cel):", "  where to find the time (plan for this target):"));
                 foreach (CornerPlan c in cps)
-                    r.Add(string.Format("    Z{0,-2} {1,6} s   szczyt {2:0} → {3:0} km/h", c.C.Num, "-" + Sec(c.Gain), c.RefMin, c.PlanMin));
+                    r.Add(string.Format(L.T("    Z{0,-2} {1,6} s   szczyt {2:0} → {3:0} km/h", "    T{0,-2} {1,6} s   apex {2:0} → {3:0} km/h"), c.C.Num, "-" + Sec(c.Gain), c.RefMin, c.PlanMin));
             }
-            r.Add("  (model z Twoich okrążeń: " + m.Describe() + "; im szybciej jeździsz, tym dokładniej)");
+            r.Add(L.T("  (model z Twoich okrążeń: ", "  (model from your laps: ") + m.Describe() + L.T("; im szybciej jeździsz, tym dokładniej)", "; the faster you drive, the more accurate it gets)"));
             return r;
         }
 
@@ -238,7 +238,7 @@ namespace ACCoach
             {
                 string f = Path.Combine(comboDir, "cel.txt");
                 if (ms <= 0) { if (File.Exists(f)) File.Delete(f); return; }
-                File.WriteAllLines(f, new[] { "# cel czasu okrążenia dla tego auta i toru (ustawiany w oknie na żywo)", Lap.FormatTime(ms) });
+                File.WriteAllLines(f, new[] { L.T("# cel czasu okrążenia dla tego auta i toru (ustawiany w oknie na żywo)", "# lap time target for this car and track (set in the AC Coach window)"), Lap.FormatTime(ms) });
             }
             catch (Exception) { }
         }

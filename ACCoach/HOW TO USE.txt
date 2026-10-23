@@ -1,0 +1,287 @@
+﻿AC Coach – a coach for Assetto Corsa
+====================================
+
+INSTALLATION (any Windows 10/11 PC, any user)
+  Option 1 – INSTALLER (recommended): run AC_Coach_Setup.exe.
+    - Installs for you only (the current Windows user), no administrator rights needed,
+      into  %LOCALAPPDATA%\Programs\AC Coach .
+    - Start menu shortcuts (folder "AC Coach"): AC Coach, Manual, Uninstall,
+      and optionally "AC Coach" on the desktop. At the end the installer starts AC Coach.
+    - Uninstall: Start menu or Settings > Apps. Your laps and reports stay in Documents.
+    - Windows may show "Windows protected your PC" (the installer has no digital
+      signature): click "More info" > "Run anyway".
+    - Every other user of the PC installs AC Coach for themselves, with their own account.
+
+  Option 2 – NO INSTALLATION (portable folder, e.g. on a USB stick):
+    1. Extract the WHOLE "AC Coach" folder anywhere. Do not run files straight from the
+       ZIP window – use "Extract all" first.
+    2. Run "0. First run.bat" once – it unblocks the files, checks .NET
+       Framework 4.8 and opens AC Coach. After that simply open ACCoach.exe.
+    - Data is saved in the same folder as ACCoach.exe (you can move it together with
+      your driving history). Read-only folder -> data goes to Documents\AC Coach.
+
+THE AC COACH WINDOW – everything in one place
+  At the top: the "Start trainer" / "Stop trainer" button, the status (waiting for the
+  game / driving) and the car and track. The trainer starts by itself when the window
+  opens (you can switch that off in Settings).
+  Four tabs:
+  DRIVE
+    - Status: best lap time, last lap, focus turn.
+    - Lap time target (see LAP TIME TARGET below).
+    - Voice and beeps – applied AT ONCE, also while driving, and remembered:
+      braking beeps + racing line cues, voice tips after turns (off = lap times and notes
+      only, good with CrewChief or in a race), focus on one turn (0 = the trainer picks),
+      mute everything, voice, voice and beep volume, speech rate, last beep (learn your
+      reaction or a fixed number of seconds), "Test voice and beeps" button.
+    - On the right the TRAINER LOG: lap times, voice tips (blue), beeps (grey),
+      off-tracks and late braking (orange), targets and focus (yellow), new records
+      (green), tyre and wheel data.
+  ANALYSIS
+    - Pick the car and track, click "Analyse last session" – the report appears in the
+      window and the track map opens in your browser. "Open track map" shows the latest
+      map, "Reports folder" opens the folder with the reports.
+  SETTINGS
+    - Folders: where to save data (empty = default) and the Assetto Corsa folder
+      (empty = find it automatically; "Detect" button). Click "Apply folders".
+    - Start the trainer as soon as AC Coach opens; open the map after the analysis.
+    - Language / Język: English or Polski (applied after a restart).
+    - Everything is saved automatically, separately for every Windows user:
+      %APPDATA%\AC Coach\ustawienia.ini .
+  HELP
+    - This manual.
+  A full-screen game covers the window – switch with Alt+Tab, play in borderless window
+  mode, or keep AC Coach on a second monitor.
+
+WHEELS AND TYRES (from version 1.4, no add-ons – data straight from the game)
+  The trainer also records: slip and load of every wheel, tyre slip angle, car rotation
+  (yaw), tyre core and brake temperatures, pressures, TC and ABS activity.
+  (Laps recorded earlier do not have this data – they work as before.)
+  WHILE DRIVING – after a turn the voice adds what the tyres did:
+      "front wheels locking" / "rear wheels locking"   – always (a lock-up ruins the tyre),
+      "wheelspin on exit", "rear stepping out", "front washing out", "traction control..."
+                                                       – when the turn cost time.
+  At the line: "tyres cold" (colder than on the best lap), then "tyres warm".
+  The trainer log shows the temperatures and pressures of every lap.
+  REPORT – "WHEELS AND TYRES" section: in which turns and how often there were lock-ups,
+  wheelspin or slides, what it costs and what to change; tyre temperature at every lap
+  and a "(cold)" mark.
+  HTML MAP – charts: slip ratio (front/rear), slip angle (front/rear), car rotation,
+  tyre temperatures and pressures; diamonds on the map where the lock-ups, wheelspin and
+  slides happened. The "Where it is on the track" map shows this data too.
+  Needs Assetto Corsa 1.14 or newer (older versions do not report slip).
+
+LAP TIME TARGET (e.g. from 1:39.5 to 1:35)
+  On the Drive tab type a time (e.g. 1:35.000 or 1:35:500) and click "Set target".
+  The target is remembered for this car and track:  <car>__<track>\cel.txt .
+  IS IT REALISTIC – the trainer builds a CAR MODEL from your laps: how much grip in the
+  turns and how much braking the car held (not short kerb spikes) and how it accelerates,
+  at every speed. Then it "drives" your line at those limits and compares with the target:
+      realistic           – you already have it in your best turns, or it is within the
+                            grip you already reach,
+      ambitious (+X%)     – it needs X% more grip and braking than your maximum so far,
+      very ambitious / very far – intermediate goals first.
+  The model only knows what you have driven – the faster you drive, the better it judges.
+  The real limit of the car can be higher (in the Huracán ST at Vallelunga professionals
+  do about 1:31–1:33 in real life).
+  INTERMEDIATE GOALS – the trainer does not ask for 1:35 straight away. First the ideal
+  lap (your best turns), then about a second at a time. After every new record it moves
+  to the next one and says e.g. "Intermediate goal 1 37.5".
+  WHAT THE VOICE SAYS – about both the best lap and the target:
+      "Turn 4, slower by 0.1, to target 0.4, apex faster by 8"
+      "Turn 6, faster by 0.4, on target"
+      "Time 1 38.9, minus 0.6, to target 0.7"
+  The trainer log shows at every turn: "target +0.45 (total +1.62)".
+  REPORT AND MAP – "LAP TIME TARGET" section: verdict, intermediate goals and a plan per turn:
+      T7  -0.94 s   apex 99 → 110 km/h   (how much time and what apex speed)
+  A target set while the trainer is stopped applies to the car and track you drove last.
+
+  TIPS
+  - Assetto Corsa is found automatically: the running game, Steam (all libraries, every
+    drive) and the usual folders. If that fails, pick the game folder on the Settings tab
+    (without the game the track map has no edges, everything else works).
+  - Voice: the trainer uses a Windows voice in the app's language. If there is none, it
+    speaks with the default voice. Add one: Settings > Time & language > Speech >
+    Add voices, then pick it on the Drive tab.
+  - Works with any Windows region settings (numbers always follow the app's language).
+
+QUICK START
+  1. Open AC Coach (Start menu shortcut or ACCoach.exe) before or after starting the game.
+     The trainer starts by itself and waits for the game.
+  2. Drive. The trainer records every lap and coaches you by voice.
+  3. After driving: "Analysis" tab > "Analyse last session".
+  4. Ask Claude to "analyse" – you will get tips for the next run.
+
+  Works offline and online. Stop: "Stop trainer" or close the window.
+
+
+HOW THE TRAINER LEARNS
+  - Every lap is saved in the folder  <car>__<track>\laps
+  - Your best VALID lap is the reference (best lap). Everything is compared with it.
+    The first clean lap = the first reference; drive faster -> new reference.
+  - Invalid lap: 3 or more wheels off track, or a drive through the pits.
+    It does not become the reference, but it is saved.
+  - The TARGET for every turn = your FASTEST run through that turn across all laps
+    (also invalid ones, if you stayed on track in that turn). Together that is the
+    "ideal lap" – the trainer gives its time at the start. Beeps and tips aim at that run,
+    so you improve your best time instead of just repeating it.
+
+  AFTER EVERY TURN (about 60 m after full throttle) you hear right away how it went
+  compared with your best lap:
+      "Turn 3, faster by 0.12"
+      "Turn 3, slower by 0.2, braking too early, by 15 metres"   <- what to fix
+      "Turn 3, even"
+      "Turn 3, faster by 0.15, turn record"   <- fastest ever
+  - The trainer log also shows "total" at every turn: time lost/gained over the lap so far.
+  - Beeps play together with the voice – they interrupt nothing, so no tip gets lost.
+
+  PEDALS AND STEERING – only what really cost time or ended off track on your laps:
+      "rear sliding, gentler throttle"   – you countersteer on the exit
+      "throttle and brake together"      – both pedals before the apex
+      "trail the brake deeper" / "too long on the brake" – you release the brake clearly
+                                           differently from your best run
+  Not spoken any more (the data showed they do not cost time): throttle under heavy
+  braking, steering corrections, lifting, coasting. The measurements are still in
+  analysis.json.
+
+
+TRAINING MODE – BRAKING BEEPS
+  Before every turn with braking you hear 3 beeps in an even rhythm:
+
+      beep ...... beep ...... LAST  <- start braking here
+
+  The last beep also tells you HOW HARD to brake (as on your best lap):
+      high, long           = full brake
+      medium, shorter      = medium, about half brake
+      two low "tick-tick"  = light, or a short stab
+
+  - Catch the rhythm: the first two beeps are the countdown, your foot goes on the brake
+    with the last one.
+  - The trainer log shows every beep as [BEEP 1/3], [BEEP 2/3], [BRAKE].
+    You see these lines but hear no beeps? It is a sound problem – try
+    "Test voice and beeps" (Drive tab) and the ACCoach volume in the Windows Volume Mixer.
+  - Faster than on your best lap -> it beeps earlier; slower -> later.
+  - Right after you press the brake you hear:
+      "Late"   – brake clearly (over 0.35 s) after the last beep,
+      "Early"  – brake clearly before the last beep.
+    Brake before the last beep -> the countdown stops, no beeps while braking.
+  - The trainer MEASURES your reaction at every braking and logs it, e.g.:
+      beep -> brake: +0.17 s | braking point: +8 m
+    (+8 m = you pressed the brake 8 m past the point the beep aimed at).
+  - The trainer LEARNS your reaction time: the last beep plays as much earlier as it
+    usually takes from the beep to your foot on the brake (0.10–0.60 s),
+    SEPARATELY FOR EVERY TURN once it has 4 brakings there (e.g. you react slower in fast
+    turns). The log shows "Last beep 0.17 s before the braking point" and the turns with
+    a different setting.
+  - A summary of your reactions (median, distance from the point in metres, how often
+    too late / too early) is in the report and on the track map.
+  - After a turn the trainer says "brake harder" or "braking too hard" when the braking
+    force clearly differs from your best lap.
+
+  SAFETY MARGIN
+  - Go off in a turn -> next time the last beep plays earlier there:
+    +10 m after an off-track on entry, +5 m after one on exit (30 m at most).
+    The trainer says e.g. "Turn 5, next time I will beep 10 metres earlier".
+  - Every clean run through that turn takes 3 m off, until the margin is gone.
+  - The margin is kept between sessions: file  <car>__<track>\margines.txt
+    (delete it to reset).
+
+  FOCUS MODE ("Focus on one turn" on the Drive tab)
+  - At the start the trainer picks the turn where you lose the most (average loss,
+    off-tracks, what your best run has shown) and says why, e.g.
+    "FOCUS: turn 4 (average +0.65 s, off-tracks 1/26 ...)".
+  - The voice talks about that turn only: before it, what to fix
+    ("Turn 4: apex too wide"), after it, the result and the streak ("good 1 of 3").
+  - 3 good runs in a row (not slower than the best lap, no off-track) = turn mastered,
+    the trainer moves to the next one by itself.
+  - Beeps work in every turn. Lap times are spoken too.
+  - A particular turn: type its number next to "Focus on one turn".
+
+  Racing line cues (also in training mode only):
+  - "Wider" – on the straight before a turn, when you are too close to the inside.
+  - After a turn: "apex too wide", "too tight", "use the whole exit".
+  - The line = your line from the best lap. "Inside/outside" means the side of the turn,
+    not left/right. In an online fight simply ignore the line cues.
+
+  Want to set it by hand? On the Drive tab untick "learn my reaction time" and type
+  a number of seconds, e.g. 0.30 (that much before the braking point the last beep plays).
+
+
+AFTER DRIVING
+  - "Analysis" tab > "Analyse last session" saves a report in  <car>__<track>\reports
+    and opens the track map (file mapa_....html in the same folder).
+
+  - The report (and the map) has these parts:
+      FOR THE NEXT RUN – the 3 turns that cost the most (average loss + off-tracks),
+        for each: where you go off and why, and what you do differently in your FAST runs
+        through that turn compared with the slow ones (e.g. "full throttle 88 m earlier").
+      TURNS – one line per turn: loss, consistency, off-tracks (entry/exit).
+      BRAKING BEEPS – how you hit the braking point, only turns that need attention.
+      LAPS – time, where you went off and where you lost the most.
+  - All detailed measurements (pedals, steering, every turn of every lap) are in
+    analysis.json – for an analysis with Claude ("analyse").
+
+  TRACK MAP
+  - Real track edges and the AI RACING LINE (dashed green) from the game files.
+    Blue = your best line.
+  - The selected lap is coloured: red = brake, green = full throttle,
+    yellow = partial / no throttle. Change the lap in the list at the top.
+  - Blue bar = braking point of your best lap, yellow circle = last beep,
+    red dot = where you actually braked, red X = off track.
+  - On the right: tips and the list of turns (beep -> brake for each).
+    Click a turn (on the map or in the list) to zoom in.
+    Mouse wheel = zoom, drag = move, ⤢ = whole track.
+  - Every turn driven without an off-track counts for comparisons – also from laps made
+    invalid by another turn (only the turn with the off-track and the next one are left out).
+
+
+RIVAL (e.g. a friend from the server)
+  - Put the server's results file (.json, the one the server writes after a session)
+    into the folder  AC Coach\rywale . The trainer picks the fastest driver in the same
+    car on the same track by itself.
+  - While driving, after every sector: "Sector 1, plus 0.6 to the rival", and at the line
+    "..., to rival plus 1.3". The trainer log shows exactly: your sector, the rival's
+    sector (from their best lap, best and average) and your best sector.
+  - The report and the map have a RIVAL section: a sector table (best lap, best sectors,
+    average) and conclusions – where you lose the most and in which turns.
+  - The sectors are the same as on the server – the trainer reads the timing lines from
+    the track files and saves them in  <car>__<track>\sektory.txt .
+
+  COMPARISON ON THE MAP (HTML report)
+  - "sectors vs rival": the selected lap is coloured on the map by sectors –
+    green faster than the rival, yellow up to 0.3 s slower, red more.
+  - Sector table: the rival (best lap, best sectors, average) and your lap with the
+    differences. Below it all laps of the session – click one to select it.
+  - "Compare with": charts along the track – speed, time difference (where you lose
+    and gain), throttle, brake, steering. Solid line = selected lap, dashed = comparison.
+  - Next to the charts is the "Where it is on the track" map – always visible, also when
+    you scroll down. Hover over a chart (brake, throttle, steering, speed): the map zooms
+    to that spot by itself and shows the turn (entry / apex / exit) and the values.
+    Click a chart to pin the point; the ← → arrows move it by 10 m (Shift: 50 m).
+    A small overview of the whole track sits in the corner. Zooming can be switched off
+    under the map.
+  - The server file only has the rival's sector TIMES. To compare their DRIVING
+    (line, speed, pedals), the rival has to drive with AC Coach and give you their laps:
+    put the .csv files from their  <car>__<track>\laps  folder into
+    AC Coach\rywale\<name>\ . Then they appear in the "Compare with" list, and their
+    line on the map (purple).
+
+NOTES (your own reminders before a turn)
+  Create the file  <car>__<track>\notes.txt , one line per turn, e.g.:
+    T3: Brake at the 100 board
+    T8: Short stab on the brake
+  The trainer reads the note on the straight before that turn.
+  Changes apply from the next lap.
+
+
+GOOD TO KNOW
+  - Turns are numbered in order along the track (T1, T2...), which may differ from the
+    official numbering. The numbering is FIXED – saved in  <car>__<track>\zakrety.txt
+    (number and apex metre). Delete that file and the trainer numbers the turns again.
+  - Every beep is logged in  <car>__<track>\pikniecia.csv  (when it beeped, when you
+    braked, force, off-track) – the analysis and the map use it.
+  - With CrewChief switch off "Voice tips after turns" so the voices do not overlap.
+  - The "zrodla" folder is the program's source code – not needed for driving.
+    Rebuilding ACCoach.exe on any Windows (no Visual Studio): zrodla\build.bat
+    Installer: instalator\ACCoach.nsi (NSIS 3).
+  - Advanced options (a shortcut to ACCoach.exe with parameters):  --data "folder"
+    (another data folder),  --ac "game folder"  (path to Assetto Corsa),  --lang en|pl .
