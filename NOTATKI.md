@@ -26,6 +26,9 @@
 - **1.7.1** – Defender blokował instalator 1.7.0 jako `Trojan:Win32/Ulthar.A!ml` (heurystyka ML, fałszywy alarm).
   Próba: instalator kompresowany zlib zamiast solid lzma, pełne dane wersji (firma, copyright) w instalatorze i exe.
   Niezweryfikowane – prawdziwe rozwiązanie: zgłoszenie do Microsoftu (wdsi/filesubmission) albo podpis cyfrowy.
+- **1.8** – aplikacja w grze (Python, `apps\python\ACCoach`): licznik metrów do punktu hamowania (ujemne po
+  minięciu, werdykt OK/WCZEŚNIE/PÓŹNO), paski hamulca i gazu z idealnego przejazdu (kolor = faza), delta do
+  najlepszego okrążenia. AC Coach wgrywa ją sam, włącza w python.ini i zapisuje `data\<combo>.txt`.
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,
@@ -35,6 +38,9 @@
 - Głos angielski/polski, głośności, okno na prawdziwym Windows (DPI, wygląd), zamknięcie okna krzyżykiem.
 - Kolejność licznik/czas na mecie offline – poprawka na hipotezie (obie kolejności obsłużone); potwierdzić w log.txt.
 - Wykrywanie zakrętów: na Silverstone GP 10 zakrętów zamiast 18 (szybkie łuki bez hamowania nie są wykrywane).
+- Aplikacja w grze (1.8): czy AC ją ładuje (Python 3.3, py_log.txt), sekcja `[ACCOACH] ACTIVE=1` w python.ini,
+  wyrównanie etykiet, kolejność rysowania (pasek pod napisem), setBackgroundOpacity, zapis do folderu gry
+  (uprawnienia Steam), widoczność w VR. Testowana tylko atrapą `ac` (tools/test/check_acapp.py).
 - Progi wskazówek z Corners.cs strojone na 26 okrążeniach Huracán ST / Vallelunga – sprawdzić na innych autach.
 
 ## Odłożone tematy

@@ -2,7 +2,7 @@
 ==================================
 
 INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
-  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.7.1.exe).
+  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.8.0.exe).
     - Instaluje tylko dla Ciebie (bieżący użytkownik Windows), bez uprawnień administratora,
       do  %LOCALAPPDATA%\Programs\AC Coach .
     - Skróty w menu Start (folder "AC Coach"): AC Coach, Instrukcja, Odinstaluj
@@ -45,6 +45,7 @@ OKNO AC COACH – wszystko w jednym miejscu
     - Foldery: gdzie zapisywać dane (puste = domyślnie) i folder Assetto Corsa
       (puste = szukaj samemu; przycisk "Wykryj"). Kliknij "Zastosuj foldery".
     - Startuj trenera od razu po otwarciu AC Coach; otwieraj mapę po analizie.
+    - Aplikacja w grze: wgranie do Assetto Corsa i wybór, co pokazuje (opis niżej).
     - Language / Język: English albo Polski (zmiana po ponownym uruchomieniu).
       Nowe instalacje startują po angielsku – tu przełączysz na polski.
     - Wszystko zapisuje się samo, osobno dla każdego użytkownika Windows:
@@ -71,6 +72,29 @@ KOŁA I OPONY (od wersji 1.4, bez żadnych dodatków – dane z samej gry)
   obrót auta, temperatury i ciśnienia opon; na mapie romby w miejscach blokad,
   buksowania i uślizgów. Mapka "Gdzie to jest na torze" pokazuje też te dane.
   Wymaga Assetto Corsa 1.14 lub nowszego (starsze wersje nie podają poślizgów).
+
+APLIKACJA W GRZE (od wersji 1.8) – na ekranie samej gry
+  AC Coach wgrywa do Assetto Corsa małą aplikację „AC Coach” (assettocorsa\apps\python\ACCoach)
+  i ją włącza (Dokumenty\Assetto Corsa\cfg\python.ini). Content Manager ani Custom Shaders
+  Patch nie są potrzebne – działa też w pełnym ekranie.
+  WŁĄCZ JĄ RAZ: na torze przesuń mysz do prawej krawędzi ekranu, otwórz pasek aplikacji
+  i kliknij „AC Coach”. Przeciągnij ją w wybrane miejsce – gra zapamięta położenie.
+  Jeśli jej nie ma na liście: launcher AC > Options > General > UI Modules (albo Content
+  Manager > Ustawienia > Assetto Corsa > Aplikacje / Python apps) – zaznacz „ACCoach”.
+  CO POKAZUJE (wszystko z Twojego najlepszego przejazdu każdego zakrętu, jak piknięcia):
+    - Z3   85 m   92 km/h – metry do punktu hamowania w następnym zakręcie (od ok. 3 s
+      przed nim), po minięciu wartości ujemne; prędkość w szczycie z najlepszego przejazdu.
+      Punkt przesuwa się z prędkością (szybciej = wcześniej) i z marginesem bezpieczeństwa.
+      Po wciśnięciu hamulca: OK (do 5 m) / WCZESNIE 12 m / POZNO 8 m.
+    - Pasek B – jak mocno hamować teraz (z wyprzedzeniem o czas reakcji), biała kreska to
+      Twój pedał. Czerwony HAMUJ MOCNO -> żółty ODPUSZCZAJ (trail braking) -> zielony PUSC.
+    - Pasek G – gaz: zielony PELNY GAZ, żółty DODAWAJ, pomarańczowy ODPUSC GAZ.
+    - -0.21 – strata / zysk do najlepszego okrążenia (zielony = szybciej). Od 2. okrążenia.
+  (W grze napisy są bez polskich znaków – czcionka AC może ich nie mieć.)
+  Dane aktualizuje AC Coach, gdy jeździsz szybciej – niech AC Coach będzie włączony.
+  Bez okrążeń aplikacja pisze „brak danych dla tego auta i toru”.
+  Zakładka Ustawienia > Aplikacja w grze: włączanie części, „Zainstaluj / zaktualizuj teraz”.
+  Problemy: Dokumenty\Assetto Corsa\logs\py_log.txt (wiersze „AC Coach”).
 
 CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
   W zakładce "Jazda" wpisz czas (np. 1:35.000 albo 1:35:500) i kliknij "Ustaw cel".

@@ -51,6 +51,7 @@ namespace ACCoach
             foreach (KeyValuePair<int, float> x in margin.Where(x => x.Value > 0).OrderBy(x => x.Key))
                 lines.Add(string.Format(Inv, "Z{0} {1:0}", x.Key, x.Value));
             try { File.WriteAllLines(Path.Combine(comboDir, "margines.txt"), lines); } catch (IOException) { }
+            WriteGameData();
         }
 
         // First off-track of this lap in a corner: brake earlier there next time (more if it happened on the entry).

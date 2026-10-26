@@ -26,6 +26,10 @@ namespace ACCoach
         public string DataDir = "";          // "" = default (see Program.DefaultDataDir)
         public string AcRoot = "";           // "" = find automatically
         public string Lang = L.InstallerDefault();   // "en" | "pl"
+        public bool GameApp = true;          // install the in-game app into AC and write its data
+        public bool GameCountdown = true;    // in-game app: metres to the braking point
+        public bool GameBars = true;         // in-game app: brake and throttle bars
+        public bool GameDelta = true;        // in-game app: time to the best lap
 
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -69,6 +73,10 @@ namespace ACCoach
                         case "FolderDanych": s.DataDir = v; break;
                         case "FolderGry": s.AcRoot = v; break;
                         case "Jezyk": s.Lang = v == "pl" ? "pl" : "en"; break;
+                        case "AplikacjaWGrze": s.GameApp = v != "0"; break;
+                        case "GraLicznik": s.GameCountdown = v != "0"; break;
+                        case "GraPedaly": s.GameBars = v != "0"; break;
+                        case "GraDelta": s.GameDelta = v != "0"; break;
                     }
                 }
             }
@@ -96,6 +104,10 @@ namespace ACCoach
             l.Add("FolderDanych=" + DataDir);
             l.Add("FolderGry=" + AcRoot);
             l.Add("Jezyk=" + Lang);
+            l.Add("AplikacjaWGrze=" + B(GameApp));
+            l.Add("GraLicznik=" + B(GameCountdown));
+            l.Add("GraPedaly=" + B(GameBars));
+            l.Add("GraDelta=" + B(GameDelta));
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
             File.WriteAllLines(FilePath, l, new UTF8Encoding(false));
         }
@@ -116,6 +128,7 @@ namespace ACCoach
             o.Mute = Mute;
             o.BeepLead = LearnLead ? float.NaN : BeepLead;
             o.NoOpen = !OpenMap;
+            o.GameApp = GameApp;
             TrackAi.AcRootOverride = string.IsNullOrEmpty(AcRoot) ? null : AcRoot;
         }
     }

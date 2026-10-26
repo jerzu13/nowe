@@ -15,7 +15,8 @@ History, parked topics, open items: `NOTATKI.md` – read it before bigger chang
 - `MainForm*.cs` – the one window: tabs Drive/Analysis/Settings+Help, `LogWriter` = Console → log box + `<data>\log.txt`
 - `Analyzer.cs` report, `TrackMap.cs` + `map_template.html` HTML map, `Corners.cs` turn detection + tips,
   `LimitModel.cs` + `TargetPlan.cs` lap-time target, `Grip.cs` wheel events + tyres, `AcShm.cs` game memory,
-  `Lap.cs` CSV laps (14 base columns + 27 wheel columns), `Settings.cs` (%APPDATA%\AC Coach\ustawienia.ini), `Lang.cs`
+  `GameApp.cs` + `LiveCoach.GameApp.cs` + `acapp.py` in-game AC app (Python 3.3, embedded in the exe, written to
+  `apps\python\ACCoach`; texts ASCII, `T(pl, en)`), `Lap.cs` CSV laps (14 base columns + 27 wheel columns), `Settings.cs` (%APPDATA%\AC Coach\ustawienia.ini), `Lang.cs`
 
 ## Rules
 - Every user-facing text: `L.T("polski", "english")`; turns are Z1.. (pl) / T1.. (en). Map script texts: `T('pl','en')`,

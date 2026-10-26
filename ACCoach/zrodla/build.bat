@@ -11,7 +11,7 @@ set CSC=%FW%\csc.exe
 "%CSC%" /nologo /codepage:65001 /optimize /target:winexe /out:..\ACCoach.exe /win32icon:ACCoach.ico ^
   /r:System.Core.dll /r:"%FW%\WPF\System.Speech.dll" /r:System.Web.Extensions.dll ^
   /r:System.Windows.Forms.dll /r:System.Drawing.dll ^
-  /resource:src\map_template.html,ACCoach.map_template.html src\*.cs
+  /resource:src\map_template.html,ACCoach.map_template.html /resource:src\acapp.py,ACCoach.acapp.py src\*.cs
 if errorlevel 1 exit /b 1
 if "%1"=="test" "%CSC%" /nologo /codepage:65001 /out:tools\AcSim.exe /r:System.Core.dll tools\AcSim.cs
 if "%1"=="test" "%CSC%" /nologo /codepage:65001 /out:tools\AcReplay.exe /r:System.Core.dll tools\AcReplay.cs

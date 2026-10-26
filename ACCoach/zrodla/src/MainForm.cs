@@ -48,7 +48,8 @@ namespace ACCoach
         // settings tab
         TextBox dataBox, acBox;
         Label dataHint, acHint;
-        CheckBox autoChk, mapChk;
+        CheckBox autoChk, mapChk, gameChk, gameCdChk, gameBarsChk, gameDeltaChk;
+        string gameDir;               // apps\python\ACCoach in the game folder, null = not installed by this run
 
         const int GroupW = 440;       // inner width of the groups on the left of the drive tab and in the settings tab
         int y;
@@ -92,8 +93,9 @@ namespace ACCoach
             if (startTab == "analyze") { tabs.SelectedTab = analysisTab; Shown += delegate { RunAnalysis(); }; }
             else if (startTab == "config") tabs.SelectedTab = settingsTab;
             else if (startTab == "voicetest") Shown += delegate { TestVoice(); };
-            if (autoStart) Shown += delegate { StartCoach(); };
             Shown += delegate { Console.WriteLine("AC Coach " + typeof(MainForm).Assembly.GetName().Version.ToString(3) + L.T(" – dane: ", " – data: ") + DataDir()); };
+            if (startTab != "analyze") Shown += delegate { InstallGameApp(false); };
+            if (autoStart) Shown += delegate { StartCoach(); };
         }
 
         // ---------- top bar ----------
@@ -173,6 +175,11 @@ namespace ACCoach
             CheckAc();
             autoChk.Checked = st.AutoStart;
             mapChk.Checked = !o.NoOpen;
+            gameChk.Checked = st.GameApp;
+            gameCdChk.Checked = st.GameCountdown;
+            gameBarsChk.Checked = st.GameBars;
+            gameDeltaChk.Checked = st.GameDelta;
+            foreach (CheckBox c in new[] { gameCdChk, gameBarsChk, gameDeltaChk }) c.Enabled = st.GameApp;
         }
 
         // ---------- every 250 ms: state, target, log ----------

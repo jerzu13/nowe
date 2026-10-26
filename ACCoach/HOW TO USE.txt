@@ -2,7 +2,7 @@
 ====================================
 
 INSTALLATION (any Windows 10/11 PC, any user)
-  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.7.1.exe).
+  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.8.0.exe).
     - Installs for you only (the current Windows user), no administrator rights needed,
       into  %LOCALAPPDATA%\Programs\AC Coach .
     - Start menu shortcuts (folder "AC Coach"): AC Coach, Manual, Uninstall,
@@ -44,6 +44,7 @@ THE AC COACH WINDOW – everything in one place
     - Folders: where to save data (empty = default) and the Assetto Corsa folder
       (empty = find it automatically; "Detect" button). Click "Apply folders".
     - Start the trainer as soon as AC Coach opens; open the map after the analysis.
+    - In-game app: install it into Assetto Corsa and pick what it shows (see below).
     - Language / Język: English or Polski (applied after a restart).
     - Everything is saved automatically, separately for every Windows user:
       %APPDATA%\AC Coach\ustawienia.ini .
@@ -69,6 +70,28 @@ WHEELS AND TYRES (from version 1.4, no add-ons – data straight from the game)
   tyre temperatures and pressures; diamonds on the map where the lock-ups, wheelspin and
   slides happened. The "Where it is on the track" map shows this data too.
   Needs Assetto Corsa 1.14 or newer (older versions do not report slip).
+
+IN-GAME APP (from version 1.8) – on the screen of the game itself
+  AC Coach puts a small "AC Coach" app into Assetto Corsa (assettocorsa\apps\python\ACCoach)
+  and switches it on (Documents\Assetto Corsa\cfg\python.ini). No Content Manager or
+  Custom Shaders Patch needed – it also works full screen.
+  SWITCH IT ON ONCE: on track move the mouse to the right edge of the screen, open the app
+  bar and click "AC Coach". Drag it where you want it; the game remembers the place.
+  If it is not on the list: AC launcher > Options > General > UI Modules (or Content
+  Manager > Settings > Assetto Corsa > Apps / Python apps) – tick "ACCoach".
+  WHAT IT SHOWS (everything from your best run of every turn, like the beeps):
+    - T3   85 m   92 km/h – metres to the braking point of the next turn (from about 3 s
+      before it), negative after you pass it; the apex speed of your best run.
+      It moves with your speed (faster = earlier) and with the safety margin.
+      After you press the brake: OK (within 5 m) / EARLY 12 m / LATE 8 m.
+    - B bar – how hard to brake right now (a reaction time ahead), the white line is your
+      pedal. Red BRAKE HARD -> yellow EASE OFF (trail braking) -> green LET GO.
+    - G bar – throttle: green FULL THROTTLE, yellow FEED IN, orange LIFT.
+    - -0.21 – time to your best lap (green = faster). From the second lap on.
+  The data is updated by AC Coach as you get faster, so keep AC Coach running.
+  With no laps yet the app says "no data for this car and track yet".
+  Settings tab > In-game app: switch the parts on/off, "Install / update now".
+  Problems: Documents\Assetto Corsa\logs\py_log.txt (lines "AC Coach").
 
 LAP TIME TARGET (e.g. from 1:39.5 to 1:35)
   On the Drive tab type a time (e.g. 1:35.000 or 1:35:500) and click "Set target".

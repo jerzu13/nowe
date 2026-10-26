@@ -6,7 +6,7 @@ SetCompressor zlib
 RequestExecutionLevel user
 
 !define APP      "AC Coach"
-!define VERSION  "1.7.1"
+!define VERSION  "1.8.0"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ACCoach"
 !define SRC      ".."
 

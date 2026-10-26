@@ -37,6 +37,18 @@ namespace ACCoach
             mapChk.CheckedChanged += delegate { Remember(); };
             End(g, ref top);
 
+            g = Group(p, L.T("Aplikacja w grze (Assetto Corsa)", "In-game app (Assetto Corsa)"), ref top);
+            gameChk = Check(g, L.T("Instaluj aplikację „AC Coach” w grze i wysyłaj jej dane", "Install the “AC Coach” app in the game and send it data"));
+            gameCdChk = Check(g, L.T("Licznik metrów do punktu hamowania", "Metres to the braking point"));
+            gameBarsChk = Check(g, L.T("Paski hamulca i gazu (ile wcisnąć, kolor = faza)", "Brake and throttle bars (how much to press, colour = phase)"));
+            gameDeltaChk = Check(g, L.T("Strata / zysk do najlepszego okrążenia", "Time lost / gained to the best lap"));
+            Button install = new Button { Text = L.T("Zainstaluj / zaktualizuj teraz", "Install / update now"), Width = 200, Height = 27 };
+            Add(g, install, 10, y); y += 34;
+            install.Click += delegate { InstallGameApp(true); };
+            foreach (CheckBox c in new[] { gameChk, gameCdChk, gameBarsChk, gameDeltaChk })
+                c.CheckedChanged += delegate { if (loading) return; RememberGameApp(); };
+            End(g, ref top);
+
             g = Group(p, "Language / Język", ref top);
             ComboBox lang = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
             lang.Items.AddRange(new object[] { "English", "Polski" });
@@ -75,6 +87,8 @@ namespace ACCoach
             st.AcRoot = a;
             TrackAi.AcRootOverride = a.Length > 0 ? a : null;
             Save();
+            TrackAi.FindAcRoot(true);
+            InstallGameApp(false);
             Console.WriteLine(L.T("Foldery zapisane. Dane: ", "Folders saved. Data: ") + DataDir() + (Running ? L.T(" (od następnego startu trenera)", " (from the next trainer start)") : ""));
         }
 
@@ -103,6 +117,27 @@ namespace ACCoach
             try { ok = Directory.Exists(Path.Combine(p, "content", "tracks")); } catch (Exception) { }
             acHint.Text = ok ? L.T("OK – folder gry znaleziony.", "OK – game folder found.") : L.T("W tym folderze nie ma content\\tracks – to chyba nie jest folder Assetto Corsa.", "There is no content\\tracks in this folder – this does not look like the Assetto Corsa folder.");
             acHint.ForeColor = ok ? Color.DarkGreen : Color.DarkRed;
+        }
+
+        // ---------- in-game app ----------
+
+        void InstallGameApp(bool verbose)
+        {
+            if (!st.GameApp && !verbose) return;
+            gameDir = GameApp.Install(st, verbose);
+        }
+
+        void RememberGameApp()
+        {
+            st.GameApp = gameChk.Checked;
+            st.GameCountdown = gameCdChk.Checked;
+            st.GameBars = gameBarsChk.Checked;
+            st.GameDelta = gameDeltaChk.Checked;
+            o.GameApp = st.GameApp;
+            foreach (CheckBox c in new[] { gameCdChk, gameBarsChk, gameDeltaChk }) c.Enabled = st.GameApp;
+            saveDue = true;
+            if (st.GameApp && gameDir == null) InstallGameApp(false);
+            else GameApp.WriteSettings(gameDir, st);
         }
 
         // ---------- help tab ----------

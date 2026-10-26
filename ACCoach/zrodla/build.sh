@@ -19,7 +19,7 @@ fi
 mcs -nologo -codepage:65001 -optimize -target:winexe -sdk:4.8 -out:../ACCoach.exe -win32icon:ACCoach.ico \
   -r:System.Core.dll -r:"$B/System.Speech.dll" -r:System.Web.Extensions.dll \
   -r:System.Windows.Forms.dll -r:System.Drawing.dll \
-  -resource:src/map_template.html,ACCoach.map_template.html src/*.cs 2>&1 | grep -v "CS0219" || true
+  -resource:src/map_template.html,ACCoach.map_template.html -resource:src/acapp.py,ACCoach.acapp.py src/*.cs 2>&1 | grep -v "CS0219" || true
 [ -f ../ACCoach.exe ] || { echo "build failed"; exit 1; }
 
 # test tools: fake game (AcSim), lap replay (AcReplay), one-process runner (Harness)

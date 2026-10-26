@@ -25,6 +25,7 @@ namespace ACCoach
         public float BeepLead = float.NaN;   // seconds the final beep is played early; NaN = learn from your reactions
         public bool Focus;                   // focus mode: speak only about one corner at a time
         public int FocusCorner;              // corner chosen with --fokus N; 0 = pick automatically
+        public bool GameApp = true;          // write the data of the in-game app (apps\python\ACCoach)
     }
 
     // Records every lap to CSV and, once a reference lap exists, gives short spoken tips after each corner.
@@ -265,6 +266,7 @@ namespace ACCoach
                 Console.WriteLine(L.T("Uwaga: brak pozycji auta we wzorcu – uwagi o linii będą wyłączone.", "Note: no car positions in the best lap – racing line cues are off."));
             BuildTargets();
             ResetTraining();
+            WriteGameData();
         }
 
         static float Seg(Trace tr, Corner c) { return tr.TimeAt(c.EndD) - tr.TimeAt(c.StartD); }
@@ -496,6 +498,7 @@ namespace ACCoach
                 foreach (int k in ConsiderForTargets(cur))
                     Console.WriteLine(string.Format(Inv, L.T("   Z{0}: nowy najlepszy przejazd tego zakrętu, cel szybszy o {1:0.00} s od wzorca", "   T{0}: new best run through this turn, target {1:0.00} s faster than the best lap"), refCorners[k].Num, refSeg[k] - targetSeg[k]));
             if (o.Focus && focusNum == 0) ChooseFocus(true);   // also when focus was switched on from the panel
+            WriteGameData();
         }
 
         static string SpokenTime(int ms)
