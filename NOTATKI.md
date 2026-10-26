@@ -29,6 +29,9 @@
 - **1.8** – aplikacja w grze (Python, `apps\python\ACCoach`): licznik metrów do punktu hamowania (ujemne po
   minięciu, werdykt OK/WCZEŚNIE/PÓŹNO), paski hamulca i gazu z idealnego przejazdu (kolor = faza), delta do
   najlepszego okrążenia. AC Coach wgrywa ją sam, włącza w python.ini i zapisuje `data\<combo>.txt`.
+- **1.8.1** – mapa w analizie odtwarza aplikację w grze na wybranym okrążeniu (ta sama logika w JS co `acapp.py`,
+  dane z `<combo>\aplikacja_w_grze.txt`): okienko jak w grze, odtwarzanie, wykres licznika, paski na wykresach,
+  na mapie punkty 0 m i oceny. Zmiana logiki w `acapp.py` = ta sama zmiana w `appSim` w `map_template.html`.
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,

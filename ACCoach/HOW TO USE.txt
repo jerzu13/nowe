@@ -2,7 +2,7 @@
 ====================================
 
 INSTALLATION (any Windows 10/11 PC, any user)
-  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.8.0.exe).
+  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.8.1.exe).
     - Installs for you only (the current Windows user), no administrator rights needed,
       into  %LOCALAPPDATA%\Programs\AC Coach .
     - Start menu shortcuts (folder "AC Coach"): AC Coach, Manual, Uninstall,
@@ -92,6 +92,12 @@ IN-GAME APP (from version 1.8) – on the screen of the game itself
   With no laps yet the app says "no data for this car and track yet".
   Settings tab > In-game app: switch the parts on/off, "Install / update now".
   Problems: Documents\Assetto Corsa\logs\py_log.txt (lines "AC Coach").
+  CHECK IT AFTER DRIVING: Analysis tab > the track map, card "In-game app" next to the charts.
+    It replays exactly what the app showed at every metre of the selected lap: the same box as
+    in the game, a "Play the lap" button (0.25x-2x), the chart "in-game app: metres to the
+    braking point", the app's bars as yellow dashed lines on the brake and throttle charts and,
+    on the big map, yellow squares where the counter reached 0 and the verdicts (T1 OK, T2 LATE 8 m).
+    Data: <car>__<track>\aplikacja_w_grze.txt (the same as the game reads; written by the trainer).
 
 LAP TIME TARGET (e.g. from 1:39.5 to 1:35)
   On the Drive tab type a time (e.g. 1:35.000 or 1:35:500) and click "Set target".

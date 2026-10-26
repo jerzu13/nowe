@@ -2,7 +2,7 @@
 ==================================
 
 INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
-  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.8.0.exe).
+  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.8.1.exe).
     - Instaluje tylko dla Ciebie (bieżący użytkownik Windows), bez uprawnień administratora,
       do  %LOCALAPPDATA%\Programs\AC Coach .
     - Skróty w menu Start (folder "AC Coach"): AC Coach, Instrukcja, Odinstaluj
@@ -95,6 +95,12 @@ APLIKACJA W GRZE (od wersji 1.8) – na ekranie samej gry
   Bez okrążeń aplikacja pisze „brak danych dla tego auta i toru”.
   Zakładka Ustawienia > Aplikacja w grze: włączanie części, „Zainstaluj / zaktualizuj teraz”.
   Problemy: Dokumenty\Assetto Corsa\logs\py_log.txt (wiersze „AC Coach”).
+  SPRAWDŹ PO JEŹDZIE: zakładka Analiza > mapa toru, karta „Aplikacja w grze” obok wykresów.
+    Odtwarza dokładnie to, co aplikacja pokazywała na każdym metrze wybranego okrążenia: to samo
+    okienko co w grze, przycisk „Odtwórz okrążenie” (0,25×–2×), wykres „aplikacja w grze: metry do
+    punktu hamowania”, paski aplikacji jako żółte przerywane linie na wykresach hamulca i gazu,
+    a na dużej mapie żółte kwadraty tam, gdzie licznik doszedł do 0, i oceny (Z1 OK, Z2 POZNO 8 m).
+    Dane: <auto>__<tor>\aplikacja_w_grze.txt (te same, które czyta gra; zapisuje je trener).
 
 CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
   W zakładce "Jazda" wpisz czas (np. 1:35.000 albo 1:35:500) i kliknij "Ustaw cel".

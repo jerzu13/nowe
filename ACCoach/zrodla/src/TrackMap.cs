@@ -265,6 +265,7 @@ namespace ACCoach
             root["target"] = targetText ?? new List<string>();
             root["wheels"] = wheelText ?? new List<string>();
             root["lang"] = L.Code;
+            root["app"] = GameApp.ReadForMap(comboDir);
 
             if (ai != null)
             {
@@ -347,6 +348,9 @@ namespace ACCoach
             new[] { "<h2 id=\"chartTitle\">Porównanie okrążeń</h2>", "<h2 id=\"chartTitle\">Lap comparison</h2>" },
             new[] { "<h2>Gdzie to jest na torze</h2>", "<h2>Where it is on the track</h2>" },
             new[] { "> przybliżaj do miejsca na wykresie</label>", "> zoom to the spot on the chart</label>" },
+            new[] { "<h2 style=\"margin-top:12px\">Aplikacja w grze</h2>", "<h2 style=\"margin-top:12px\">In-game app</h2>" },
+            new[] { "<button id=\"apPlay\">▶ Odtwórz okrążenie</button>", "<button id=\"apPlay\">▶ Play the lap</button>" },
+            new[] { "<label class=\"meta\">tempo <select id=\"apRate\"><option value=\"0.25\">0,25×</option><option value=\"0.5\">0,5×</option>", "<label class=\"meta\">speed <select id=\"apRate\"><option value=\"0.25\">0.25×</option><option value=\"0.5\">0.5×</option>" },
             new[] { "<h2 id=\"heatTitle\">Wszystkie okrążenia sesji – sektory</h2>", "<h2 id=\"heatTitle\">All laps of the session – sectors</h2>" },
             new[] { "<div class=\"meta\">Kliknij okrążenie, żeby je wybrać.</div>", "<div class=\"meta\">Click a lap to select it.</div>" },
         };

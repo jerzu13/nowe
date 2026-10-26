@@ -11,12 +11,10 @@ namespace ACCoach
     {
         const float ReleaseShowM = 25;   // after a braking zone the brake bar stays green this long: "let go"
 
-        // Rewritten whenever the best lap, a corner's best run, a margin or the reaction time changes.
+        // Rewritten (in the game and in <combo>\aplikacja_w_grze.txt) whenever the best lap, a corner's best run, a margin or the reaction time changes.
         void WriteGameData()
         {
-            if (!o.GameApp || refLap == null || refCorners == null || targetTrace == null || length <= 0 || si == null) return;
-            string f = GameApp.DataFile(Path.GetFileName(comboDir));
-            if (f == null) return;
+            if (refLap == null || refCorners == null || targetTrace == null || length <= 0 || si == null) return;
             Trace rt = refLap.Trace;
             int n = rt.N;
             List<string> l = new List<string>();
@@ -48,6 +46,10 @@ namespace ACCoach
             l.Add(string.Format(Inv, "grid {0:0.0} {1}", Trace.Step, n));
             for (int i = 0; i < n; i++)
                 l.Add(string.Format(Inv, "{0:0.000} {1:0} {2:0.00} {3:0.00} {4:0.00}", rt.T[i], spd[i], gas[i], brk[i], ph[i]));
+            // a copy next to the laps: the track map of the analysis replays what the app showed
+            try { GameApp.Write(Path.Combine(comboDir, GameApp.ComboCopy), l); } catch (Exception) { }
+            string f = o.GameApp ? GameApp.DataFile(Path.GetFileName(comboDir)) : null;
+            if (f == null) return;
             try { GameApp.Write(f, l); }
             catch (Exception e) { Console.WriteLine(L.T("Aplikacja w grze: nie udało się zapisać danych (", "In-game app: could not write its data (") + e.Message + ")"); }
         }

@@ -13,6 +13,8 @@ namespace ACCoach
     {
         public const string Name = "ACCoach";
 
+        public const string ComboCopy = "aplikacja_w_grze.txt";   // the same data in <combo>, for the track map
+
         public static string AppDir(string acRoot) { return Path.Combine(acRoot, "apps", "python", Name); }
 
         // Copies the app into the game when it is missing or older, writes its settings. Returns the app folder or null.
@@ -103,6 +105,41 @@ namespace ACCoach
             if (File.Exists(f)) File.Delete(f);
             File.Move(tmp, f);
         }
+
+        // <combo>\aplikacja_w_grze.txt for the track map: corners, lead and the grid as arrays; null when missing.
+        public static Dictionary<string, object> ReadForMap(string comboDir)
+        {
+            string f = Path.Combine(comboDir, ComboCopy);
+            if (!File.Exists(f)) return null;
+            try
+            {
+                System.Globalization.CultureInfo inv = System.Globalization.CultureInfo.InvariantCulture;
+                Func<string, float> F = x => float.Parse(x, inv);
+                List<object> corners = new List<object>();
+                List<float>[] grid = { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
+                float length = 0, lead = 0.15f, step = 2;
+                bool inGrid = false;
+                foreach (string line in File.ReadAllLines(f, Encoding.UTF8))
+                {
+                    string[] p = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (p.Length == 0 || p[0].StartsWith("#")) continue;
+                    if (inGrid) { for (int k = 0; k < 5; k++) grid[k].Add(F(p[k])); continue; }
+                    if (p[0] == "length") length = F(p[1]);
+                    else if (p[0] == "lead") lead = F(p[1]);
+                    else if (p[0] == "grid") { step = F(p[1]); inGrid = true; }
+                    else if (p[0] == "corner" && p.Length >= 8)
+                        corners.Add(new object[] { int.Parse(p[1], inv), Math.Round(F(p[2]), 1), Math.Round(F(p[3]), 1), Math.Round(F(p[4]), 1), Math.Round(F(p[5]), 1), Math.Round(F(p[6]), 1), Math.Round(F(p[7]), 2) });
+                }
+                if (length <= 0 || grid[0].Count < 10) return null;
+                return new Dictionary<string, object> {
+                    { "length", Math.Round(length, 1) }, { "lead", Math.Round(lead, 2) }, { "step", step }, { "corners", corners }, { "file", ComboCopy },
+                    { "date", File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm", inv) },
+                    { "t", Round(grid[0], 3) }, { "spd", Round(grid[1], 0) }, { "gas", Round(grid[2], 2) }, { "brk", Round(grid[3], 2) }, { "ph", Round(grid[4], 2) } };
+            }
+            catch (Exception) { return null; }
+        }
+
+        static double[] Round(List<float> a, int digits) { return a.Select(v => Math.Round((double)v, digits)).ToArray(); }
 
         static string Resource(string name)
         {

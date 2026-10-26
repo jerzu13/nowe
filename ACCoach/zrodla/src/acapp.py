@@ -3,6 +3,7 @@
 # AC Coach (the Windows program) copies this file to assettocorsa\apps\python\ACCoach\ACCoach.py and writes
 # data\<car>__<track>.txt (the ideal lap, rewritten as you get faster) and data\settings.txt.
 # Changes made here are overwritten by AC Coach - edit src\acapp.py in its sources instead.
+# The track map of the analysis replays the same logic (appSim in map_template.html): change both together.
 # Python 3.3 (the one inside AC): no f-strings. Texts without Polish letters (the AC font may lack them).
 import os
 

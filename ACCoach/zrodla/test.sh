@@ -46,7 +46,7 @@ echo "$out" | grep -q "KOŁA I OPONY" && echo "$out" | grep -q "blokada przodu" 
 
 echo "5/6 track map in a browser"
 if command -v node >/dev/null; then
-  node tools/test/check_map.js "$mapEn" && ok "map loads without script errors" || bad "map has script errors"
+  node tools/test/check_map.js "$mapEn" --app && ok "map loads without script errors" || bad "map has script errors"
 else echo "   skipped: no node"; fi
 
 echo "6/6 in-game app"
