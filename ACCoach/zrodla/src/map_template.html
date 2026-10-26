@@ -453,13 +453,15 @@ function renderCharts() {
   // wheels and tyres: only laps recorded with them (AC Coach 1.4+)
   if (a.srF) {
     const r2 = x => x == null ? '–' : x.toFixed(2), c0 = x => x == null ? '–' : Math.round(x);
-    specs.push(
+    // slip channels only when the game gives them (AC 1.14+), otherwise they are flat zero lines
+    if (a.slip !== false) specs.push(
       { key: 'sr', name: T('poślizg wzdłużny kół – przód (czerwony), tył (niebieski); poniżej zera blokowanie, powyżej buksowanie', 'wheel slip ratio – front (red), rear (blue); below zero locking, above wheelspin'),
         series: [[a.srF, '--brake', false], [a.srR, '--ref', false]], min: -0.5, max: 0.5, zero: true,
         tipf: i => T('przód ', 'front ') + r2(a.srF[i]) + T(', tył ', ', rear ') + r2(a.srR[i]) },
       { key: 'sa', name: T('kąt poślizgu opon – przód (czerwony), tył (niebieski); tył wyżej = tył ucieka, przód wyżej = przód ucieka', 'tyre slip angle – front (red), rear (blue); rear higher = oversteer, front higher = understeer'),
         series: [[a.saF, '--brake', false], [a.saR, '--ref', false]],
-        tipf: i => T('przód ', 'front ') + r2(a.saF[i]) + T(', tył ', ', rear ') + r2(a.saR[i]) + (a.saR[i] > 1.4 * a.saF[i] ? T(' – tył ucieka', ' – oversteer') : a.saF[i] > 1.7 * a.saR[i] ? T(' – przód ucieka', ' – understeer') : '') },
+        tipf: i => T('przód ', 'front ') + r2(a.saF[i]) + T(', tył ', ', rear ') + r2(a.saR[i]) + (a.saR[i] > 1.4 * a.saF[i] ? T(' – tył ucieka', ' – oversteer') : a.saF[i] > 1.7 * a.saR[i] ? T(' – przód ucieka', ' – understeer') : '') });
+    specs.push(
       { key: 'yaw', name: T('obrót auta (prędkość odchylania)', 'car rotation (yaw rate)') + (both && b.yaw ? T(' – przerywana: porównanie', ' – dashed: comparison') : ''),
         series: [[a.yaw, '--text', false]].concat(both && b.yaw ? [[b.yaw, cmpCol, true]] : []), zero: true,
         tipf: i => r2(a.yaw[i]) + (both && b.yaw ? ' vs ' + r2(b.yaw[i]) : '') },
@@ -643,7 +645,7 @@ function miniHover(i) {
     + T('prędkość ', 'speed ') + vs(a.spd[i], both && b.spd[i]) + T(' km/h · hamulec ', ' km/h · brake ') + vs(a.brk[i], both && b.brk[i], true)
     + T(' · gaz ', ' · throttle ') + vs(a.gas[i], both && b.gas[i], true) + T(' · kierownica ', ' · steering ') + (a.str[i] == null ? '–' : a.str[i].toFixed(2))
     + (both && b.str[i] != null ? ' <span class="meta">vs ' + b.str[i].toFixed(2) + '</span>' : '')
-    + (a.srF ? T('<br>poślizg przód ', '<br>slip front ') + a.srF[i].toFixed(2) + T(' / tył ', ' / rear ') + a.srR[i].toFixed(2) + T(' · opony ', ' · tyres ') + a.core.map(c => Math.round(c[i])).join('/') + ' °C' : '')
+    + (a.srF ? (a.slip !== false ? T('<br>poślizg przód ', '<br>slip front ') + a.srF[i].toFixed(2) + T(' / tył ', ' / rear ') + a.srR[i].toFixed(2) + T(' · opony ', ' · tyres ') : T('<br>opony ', '<br>tyres ')) + a.core.map(c => Math.round(c[i])).join('/') + ' °C' : '')
     + ((a.ev || []).filter(e => Math.abs(e.d - d) < 40).map(e => ' · <b>' + e.name + '</b>').join(''));
 }
 $('miniZoom').onchange = () => { if (!$('miniZoom').checked) miniGoTo(Object.assign({}, full)); };

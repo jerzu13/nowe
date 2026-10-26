@@ -65,6 +65,12 @@ namespace ACCoach
             return s.Count > 0 && s.Exists(x => x.Ext != null && x.Ext[Wheels.Load] > 1);
         }
 
+        // slip ratio and slip angle are filled by AC 1.14+ only; older versions (and some setups) leave them at 0
+        public static bool HasSlip(List<Sample> s)
+        {
+            return s.Exists(x => x.Ext != null && (Math.Abs(x.Ext[Wheels.SlipRatio]) > 1e-4f || Math.Abs(x.Ext[Wheels.SlipAngle]) > 1e-4f));
+        }
+
         static float Avg2(float[] e, int i, int a, int b) { return (e[i + a] + e[i + b]) / 2; }
         static float AbsAvg2(float[] e, int i, int a, int b) { return (Math.Abs(e[i + a]) + Math.Abs(e[i + b])) / 2; }
 

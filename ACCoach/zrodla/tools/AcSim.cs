@@ -87,6 +87,16 @@ static class AcSim
     {
         int laps = 7;
         float timeScale = 5f;
+        // --order time|laps: at the line the lap timer resets a few frames before (time) or after (laps) the lap
+        // counter goes up, as the game may do offline; default: both in the same frame
+        string order = "";
+        int lag = 4;
+        for (int i = 0; i + 1 < args.Length; i++)
+        {
+            if (args[i] == "--laps") laps = int.Parse(args[i + 1]);
+            if (args[i] == "--order") order = args[i + 1];
+        }
+        int shownCompleted = 0, shownLastMs = 0, lagLeft = 0;
         MemoryMappedFile fp, fg, fs;
         // test memory only (ACCoach --test-shm reads it); the game's acpmf_* pages are never touched
         MemoryMappedViewAccessor p = Map(@"Local\acpmf_test_physics", out fp);
@@ -123,7 +133,13 @@ static class AcSim
                 lapT = d / Math.Max(v, 1);
                 LapParams(completed, decel, vadd, delay);
                 Console.WriteLine("sim: lap " + completed + " done, " + lastMs + " ms");
+                lagLeft = lag;
             }
+            // what the game shows: with --order one of the two changes comes a few frames late
+            bool lagging = lagLeft > 0;
+            if (lagLeft > 0) lagLeft--;
+            if (!lagging || order != "time") { shownCompleted = completed; shownLastMs = lastMs; }
+            int shownT = lagging && order == "laps" ? (int)(lapT * 1000) + lastMs : (int)(lapT * 1000);
             int tyresOut = (completed == 4 && d > 2380 && d < 2420) ? 3 : 0;   // lap 4 is cut -> invalid
             // track is a circle; o = metres outwards from the normal line
             float o = 0;
@@ -142,9 +158,9 @@ static class AcSim
             p.Write(28, v * 3.6f);
             p.Write(61 * 4, tyresOut);
             Wheels(p, d, v, brake, gas, completed);
-            g.Write(132, completed);
-            g.Write(140, (int)(lapT * 1000));
-            g.Write(144, lastMs);
+            g.Write(132, shownCompleted);
+            g.Write(140, shownT);
+            g.Write(144, shownLastMs);
             g.Write(148, bestMs);
             g.Write(248, d / L);
             g.Write(276, 0);

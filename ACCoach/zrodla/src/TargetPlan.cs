@@ -154,6 +154,12 @@ namespace ACCoach
             public Corner C;
             public float Gain;          // seconds the plan takes off this corner
             public float RefMin, PlanMin;
+            // the corner's stretch in three parts: the approach (from the previous corner to 20 m before the
+            // braking), the entry (to the apex) and the exit; the time gained in each and, where most of it is,
+            // the spot with the largest speed gain
+            public float GainApproach, GainEntry, GainExit;
+            public int Part;                // 0 = approach, 1 = entry, 2 = exit
+            public float SpotD, SpotRef, SpotPlan;
         }
 
         public List<CornerPlan> PerCorner(List<Corner> corners)
@@ -168,6 +174,13 @@ namespace ACCoach
                 cp.Gain = (RefT(a, b)) - (PlanT[b] - PlanT[a]);
                 cp.RefMin = RefMinSpeed(c.StartD, c.EndD);
                 cp.PlanMin = MinSpeed(c.StartD, c.EndD);
+                int ap = Math.Max(a, Math.Min(b, (int)(c.ApexD / Trace.Step)));
+                int en = Math.Max(a, Math.Min(ap, (int)((c.OnsetD - 20) / Trace.Step)));
+                cp.GainApproach = GainIn(a, en); cp.GainEntry = GainIn(en, ap); cp.GainExit = GainIn(ap, b);
+                cp.Part = cp.GainApproach >= cp.GainEntry && cp.GainApproach >= cp.GainExit ? 0 : cp.GainEntry >= cp.GainExit ? 1 : 2;
+                int pa = cp.Part == 0 ? a : cp.Part == 1 ? en : ap, pb = cp.Part == 0 ? en : cp.Part == 1 ? ap : b, spot = pa;
+                for (int i = pa; i <= pb; i++) if (PlanSpd[i] - RefSpd[i] > PlanSpd[spot] - RefSpd[spot]) spot = i;
+                cp.SpotD = spot * Trace.Step; cp.SpotRef = RefSpd[spot]; cp.SpotPlan = PlanSpd[spot];
                 l.Add(cp);
             }
             return l;
@@ -175,6 +188,29 @@ namespace ACCoach
 
         float[] refT;
         float RefT(int a, int b) { return refT[b] - refT[a]; }
+        float GainIn(int a, int b) { return RefT(a, b) - (PlanT[b] - PlanT[a]); }
+
+        // What a corner's gain is made of, for the report: the apex speed when the plan carries more of it,
+        // otherwise the spot where the plan is fastest (e.g. a lift on the approach the plan takes flat out),
+        // then the split over approach / entry / exit.
+        public static string Where(CornerPlan c)
+        {
+            string main;
+            if (c.PlanMin - c.RefMin >= 2) main = string.Format(L.T("szczyt {0:0} → {1:0} km/h", "apex {0:0} → {1:0} km/h"), c.RefMin, c.PlanMin);
+            else
+            {
+                float m = Math.Abs(c.C.ApexD - c.SpotD);
+                string at = m < 15 ? L.T("przy szczycie", "at the apex")
+                    : string.Format(c.SpotD < c.C.ApexD ? L.T("{0:0} m przed szczytem", "{0:0} m before the apex") : L.T("{0:0} m za szczytem", "{0:0} m after the apex"), Math.Round(m / 10) * 10);
+                string part = c.Part == 0 ? L.T("dojazd", "approach") : c.Part == 1 ? L.T("hamowanie i wejście", "braking and entry") : L.T("wyjście", "exit");
+                main = string.Format(L.T("{0} {1:0} → {2:0} km/h ({3}), szczyt bez zmian", "{0} {1:0} → {2:0} km/h ({3}), apex unchanged"), part, c.SpotRef, c.SpotPlan, at);
+            }
+            List<string> parts = new List<string>();
+            if (c.GainApproach >= 0.05f) parts.Add(L.T("dojazd -", "approach -") + Sec(c.GainApproach));
+            if (c.GainEntry >= 0.05f) parts.Add(L.T("wejście -", "entry -") + Sec(c.GainEntry));
+            if (c.GainExit >= 0.05f) parts.Add(L.T("wyjście -", "exit -") + Sec(c.GainExit));
+            return parts.Count > 1 ? main + "  [" + string.Join(", ", parts) + "]" : main;
+        }
 
         // The report / console block for this plan (the final target).
         public List<string> Describe(LimitModel m, List<Corner> corners)
@@ -192,7 +228,7 @@ namespace ACCoach
             {
                 r.Add(L.T("  gdzie szukać czasu (plan na ten cel):", "  where to find the time (plan for this target):"));
                 foreach (CornerPlan c in cps)
-                    r.Add(string.Format(L.T("    Z{0,-2} {1,6} s   szczyt {2:0} → {3:0} km/h", "    T{0,-2} {1,6} s   apex {2:0} → {3:0} km/h"), c.C.Num, "-" + Sec(c.Gain), c.RefMin, c.PlanMin));
+                    r.Add(string.Format(L.T("    Z{0,-2} {1,6} s   {2}", "    T{0,-2} {1,6} s   {2}"), c.C.Num, "-" + Sec(c.Gain), Where(c)));
             }
             r.Add(L.T("  (model z Twoich okrążeń: ", "  (model from your laps: ") + m.Describe() + L.T("; im szybciej jeździsz, tym dokładniej)", "; the faster you drive, the more accurate it gets)"));
             return r;

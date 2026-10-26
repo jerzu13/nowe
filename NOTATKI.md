@@ -12,6 +12,17 @@
 - **1.5** – jedno okno aplikacji (zakładki), log zamiast konsoli, instalator z jednym skrótem.
 - **1.6** – wersja angielska domyślna (polski w Ustawieniach / w instalatorze), HOW TO USE.txt.
 - Porządki (po 1.6): podział LiveCoach/MainForm na pliki partial, build.sh/test.sh, hook startowy, workflow Release.
+- **1.7** – poprawki po jeździe Mirka (Silverstone GP, McLaren MP4-12C GT3):
+  - meta: licznik okrążeń i zerowanie czasu mogą przyjść w różnych klatkach (offline: praktyka, kariera) – wcześniej
+    każde okrążenie było brane za restart i nic się nie zapisywało (odtworzone w AcSim `--order time|laps`);
+  - głos: nowsza uwaga o zakręcie zastępuje starszą, przepada po dojechaniu do następnego zakrętu, krótsza wersja
+    gdy mało czasu; po wyjeździe/obrocie/skoku pozycji tylko „Zakręt N, wyjazd”, bez liczb; różnica punktu
+    hamowania > 120 m = to nie to samo hamowanie (było np. -140 m w Z7);
+  - plan celu: zysk w zakręcie bywa na dojeździe (niewykryty szybki zakręt, np. Maggotts) – raport pokazuje
+    miejsce i podział dojazd/wejście/wyjście zamiast „szczyt 131 → 131 km/h”;
+  - mapa: u Mirka gra nie podaje poślizgu kół ani TC/ABS (same zera – AC < 1.14?) – wykresy poślizgu ukryte, raport
+    o tym pisze; temperatury bez skoku do 0 na starcie;
+  - log okna zapisywany do `<dane>\log.txt` (+ `log_prev.txt`).
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,
@@ -19,6 +30,8 @@
 - Progi zdarzeń kół (Grip.cs: blokada < -0,25 przez 0,08 s, buksowanie > 0,2, uślizg tył > 1,4 × przód…) – do
   dopasowania na prawdziwych okrążeniach.
 - Głos angielski/polski, głośności, okno na prawdziwym Windows (DPI, wygląd), zamknięcie okna krzyżykiem.
+- Kolejność licznik/czas na mecie offline – poprawka na hipotezie (obie kolejności obsłużone); potwierdzić w log.txt.
+- Wykrywanie zakrętów: na Silverstone GP 10 zakrętów zamiast 18 (szybkie łuki bez hamowania nie są wykrywane).
 - Progi wskazówek z Corners.cs strojone na 26 okrążeniach Huracán ST / Vallelunga – sprawdzić na innych autach.
 
 ## Odłożone tematy

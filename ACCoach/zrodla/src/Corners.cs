@@ -391,7 +391,9 @@ namespace ACCoach
             lc.ExitSpeed = lapTr.SpeedAt(Math.Min(rc.ExitD, end));
             CornerCmp c = new CornerCmp();
             c.Ref = rc; c.Lap = lc;
-            if (rc.Braked && lc.Braked) { c.BrakeDiff = lc.BrakeD - rc.BrakeD; c.BrakeForceDiff = lc.BrakeForce - rc.BrakeForce; }
+            // braking points more than 120 m apart are not the same braking (a dab of the brake on the straight,
+            // a spin, a rejoin): no braking advice from them
+            if (rc.Braked && lc.Braked && Math.Abs(lc.BrakeD - rc.BrakeD) <= MaxBrakeDiff) { c.BrakeDiff = lc.BrakeD - rc.BrakeD; c.BrakeForceDiff = lc.BrakeForce - rc.BrakeForce; }
             if (!float.IsNaN(rc.ThrottleD) && !float.IsNaN(lc.ThrottleD)) c.ThrDiff = lc.ThrottleD - rc.ThrottleD;
             c.MinSpdDiff = lc.MinSpeed - rc.MinSpeed;
             c.ExitSpdDiff = lc.ExitSpeed - refTr.SpeedAt(Math.Min(rc.ExitD, end));
@@ -407,6 +409,8 @@ namespace ACCoach
             }
             return c;
         }
+
+        public const float MaxBrakeDiff = 120;
 
         static int Round5(float v) { return (int)(Math.Round(v / 5.0) * 5); }
         public static string Sec(float s) { return Math.Abs(s).ToString("0.0", ACCoach.L.Culture); }

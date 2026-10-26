@@ -84,7 +84,7 @@ namespace ACCoach
             LoadValues();
             loading = false;
 
-            LogWriter.Install();
+            LogWriter.Install(DataDir());
             System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer { Interval = 250 };
             timer.Tick += delegate { Tick(); };
             timer.Start();
@@ -227,12 +227,33 @@ namespace ACCoach
 
         public override Encoding Encoding { get { return Encoding.UTF8; } }
 
-        public static void Install() { Console.SetOut(TextWriter.Synchronized(new LogWriter())); }
+        // every line also goes to <data>\log.txt (the run before is kept as log_prev.txt), to send with a problem report
+        static StreamWriter file;
+
+        public static void Install(string dataDir)
+        {
+            try
+            {
+                Directory.CreateDirectory(dataDir);
+                string f = Path.Combine(dataDir, "log.txt");
+                if (File.Exists(f)) File.Copy(f, Path.Combine(dataDir, "log_prev.txt"), true);
+                file = new StreamWriter(f, false, new UTF8Encoding(false)) { AutoFlush = true };
+            }
+            catch (Exception) { file = null; }
+            Console.SetOut(TextWriter.Synchronized(new LogWriter()));
+        }
 
         public override void Write(char c)
         {
             if (c == '\r') return;
-            if (c == '\n') { lines.Enqueue(cur.ToString()); cur.Clear(); return; }
+            if (c == '\n')
+            {
+                string line = cur.ToString();
+                lines.Enqueue(line);
+                cur.Clear();
+                if (file != null) try { file.WriteLine(DateTime.Now.ToString("HH:mm:ss ") + line); } catch (Exception) { file = null; }
+                return;
+            }
             cur.Append(c);
         }
 

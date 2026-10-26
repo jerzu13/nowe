@@ -111,7 +111,7 @@ namespace ACCoach
                     if (d < c.OnsetD - 90 && off > 1.5f)
                     {
                         Console.WriteLine(string.Format(Inv, L.T("  Z{0}: {1:0.0} m za blisko wewnętrznej przed zakrętem", "  T{0}: {1:0.0} m too close to the inside before the turn"), c.Num, off));
-                        if (SpeakAbout(c.Num)) Enqueue(L.T("Szerzej", "Wider"), true);
+                        if (SpeakAbout(c.Num)) Instant(L.T("Szerzej", "Wider"));
                     }
                 }
 
@@ -130,7 +130,7 @@ namespace ACCoach
                     if (!float.IsNaN(finalBeepT[k]))
                     {
                         reaction[k] = brakeT[k] - finalBeepT[k];
-                        if (reaction[k] > LateS) { Console.WriteLine(string.Format(Inv, L.T("  [PÓŹNO] Z{0}: hamulec {1:0.00} s po piknięciu", "  [LATE] T{0}: brake {1:0.00} s after the beep"), t.Num, reaction[k])); if (SpeakAbout(t.Num)) Enqueue(L.T("Późno", "Late"), true); }
+                        if (reaction[k] > LateS) { Console.WriteLine(string.Format(Inv, L.T("  [PÓŹNO] Z{0}: hamulec {1:0.00} s po piknięciu", "  [LATE] T{0}: brake {1:0.00} s after the beep"), t.Num, reaction[k])); if (SpeakAbout(t.Num) && !AfterOff(k)) Instant(L.T("Późno", "Late")); }
                     }
                     else if (beepStage[k] < BeepAt.Length && beepPoint[k] > 0)
                     {
@@ -138,7 +138,7 @@ namespace ACCoach
                         float early = (beepPoint[k] - d) / v - lead;
                         reaction[k] = -early;
                         beepStage[k] = BeepAt.Length;
-                        if (early > EarlyS) { Console.WriteLine(string.Format(Inv, L.T("  [WCZEŚNIE] Z{0}: hamulec {1:0.00} s przed piknięciem", "  [EARLY] T{0}: brake {1:0.00} s before the beep"), t.Num, early)); if (SpeakAbout(t.Num)) Enqueue(L.T("Wcześnie", "Early"), true); }
+                        if (early > EarlyS) { Console.WriteLine(string.Format(Inv, L.T("  [WCZEŚNIE] Z{0}: hamulec {1:0.00} s przed piknięciem", "  [EARLY] T{0}: brake {1:0.00} s before the beep"), t.Num, early)); if (SpeakAbout(t.Num) && !AfterOff(k)) Instant(L.T("Wcześnie", "Early")); }
                     }
                 }
 
@@ -166,6 +166,9 @@ namespace ACCoach
                 if (final) Console.WriteLine(string.Format(Inv, L.T("  [HAMUJ] Z{0} @{1:0} m {2} ({3:0}%)", "  [BRAKE] T{0} @{1:0} m {2} ({3:0}%)"), t.Num, beepPoint[k], t.ForceName, t.BrakeForce * 100));
             }
         }
+
+        // right after an off-track the braking is not a normal one: no "early/late" call there
+        bool AfterOff(int k) { return k > 0 && offThisLap[k - 1]; }
 
         static string LineText(float off)
         {

@@ -408,13 +408,15 @@ namespace ACCoach
             for (int c = 0; c < ch; c++)
             {
                 outp[c] = new object[n];
-                float last = 0;
+                int first = Array.FindIndex(cnt, x => x > 0);
+                float last = first >= 0 ? sum[c, first] / cnt[first] : 0;   // cells before the first sample: no drop to 0
                 for (int g = 0; g < n; g++)
                 {
                     if (cnt[g] > 0) last = sum[c, g] / cnt[g];
                     outp[c][g] = Math.Round(last, digits[c]);
                 }
             }
+            d["slip"] = Grip.HasSlip(l.Samples);
             d["srF"] = outp[0]; d["srR"] = outp[1]; d["saF"] = outp[2]; d["saR"] = outp[3]; d["yaw"] = outp[4]; d["tc"] = outp[5];
             d["core"] = new object[] { outp[6], outp[7], outp[8], outp[9] };
             d["press"] = new object[] { outp[10], outp[11], outp[12], outp[13] };

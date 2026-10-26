@@ -10,7 +10,7 @@ mkdir -p "$B"
 API=/usr/lib/mono/4.8-api
 
 # System.Speech for the compiler only (see tools/test/SpeechStub.cs)
-if [ ! -f "$B/System.Speech.dll" ]; then
+if [ ! -f "$B/System.Speech.dll" ] || [ tools/test/SpeechStub.cs -nt "$B/System.Speech.dll" ]; then
   mcs -nologo -out:"$B/KeyOf.exe" tools/test/KeyOf.cs
   mono "$B/KeyOf.exe" "$API/System.Web.Extensions.dll" "$B/ms.pub" >/dev/null
   mcs -nologo -target:library -out:"$B/System.Speech.dll" -keyfile:"$B/ms.pub" -delaysign+ tools/test/SpeechStub.cs

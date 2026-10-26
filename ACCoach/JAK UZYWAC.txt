@@ -96,7 +96,11 @@ CEL CZASU OKRĄŻENIA (np. z 1:39,5 na 1:35)
       "Czas 1 38,9, minus 0,6, do celu 0,7"
   W logu trenera przy każdym zakręcie: "cel +0.45 (łącznie +1.62)".
   RAPORT I MAPA – sekcja "CEL CZASU": ocena, cele pośrednie i plan na zakręty:
-      Z7  -0,94 s   szczyt 99 → 110 km/h   (ile czasu i jaka prędkość w szczycie)
+      Z1  -0,95 s   szczyt 133 → 162 km/h  [wejście -0,42, wyjście -0,53]
+      Z7  -0,48 s   dojazd 197 → 228 km/h (330 m przed szczytem), szczyt bez zmian
+  (ile czasu, gdzie dokładnie: szczyt, a gdy szczyt się nie zmienia – miejsce, gdzie plan
+  jedzie najszybciej, np. odpuszczenie gazu na dojeździe; w nawiasie podział na dojazd,
+  wejście i wyjście)
   Cel ustawiony przy zatrzymanym trenerze dotyczy auta i toru, którymi jeździłeś ostatnio.
 
   WSKAZÓWKI
@@ -284,6 +288,16 @@ NOTATKI (Twoje podpowiedzi przed zakrętem)
 
 
 DOBRZE WIEDZIEĆ
+  - GŁOS NA TORACH Z WIELOMA ZAKRĘTAMI: uwaga o zakręcie jest mówiona tylko, dopóki ma
+    sens – nowsza zastępuje starszą, a gdy dojeżdżasz już do następnego zakrętu, stara
+    przepada. Gdy do następnego zakrętu jest mało czasu, głos mówi krótszą wersję
+    (np. tylko "Zakręt 7, gorzej o 0,2"). Pełne liczby zawsze są w logu.
+  - PO WYJEŹDZIE Z TORU głos mówi tylko "Zakręt 9, wyjazd" (i ewentualnie "piknę 5 metrów
+    wcześniej") – bez porównań, które po wyjeździe czy obrocie nie mają sensu. Tak samo
+    następny zakręt, jeśli dojeżdżasz do niego dużo wolniej niż na wzorcu.
+  - Okrążenia zapisują się w każdej sesji: online, praktyka offline, kariera, hotlap.
+  - Log okna jest zapisywany w folderze danych:  log.txt  (poprzednie uruchomienie:
+    log_prev.txt). Gdy coś nie działa, wyślij ten plik.
   - Zakręty są numerowane po kolei na torze (Z1, Z2...), może to różnić się
     od oficjalnej numeracji. Numeracja jest STAŁA – zapisana w  <auto>__<tor>\zakrety.txt
     (numer i metr szczytu). Usuń ten plik, a trener ponumeruje zakręty od nowa.

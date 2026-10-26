@@ -12,11 +12,44 @@ namespace ACCoach
     // What the voice says after each turn and when.
     public partial class LiveCoach
     {
-        void Enqueue(string text, bool front)
+        // Kinds of messages and how long they stay worth saying: a corner call only until the next corner
+        // (a newer one replaces it), a short instant call ("Late", "Wider") only right away.
+        const int MsgInfo = 0, MsgCorner = 1, MsgInstant = 2;
+
+        void Enqueue(string text, bool front) { Enqueue(new Msg { Text = text }, front); }
+
+        void Instant(string text) { Enqueue(new Msg { Text = text, Kind = MsgInstant }, true); }
+
+        void Enqueue(Msg m, bool front)
         {
-            Msg m = new Msg(); m.Text = text; m.At = DateTime.Now;
+            m.At = DateTime.Now;
+            if (m.Kind == MsgCorner) queue.RemoveAll(q => q.Kind == MsgCorner);   // an older corner call is stale now
             if (front) queue.Insert(0, m); else queue.Add(m);
-            while (queue.Count > 3) queue.RemoveAt(queue.Count - 1);
+            while (queue.Count > 4) queue.RemoveAt(queue.Count - 1);
+        }
+
+        static double MaxAge(Msg m) { return m.Kind == MsgInstant ? 1.5 : m.Kind == MsgCorner ? 4 : 8; }
+
+        // Seconds the voice needs for a text (about 14 characters a second at rate 0; rate 10 is ~3× faster).
+        double SpeakS(string text) { return text.Length / (14.0 * Math.Pow(3, Math.Max(-10, Math.Min(10, o.Rate)) / 10.0)); }
+
+        // Time left before the next corner's apex at the best lap's pace: a corner call has to be over by then.
+        double TimeToNextCorner(float d)
+        {
+            Trace tr = refLap.Trace;
+            Corner next = refCorners.FirstOrDefault(c => c.ApexD > d + 20);
+            return (next != null ? tr.TimeAt(next.ApexD) : tr.T[tr.Filled - 1]) - tr.TimeAt(d);
+        }
+
+        // The longest version of a message that fits before the next corner (the shortest when none does).
+        string Fit(Msg m, float d)
+        {
+            if (m.Shorter == null || live == null || refCorners == null || d < 0) return m.Text;
+            double budget = TimeToNextCorner(d);
+            if (SpeakS(m.Text) <= budget) return m.Text;
+            foreach (string s in m.Shorter)
+                if (SpeakS(s) <= budget) return s;
+            return m.Shorter[m.Shorter.Length - 1];
         }
 
         void ProcessVoice()
@@ -38,7 +71,7 @@ namespace ACCoach
                     if (fc != null && d >= fc.OnsetD - 350 && d < fc.OnsetD - 100)
                     {
                         focusReminded = true;
-                        Enqueue(focusTip != null ? string.Format(L.T("Zakręt {0}: {1}", "Turn {0}: {1}"), focusNum, focusTip) : string.Format(L.T("Fokus, zakręt {0}", "Focus, turn {0}"), focusNum), true);
+                        Enqueue(new Msg { Text = focusTip != null ? string.Format(L.T("Zakręt {0}: {1}", "Turn {0}: {1}"), focusNum, focusTip) : string.Format(L.T("Fokus, zakręt {0}", "Focus, turn {0}"), focusNum), DropD = fc.OnsetD - 30 }, true);
                     }
                 }
                 if (rival != null && sectorBounds != null)
@@ -59,6 +92,17 @@ namespace ACCoach
                     CornerCmp cmp = Corners.Compare(refLap.Trace, refCorners, k, live, evalD);
                     bool ownTarget = targetTrace[k] != refLap.Trace;
                     CornerCmp tcmp = ownTarget ? Corners.Compare(targetTrace[k], targetCorners, k, live, evalD) : cmp;
+                    string why = Disturbed(k, evalD);
+                    if (why != null)
+                    {
+                        // an off-track, a spin or a jump of the car's position: the numbers would be nonsense
+                        Console.WriteLine(string.Format(Inv, L.T("  Z{0,-2} {1,6} s | {2} – bez porównania", "  T{0,-2} {1,6} s | {2} – not compared"), rc.Num,
+                            Corners.Sec2((live.TimeAt(evalD) - live.TimeAt(rc.StartD)) - (refLap.Trace.TimeAt(evalD) - refLap.Trace.TimeAt(rc.StartD))), why));
+                        if (offThisLap[k] && !o.Quiet && SpeakAbout(rc.Num)) OffCall(k);
+                        if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);   // the beep log keeps the off-track
+                        nextEval++;
+                        continue;
+                    }
                     Tip tip = Corners.MakeTip(tcmp, o.Train);
                     float total = live.TimeAt(evalD) - refLap.Trace.TimeAt(evalD);
                     List<WheelEvent> wev = CornerWheelEvents(rc.StartD - 30, evalD);
@@ -80,32 +124,63 @@ namespace ACCoach
                     DecayMargin(k);
                     if (!o.Quiet)
                     {
-                        string call = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint, wheelKind);
-                        if (o.Focus && rc.Num == focusNum) Enqueue(FocusCall(k, cmp, call, tip), false);
-                        else if (SpeakAbout(rc.Num)) Enqueue(call, false);
+                        string[] calls = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint, wheelKind);
+                        // not said any more once the car is through the next corner's apex (its own call is due then)
+                        float dropD = k + 1 < refCorners.Count ? Math.Max(refCorners[k + 1].ApexD, evalD + 50) : float.MaxValue;
+                        if (o.Focus && rc.Num == focusNum) Enqueue(new Msg { Text = FocusCall(k, cmp, calls[0], tip), Kind = MsgCorner, Corner = k }, false);
+                        else if (SpeakAbout(rc.Num)) Enqueue(new Msg { Text = calls[0], Shorter = calls.Skip(1).ToArray(), Kind = MsgCorner, Corner = k, DropD = dropD }, false);
                     }
                     nextEval++;
                 }
             }
             if (queue.Count == 0) return;
-            if ((DateTime.Now - queue[0].At).TotalSeconds > 8) { queue.RemoveAt(0); return; }
+            // what is no longer true where the car is now goes unsaid: too old, or the next corner is already done
+            queue.RemoveAll(m => (DateTime.Now - m.At).TotalSeconds > MaxAge(m) || (d >= 0 && d > m.DropD));
             // tips are spoken right away, anywhere on track; the beeps simply play over the voice
-            if (voice.Busy || (DateTime.Now - lastSpoke).TotalSeconds < 1) return;
-            voice.Say(queue[0].Text);
+            if (queue.Count == 0 || voice.Busy || (DateTime.Now - lastSpoke).TotalSeconds < 0.4) return;
+            voice.Say(Fit(queue[0], d));
             queue.RemoveAt(0);
             lastSpoke = DateTime.Now;
+        }
+
+        // Why corner k of this lap cannot be compared with the best lap, or null when it can.
+        string Disturbed(int k, float evalD)
+        {
+            Corner rc = refCorners[k];
+            if (offThisLap[k]) return L.T("wyjazd poza tor", "off track");
+            foreach (float[] j in posJumps)
+                if (j[1] >= rc.StartD - 50 && j[0] <= evalD) return L.T("skok pozycji auta", "car position jumped");
+            // after an off-track or a spin in the corner before: arriving far slower than on the best lap
+            float at = Math.Max(rc.StartD, rc.OnsetD - 50), refV = refLap.Trace.SpeedAt(at), v = live.SpeedAt(at);
+            if (k > 0 && offThisLap[k - 1] && v < refV * 0.85f) return L.T("dojazd po wyjeździe", "approach after an off-track");
+            if (v < refV * 0.6f && refV > 60) return L.T("dojazd dużo wolniej niż na wzorcu", "approach far slower than on the best lap");
+            return null;
+        }
+
+        // "Turn 4, off track" (plus the earlier beep there from now on), instead of numbers that mean nothing.
+        void OffCall(int k)
+        {
+            int num = refCorners[k].Num;
+            queue.RemoveAll(q => q.Kind == MsgCorner && q.Corner == k);
+            string s = L.T("Zakręt ", "Turn ") + num + L.T(", wyjazd", ", off track");
+            float m;
+            if (marginNote.TryGetValue(k, out m)) s += string.Format(L.T(", piknę {0:0} metrów wcześniej", ", I will beep {0:0} metres earlier"), m);
+            Enqueue(s, false);
         }
 
         // "Zakręt 3, lepiej o 0,12" / "Zakręt 3, gorzej o 0,2, hamujesz za wcześnie" / "Zakręt 3, równo".
         // vsBest = against the best lap; vsTarget = against the best version of this corner (record / what to fix).
         // vsBest: against the best lap; vsTarget: against the best run of this corner; vsPlan: against the
         // lap-time target's plan (NaN = no target)
-        static string CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null, string wheel = null)
+        // Returns the full call, then shorter versions for when the next corner comes soon: without the target
+        // part, then just better/worse.
+        static string[] CornerCall(int num, float vsBest, float vsTarget, Tip tip, float vsPlan = float.NaN, string planHint = null, string wheel = null)
         {
             string s = L.T("Zakręt ", "Turn ") + num + ", ";
             if (vsBest <= -0.03f) s += L.T("lepiej o ", "faster by ") + SpokenDelta(-vsBest);
             else if (vsBest >= 0.03f) s += L.T("gorzej o ", "slower by ") + SpokenDelta(vsBest);
             else s += L.T("równo", "even");
+            string bare = s;
             bool tipSaid = false;
             if (vsTarget < -0.02f && vsBest < 0.03f) s += L.T(", rekord zakrętu", ", turn record");
             else if (tip != null && vsTarget > 0.05f) { s += ", " + tip.Action; tipSaid = true; }
@@ -116,6 +191,7 @@ namespace ACCoach
                 s += ", " + Grip.Spoken(wheel);
                 tipSaid = true;
             }
+            string mid = s;
             if (!float.IsNaN(vsPlan))
             {
                 if (vsPlan <= 0.02f) s += L.T(", w celu", ", on target");
@@ -125,7 +201,7 @@ namespace ACCoach
                     if (planHint != null && !tipSaid) s += ", " + planHint;
                 }
             }
-            return s;
+            return new[] { s, mid, bare }.Distinct().ToArray();
         }
 
         // wheel events of the current lap between two distances (scans back from the newest sample)

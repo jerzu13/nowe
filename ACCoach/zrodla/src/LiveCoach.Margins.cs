@@ -67,14 +67,21 @@ namespace ACCoach
                 focusStreak = 0;
                 focusTip = entry ? L.T("hamuj wcześniej", "brake earlier") : L.T("spokojniej z gazem na wyjściu", "calmer throttle on the exit");
             }
-            if (!o.Train || !targetCorners[k].Braked) return;
-            float old = MarginFor(c.Num);
-            float now = Math.Min(MarginMax, old + (entry ? MarginEntry : MarginExit));
-            if (now <= old) return;
-            margin[c.Num] = now;
-            SaveMargins();
-            Console.WriteLine(string.Format(Inv, L.T("      margines Z{0}: ostatnie piknięcie {1:0} m wcześniej", "      margin T{0}: last beep {1:0} m earlier"), c.Num, now));
-            Enqueue(string.Format(L.T("Zakręt {0}, następnym razem piknę {1:0} metrów wcześniej", "Turn {0}, next time I will beep {1:0} metres earlier"), c.Num, now), false);
+            if (o.Train && targetCorners[k].Braked)
+            {
+                float old = MarginFor(c.Num);
+                float now = Math.Min(MarginMax, old + (entry ? MarginEntry : MarginExit));
+                if (now > old)
+                {
+                    margin[c.Num] = now;
+                    marginNote[k] = now;
+                    SaveMargins();
+                    Console.WriteLine(string.Format(Inv, L.T("      margines Z{0}: ostatnie piknięcie {1:0} m wcześniej", "      margin T{0}: last beep {1:0} m earlier"), c.Num, now));
+                }
+            }
+            // the corner was already judged (off late on the exit): its call becomes "off track";
+            // otherwise that call is made when the corner is judged
+            if (nextEval > k && !o.Quiet && SpeakAbout(c.Num)) OffCall(k);
         }
 
         // A clean run through a corner (and the one before it) gives some of the margin back.

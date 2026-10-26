@@ -92,7 +92,11 @@ LAP TIME TARGET (e.g. from 1:39.5 to 1:35)
       "Time 1 38.9, minus 0.6, to target 0.7"
   The trainer log shows at every turn: "target +0.45 (total +1.62)".
   REPORT AND MAP – "LAP TIME TARGET" section: verdict, intermediate goals and a plan per turn:
-      T7  -0.94 s   apex 99 → 110 km/h   (how much time and what apex speed)
+      T1  -0.95 s   apex 133 → 162 km/h  [entry -0.42, exit -0.53]
+      T7  -0.48 s   approach 197 → 228 km/h (330 m before the apex), apex unchanged
+  (how much time and where exactly: the apex, or when the apex speed stays the same, the
+  spot where the plan is fastest, e.g. a lift on the approach; in brackets the split over
+  approach, entry and exit)
   A target set while the trainer is stopped applies to the car and track you drove last.
 
   TIPS
@@ -274,6 +278,16 @@ NOTES (your own reminders before a turn)
 
 
 GOOD TO KNOW
+  - VOICE ON TRACKS WITH MANY TURNS: a turn call is said only while it still makes sense –
+    a newer one replaces an older one, and once you reach the next turn the old one is
+    dropped. When the next turn is close, the voice says a shorter version (e.g. just
+    "Turn 7, slower by 0.2"). The full numbers are always in the log.
+  - AFTER AN OFF-TRACK the voice says only "Turn 9, off track" (and maybe "I will beep
+    5 metres earlier") – no comparisons, which mean nothing after an off or a spin. The
+    same for the next turn when you arrive there much slower than on your best lap.
+  - Laps are recorded in every session: online, offline practice, career, hotlap.
+  - The window's log is saved in the data folder:  log.txt  (the run before:
+    log_prev.txt). When something does not work, send that file.
   - Turns are numbered in order along the track (T1, T2...), which may differ from the
     official numbering. The numbering is FIXED – saved in  <car>__<track>\zakrety.txt
     (number and apex metre). Delete that file and the trainer numbers the turns again.

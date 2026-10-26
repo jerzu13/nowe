@@ -14,15 +14,18 @@ namespace System.Speech.Synthesis
     public sealed class SpeechSynthesizer : IDisposable
     {
         public void SetOutputToDefaultAudioDevice() { }
-        public System.Collections.ObjectModel.ReadOnlyCollection<InstalledVoice> GetInstalledVoices() { return null; }
+        public System.Collections.ObjectModel.ReadOnlyCollection<InstalledVoice> GetInstalledVoices() { return new System.Collections.ObjectModel.ReadOnlyCollection<InstalledVoice>(new InstalledVoice[0]); }
         public void SelectVoice(string name) { }
         public int Rate { get { return 0; } set { } }
         public int Volume { get { return 0; } set { } }
-        public VoiceInfo Voice { get { return null; } }
-        public SynthesizerState State { get { return 0; } }
-        public Prompt SpeakAsync(string t) { return null; }
+        public VoiceInfo Voice { get { return new VoiceInfo(); } }
+        // "speaks" for as long as a real voice would (about 14 characters a second at rate 0), so tests see the
+        // queue wait for the voice like on Windows
+        DateTime until;
+        public SynthesizerState State { get { return DateTime.Now < until ? SynthesizerState.Speaking : SynthesizerState.Ready; } }
+        public Prompt SpeakAsync(string t) { until = DateTime.Now.AddSeconds(t.Length / 14.0); return null; }
         public void Speak(string t) { }
-        public void SpeakAsyncCancelAll() { }
+        public void SpeakAsyncCancelAll() { until = DateTime.MinValue; }
         public void Dispose() { }
     }
 }

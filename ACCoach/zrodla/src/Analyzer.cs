@@ -261,7 +261,9 @@ namespace ACCoach
                 }
                 if (parts.Count > 0) r.Add(string.Format(L.T("  Z{0,-2} {1}", "  T{0,-2} {1}"), corners[k].Num, string.Join("; ", parts)));
             }
-            if (r.Count == 1) r.Add(L.T("  bez blokad, buksowania i wyraźnych uślizgów – koła pracują czysto.", "  no lock-ups, wheelspin or clear slides – the tyres work cleanly."));
+            if (!withData.Any(l => Grip.HasSlip(l.Samples)))
+                r.Add(L.T("  gra nie podaje poślizgu kół ani pracy TC/ABS (zaktualizuj Assetto Corsa do 1.14+) – tylko temperatury i ciśnienia.", "  the game gives no wheel slip or TC/ABS activity (update Assetto Corsa to 1.14+) – temperatures and pressures only."));
+            else if (r.Count == 1) r.Add(L.T("  bez blokad, buksowania i wyraźnych uślizgów – koła pracują czysto.", "  no lock-ups, wheelspin or clear slides – the tyres work cleanly."));
             foreach (string a in advice) r.Add("  → " + a);
             Grip.TyreStats best = Grip.Tyres(refLap.Samples);
             if (best != null) r.Add(L.T("  najlepsze okrążenie: ", "  best lap: ") + Grip.Text(best));

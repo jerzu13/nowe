@@ -60,8 +60,14 @@ namespace ACCoach
         Trace live;
         bool curFromLine, curPit;
         int maxTyresOut, lastCompleted, lastT = -1, lastPacket = -1, nextEval, nextNote, lapsThisSession;
-        float lastSpeed, lastBrake;
+        float lastSpeed, lastBrake, lastPos;
         int lastTyresOut;
+        readonly List<float[]> posJumps = new List<float[]>();   // this lap: stretches the car's position jumped over (from, to)
+        float lastLiveD = -1, lastLiveT;
+        readonly Dictionary<int, float> marginNote = new Dictionary<int, float>();   // corner index -> new margin after an off this lap
+        int expectCount = -1;                  // lap counter value still to come for a crossing taken from the timer
+        int prevLastMs;
+        DateTime expectUntil, staleUntil;
 
         // training mode: brake countdown beeps and line cues, one slot per reference corner
         Beeper beeper;
@@ -100,7 +106,15 @@ namespace ACCoach
         int nextSector;
         float sectorStartS;
 
-        class Msg { public string Text; public DateTime At; }
+        class Msg
+        {
+            public string Text;
+            public string[] Shorter;               // shorter versions, for when there is little time before the next corner
+            public DateTime At;
+            public int Kind;                       // MsgInfo / MsgCorner / MsgInstant
+            public int Corner = -1;                // corner index of a corner call
+            public float DropD = float.MaxValue;   // not said any more once the car is past this distance
+        }
         readonly List<Msg> queue = new List<Msg>();
         DateTime lastSpoke = DateTime.MinValue;
 
@@ -161,18 +175,42 @@ namespace ACCoach
                     if (t.GraphicsPacket == lastPacket) { Thread.Sleep(5); continue; }
                     lastPacket = t.GraphicsPacket;
 
+                    // At the line the lap counter goes up and the lap timer resets. Online both change in the same
+                    // frame; offline (practice, career) one can come a few frames after the other, so each half of
+                    // the crossing is accepted on its own and the other half is then expected, not taken as a restart.
+                    bool timerReset = lastT >= 0 && t.CurrentTimeMs + 1000 < lastT;
                     if (t.CompletedLaps == lastCompleted + 1)
                     {
-                        FinishLap(t);
                         lastCompleted = t.CompletedLaps;
-                        StartLap(t, true);
+                        if (expectCount == t.CompletedLaps) expectCount = -1;   // the timer already reset: lap done
+                        else
+                        {
+                            FinishLap(t, t.CompletedLaps);
+                            StartLap(t, true);
+                            staleUntil = t.CurrentTimeMs > 3000 ? DateTime.Now.AddSeconds(3) : DateTime.MinValue;
+                        }
                     }
-                    else if (t.CompletedLaps != lastCompleted || (lastT >= 0 && t.CurrentTimeMs + 1000 < lastT))
+                    else if (t.CompletedLaps == lastCompleted && timerReset && lastPos > 0.9f && (t.Pos < 0.1f || t.Pos > 0.97f))
+                    {
+                        // timer reset at the line before the counter (the game's last lap time may not be updated yet either)
+                        if (t.LastTimeMs == prevLastMs) t.LastTimeMs = 0;
+                        FinishLap(t, lastCompleted + 1);
+                        StartLap(t, true);
+                        expectCount = lastCompleted + 1;
+                        expectUntil = DateTime.Now.AddSeconds(5);
+                    }
+                    else if (t.CompletedLaps != lastCompleted || timerReset)
                     {
                         // session restart, return to pits or a new session online
                         lastCompleted = t.CompletedLaps;
+                        expectCount = -1;
                         StartLap(t, false);
                     }
+                    if (expectCount >= 0 && DateTime.Now > expectUntil) expectCount = -1;
+                    prevLastMs = t.LastTimeMs;
+                    // counter already up, timer not reset yet: these frames still carry the old lap's time
+                    if (staleUntil > DateTime.Now && t.CurrentTimeMs > 3000) { Thread.Sleep(5); continue; }
+                    staleUntil = DateTime.MinValue;
                     AddSample(t);
                     ProcessVoice();
                     Thread.Sleep(10);
@@ -343,6 +381,9 @@ namespace ACCoach
             nextSector = 0;
             sectorStartS = 0;
             live = (refLap != null && length > 0) ? new Trace(length) : null;
+            posJumps.Clear();
+            marginNote.Clear();
+            lastLiveD = -1;
             ResetTraining();
             LoadNotes();
         }
@@ -359,6 +400,7 @@ namespace ACCoach
             cur.Samples.Add(s);
             lastSpeed = t.SpeedKmh;
             lastBrake = t.Brake;
+            lastPos = t.Pos;
             lastTyresOut = t.TyresOut;
             if (t.TyresOut > maxTyresOut) maxTyresOut = t.TyresOut;
             if (t.IsInPitLane != 0) curPit = true;
@@ -366,12 +408,21 @@ namespace ACCoach
             {
                 float p = t.Pos;
                 if (t.CurrentTimeMs < 5000 && p > 0.5f) return;   // still reading the previous lap's end
-                live.Add(p * length, t.CurrentTimeMs / 1000f, t.SpeedKmh, t.Gas, t.Brake, t.Steer, t.X, t.Z);
+                // off track the game can place the car on another part of the track for a moment: a forward jump
+                // the car cannot have driven is remembered, the corners it covers are not judged
+                float dd = p * length, ts = t.CurrentTimeMs / 1000f;
+                if (lastLiveD >= 0 && dd - lastLiveD > 40 + 2 * Math.Max(t.SpeedKmh, lastSpeed) / 3.6f * Math.Max(0.05f, ts - lastLiveT))
+                {
+                    posJumps.Add(new[] { lastLiveD, dd });
+                    Console.WriteLine(string.Format(Inv, L.T("  [SKOK POZYCJI] {0:0} m → {1:0} m", "  [POSITION JUMP] {0:0} m → {1:0} m"), lastLiveD, dd));
+                }
+                if (dd > lastLiveD) { lastLiveD = dd; lastLiveT = ts; }
+                live.Add(dd, ts, t.SpeedKmh, t.Gas, t.Brake, t.Steer, t.X, t.Z);
                 if (curFromLine && refCorners != null && t.TyresOut >= 3) OnOffTrack(p * length);
             }
         }
 
-        void FinishLap(Telemetry t)
+        void FinishLap(Telemetry t, int lapNo)
         {
             if (!curFromLine || cur.Samples.Count < 100)
             {
@@ -380,7 +431,14 @@ namespace ACCoach
             }
             int lastSampleT = cur.Samples[cur.Samples.Count - 1].T;
             int lapMs = t.LastTimeMs;
-            if (lapMs <= 0 || Math.Abs(lapMs - lastSampleT) > 3000) lapMs = lastSampleT;
+            // the game's lap time is the crossing, just after the last sample; anything else is not updated yet:
+            // then the last sample's time plus the few metres left to the line
+            if (lapMs < lastSampleT - 100 || lapMs > lastSampleT + 500)
+            {
+                Sample ls = cur.Samples[cur.Samples.Count - 1];
+                float left = ls.Pos > 0.9f && si.SplineLength > 0 ? (1 - ls.Pos) * si.SplineLength : 0;
+                lapMs = lastSampleT + (int)Math.Min(200, left / Math.Max(ls.Speed / 3.6f, 1f) * 1000);
+            }
             cur.LapMs = lapMs;
             cur.Valid = !curPit && maxTyresOut <= 2;
             cur.Date = DateTime.Now;
@@ -426,7 +484,7 @@ namespace ACCoach
                 if (cur.Valid) UpdateMySectors(cur);
             }
             Console.ForegroundColor = newBest ? ConsoleColor.Green : (cur.Valid ? ConsoleColor.White : ConsoleColor.DarkGray);
-            Console.WriteLine(string.Format(L.T("Okrążenie {0}: {1}{2}{3}{4}{5}", "Lap {0}: {1}{2}{3}{4}{5}"), t.CompletedLaps, Lap.FormatTime(lapMs), delta,
+            Console.WriteLine(string.Format(L.T("Okrążenie {0}: {1}{2}{3}{4}{5}", "Lap {0}: {1}{2}{3}{4}{5}"), lapNo, Lap.FormatTime(lapMs), delta,
                 cur.Valid ? "" : L.T("  NIEWAŻNE (", "  INVALID (") + (curPit ? "pit" : L.T("poza torem", "off track")) + ")", newBest ? L.T("  ★ NOWY WZORZEC", "  ★ NEW BEST LAP") : "", targetTxt));
             Console.ResetColor();
             if (tyres != null) Console.WriteLine("  " + Grip.Text(tyres) + (tyresWereCold ? L.T("  – ZIMNE (chłodniejsze niż na najlepszym okrążeniu)", "  – COLD (colder than on the best lap)") : ""));
