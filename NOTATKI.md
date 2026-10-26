@@ -46,11 +46,10 @@
 - **Próbkowanie 333 Hz** (dziś ~90 Hz wg klatek gry): bez wpływu na wydajność, pliki 3–4× większe.
 - Model granic z rzeczywistego poślizgu opon (gdy będą prawdziwe dane kół).
 
-## Wydania (punkt 4 z porządków – przygotowane, nie dokończone)
-Workflow `.github/workflows/release.yml` buduje na Ubuntu i publikuje `AC_Coach_Setup.exe` + `AC_Coach_portable.zip`.
-1. Na GitHubie: Releases > Draft a new release > tag `v1.6.0` (nowy), gałąź `claude/windows-multi-user-app-1h74bu`
-   (albo `master` po scaleniu) > Publish. Workflow dołączy pliki (nie było jeszcze testowane – sprawdzić Actions).
-2. Stały link: `https://github.com/jerzu13/nowe/releases/latest/download/AC_Coach_Setup.exe`
-3. Dopiero potem usunąć binaria z repozytorium (link „raw” do gałęzi przestanie działać):
-   `git rm --cached AC_Coach_Setup.exe AC_Coach_portable.zip ACCoach/ACCoach.exe` i dopisać je do `.gitignore`.
-   Historia gita nadal je zawiera; jej czyszczenie wymaga przepisania historii – tylko na wyraźną prośbę.
+## Wydania
+Pliki mają wersję w nazwie (`AC_Coach_Setup_1.7.1.exe`, `AC_Coach_portable_1.7.1.zip`): pobrany obok starszego jako
+„AC_Coach_Setup (1).exe” był blokowany przez Defendera (`Trojan:Win32/Ulthar.A!ml`). Wersja brana z `instalator/ACCoach.nsi`.
+- W repozytorium (katalog główny) leży tylko bieżąca wersja – przy nowej: `git rm` starych, skopiować z `dist/`.
+- Workflow `.github/workflows/release.yml` (tag `v*`) buduje na Ubuntu i publikuje oba pliki jako GitHub Release.
+  Stały link dla użytkowników: `https://github.com/jerzu13/nowe/releases/latest` (strona najnowszego wydania).
+- Darmowy podpis: tylko SignPath Foundation (wymaga licencji open source – koliduje z planem sprzedaży).
