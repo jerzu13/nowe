@@ -15,7 +15,9 @@ RequestExecutionLevel user
 !include "FileFunc.nsh"
 
 Name "${APP}"
-OutFile "AC_Coach_Setup.exe"
+; the version in the name: a new download never lands next to an older one as "AC_Coach_Setup (1).exe",
+; which Windows Defender's heuristics flagged
+OutFile "AC_Coach_Setup_${VERSION}.exe"
 InstallDir "$LOCALAPPDATA\Programs\AC Coach"
 InstallDirRegKey HKCU "Software\ACCoach" "InstallDir"
 BrandingText "${APP} ${VERSION}"
@@ -27,7 +29,7 @@ VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "CompanyName" "AC Coach"
 VIAddVersionKey /LANG=1033 "LegalCopyright" "© 2026 AC Coach"
-VIAddVersionKey /LANG=1033 "OriginalFilename" "AC_Coach_Setup.exe"
+VIAddVersionKey /LANG=1033 "OriginalFilename" "AC_Coach_Setup_${VERSION}.exe"
 
 !define MUI_ICON "${SRC}\zrodla\ACCoach.ico"
 !define MUI_UNICON "${SRC}\zrodla\ACCoach.ico"

@@ -29,16 +29,18 @@ mcs -nologo -out:"$B/Harness.exe" -r:System.Core.dll tools/test/Harness.cs
 echo "built: ACCoach/ACCoach.exe"
 
 if [ "${1:-}" = "release" ]; then
+  # file names carry the version (from the installer script), e.g. AC_Coach_Setup_1.7.1.exe
+  VER=$(grep -m1 '^!define VERSION' ../instalator/ACCoach.nsi | cut -d'"' -f2)
   makensis -V2 ../instalator/ACCoach.nsi
   DIST=../../dist
-  mkdir -p "$DIST"
-  cp ../instalator/AC_Coach_Setup.exe "$DIST/"
+  rm -rf "$DIST"; mkdir -p "$DIST"
+  mv "../instalator/AC_Coach_Setup_$VER.exe" "$DIST/"
   TMP=$(mktemp -d)
   mkdir -p "$TMP/AC Coach/rywale"
   cp -r ../ACCoach.exe "../0. First run.bat" "../HOW TO USE.txt" "../JAK UZYWAC.txt" ../zrodla ../instalator "$TMP/AC Coach/"
-  rm -rf "$TMP/AC Coach/zrodla/tools/test/bin" "$TMP/AC Coach/instalator/AC_Coach_Setup.exe" "$TMP/AC Coach/instalator/.gitignore"
+  rm -rf "$TMP/AC Coach/zrodla/tools/test/bin" "$TMP/AC Coach/instalator/"AC_Coach_Setup*.exe "$TMP/AC Coach/instalator/.gitignore"
   (cd "$TMP" && rm -f portable.zip && zip -q -r portable.zip "AC Coach")
-  mv "$TMP/portable.zip" "$DIST/AC_Coach_portable.zip"
+  mv "$TMP/portable.zip" "$DIST/AC_Coach_portable_$VER.zip"
   rm -rf "$TMP"
-  echo "release: dist/AC_Coach_Setup.exe, dist/AC_Coach_portable.zip"
+  echo "release: dist/AC_Coach_Setup_$VER.exe, dist/AC_Coach_portable_$VER.zip"
 fi
