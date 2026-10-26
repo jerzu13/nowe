@@ -64,10 +64,10 @@ namespace ACCoach
         public static int Run(string dataDir, string comboDir, bool open = true, int targetMs = 0)
         {
             if (comboDir == null) comboDir = NewestCombo(dataDir);
-            if (comboDir == null) { Console.WriteLine("Brak nagranych okrążeń w " + dataDir); return 1; }
+            if (comboDir == null) { Console.WriteLine(L.T("Brak nagranych okrążeń w ", "No recorded laps in ") + dataDir); return 1; }
             List<Lap> laps = Lap.LoadAll(comboDir);
             Lap refLap = Lap.BestValid(laps);
-            if (refLap == null) { Console.WriteLine("Brak ważnych okrążeń w " + comboDir); return 1; }
+            if (refLap == null) { Console.WriteLine(L.T("Brak ważnych okrążeń w ", "No valid laps in ") + comboDir); return 1; }
 
             float length = refLap.EstimateLength();
             refLap.BuildTrace(length);
@@ -111,11 +111,11 @@ namespace ACCoach
 
             StringBuilder r = new StringBuilder();
             string combo = Path.GetFileName(comboDir);
-            r.AppendLine("=== AC Coach – analiza sesji ===");
+            r.AppendLine(L.T("=== AC Coach – analiza sesji ===", "=== AC Coach – session analysis ==="));
             r.AppendLine(combo.Replace("__", "  |  "));
-            r.AppendLine(string.Format("Sesja: {0} okr. ({1} ważnych) | najlepsze {2} | wzorzec {3}{4}",
+            r.AppendLine(string.Format(L.T("Sesja: {0} okr. ({1} ważnych) | najlepsze {2} | wzorzec {3}{4}", "Session: {0} laps ({1} valid) | best {2} | reference {3}{4}"),
                 session.Count, valid.Count, sessionBest > 0 ? Lap.FormatTime(sessionBest) : "–", Lap.FormatTime(refLap.LapMs),
-                compared.Count > 0 ? string.Format(Inv, " | idealne {0} (z Twoich najszybszych zakrętów)", Lap.FormatTime((int)Math.Round(ideal * 1000))) : ""));
+                compared.Count > 0 ? string.Format(Inv, L.T(" | idealne {0} (z Twoich najszybszych zakrętów)", " | ideal {0} (from your fastest turns)"), Lap.FormatTime((int)Math.Round(ideal * 1000))) : ""));
             r.AppendLine();
 
             List<string> targetLines = TargetSection(comboDir, refLap, corners, compared.Count > 0 ? (int)Math.Round(ideal * 1000) : 0, targetMs);
@@ -125,39 +125,39 @@ namespace ACCoach
             List<Priority> prio = Priorities(stats, measured, corners);
             List<string> tips = prio.Select(p => p.Text()).ToList();
             if (prio.Count == 0)
-                r.AppendLine(compared.Count == 0 ? "Za mało okrążeń do porównania – przejedź kilka okrążeń w jednej sesji."
-                                                 : "Brak wyraźnych strat i wyjazdów – jedziesz równo z wzorcem.");
+                r.AppendLine(compared.Count == 0 ? L.T("Za mało okrążeń do porównania – przejedź kilka okrążeń w jednej sesji.", "Too few laps to compare – drive a few laps in one session.")
+                                                 : L.T("Brak wyraźnych strat i wyjazdów – jedziesz równo z wzorcem.", "No clear losses or off-tracks – you match your best lap."));
             else
             {
-                r.AppendLine("NA NASTĘPNĄ JAZDĘ (od tego, co kosztuje najwięcej):");
+                r.AppendLine(L.T("NA NASTĘPNĄ JAZDĘ (od tego, co kosztuje najwięcej):", "FOR THE NEXT RUN (what costs the most first):"));
                 for (int i = 0; i < prio.Count; i++)
                 {
-                    r.AppendLine(string.Format(Inv, "  {0}. Z{1} – kosztuje ok. {2} s/okr.", i + 1, prio[i].Num, Corners.Sec(prio[i].Cost)));
+                    r.AppendLine(string.Format(Inv, L.T("  {0}. Z{1} – kosztuje ok. {2} s/okr.", "  {0}. T{1} – costs about {2} s/lap"), i + 1, prio[i].Num, Corners.Sec(prio[i].Cost)));
                     foreach (string l in prio[i].Lines) r.AppendLine("     " + l);
                 }
             }
             r.AppendLine();
 
             List<string> offLines = new List<string>();
-            r.AppendLine("ZAKRĘTY          strata  rozrzut  wyjazdy");
+            r.AppendLine(L.T("ZAKRĘTY          strata  rozrzut  wyjazdy", "TURNS            loss    spread   off-tracks"));
             foreach (CornerStats cs in stats)
             {
                 int k = corners.IndexOf(cs.Ref);
                 List<Measured> mk = measured.Where(m => m.K == k).ToList();
                 int offs = mk.Count(m => m.Off != 0), offsExit = mk.Count(m => m.Off > 0);
                 string offTxt = offs == 0 ? "–" : string.Format("{0}/{1} ({2})", offs, mk.Count,
-                    offsExit == offs ? "wyjście" : offsExit == 0 ? "wejście" : string.Format("{0}× wejście, {1}× wyjście", offs - offsExit, offsExit));
-                if (offs > 0) offLines.Add(string.Format("Z{0}: {1}", cs.Ref.Num, offTxt));
-                r.AppendLine(string.Format(Inv, "  Z{0,-2}          {1,7}  ±{2:0.00}    {3}", cs.Ref.Num,
+                    offsExit == offs ? L.T("wyjście", "exit") : offsExit == 0 ? L.T("wejście", "entry") : string.Format(L.T("{0}× wejście, {1}× wyjście", "{0}× entry, {1}× exit"), offs - offsExit, offsExit));
+                if (offs > 0) offLines.Add(string.Format(L.T("Z{0}: {1}", "T{0}: {1}"), cs.Ref.Num, offTxt));
+                r.AppendLine(string.Format(Inv, L.T("  Z{0,-2}          {1,7}  ±{2:0.00}    {3}", "  T{0,-2}          {1,7}  ±{2:0.00}    {3}"), cs.Ref.Num,
                     cs.Cmps.Count > 0 ? Corners.Sec2(cs.AvgLoss) : "–", cs.StdLoss, offTxt));
             }
-            r.AppendLine("  (strata = średnio na czystych przejazdach vs wzorzec, + = wolniej; rozrzut = powtarzalność)");
+            r.AppendLine(L.T("  (strata = średnio na czystych przejazdach vs wzorzec, + = wolniej; rozrzut = powtarzalność)", "  (loss = average of clean runs vs the best lap, + = slower; spread = consistency)"));
 
             List<string> reactionLines = ReactionSummary(comboDir, session);
             if (reactionLines.Count > 0)
             {
                 r.AppendLine();
-                r.AppendLine("PIKNIĘCIA:");
+                r.AppendLine(L.T("PIKNIĘCIA:", "BRAKING BEEPS:"));
                 foreach (string l in reactionLines) r.AppendLine("  " + l);
             }
 
@@ -176,20 +176,20 @@ namespace ACCoach
             }
 
             r.AppendLine();
-            r.AppendLine("OKRĄŻENIA:");
+            r.AppendLine(L.T("OKRĄŻENIA:", "LAPS:"));
             Grip.TyreStats refTyres = Grip.Tyres(refLap.Samples);
             foreach (Lap l in session)
             {
                 string line = string.Format("  {0:HH:mm}  {1}  {2,6}", l.Date, Lap.FormatTime(l.LapMs), Corners.Sec2((l.LapMs - refLap.LapMs) / 1000f));
                 Grip.TyreStats ts = Grip.Tyres(l.Samples);
-                if (ts != null) line += string.Format(Inv, "  opony {0:0}°C{1}", ts.CoreAvg, Grip.Cold(ts, refTyres) ? " (zimne)" : "");
-                if (l.File == refLap.File) { r.AppendLine(line + "  ★ wzorzec"); continue; }
+                if (ts != null) line += string.Format(Inv, L.T("  opony {0:0}°C{1}", "  tyres {0:0}°C{1}"), ts.CoreAvg, Grip.Cold(ts, refTyres) ? L.T(" (zimne)", " (cold)") : "");
+                if (l.File == refLap.File) { r.AppendLine(line + L.T("  ★ wzorzec", "  ★ best lap")); continue; }
                 List<Measured> ml = measured.Where(m => m.Lap == l).ToList();
-                string[] outs = ml.Where(m => m.Off != 0).Select(m => "Z" + corners[m.K].Num).ToArray();
-                if (outs.Length > 0) line += "  wyjazd: " + string.Join(", ", outs);
+                string[] outs = ml.Where(m => m.Off != 0).Select(m => L.T("Z", "T") + corners[m.K].Num).ToArray();
+                if (outs.Length > 0) line += L.T("  wyjazd: ", "  off track: ") + string.Join(", ", outs);
                 string[] worst = ml.Where(clean).OrderByDescending(m => m.Cmp.SegDelta).Take(2)
-                    .Where(m => m.Cmp.SegDelta > 0.1f).Select(m => "Z" + m.Cmp.Ref.Num + " " + Corners.Sec2(m.Cmp.SegDelta)).ToArray();
-                if (worst.Length > 0) line += "  straty: " + string.Join(", ", worst);
+                    .Where(m => m.Cmp.SegDelta > 0.1f).Select(m => L.T("Z", "T") + m.Cmp.Ref.Num + " " + Corners.Sec2(m.Cmp.SegDelta)).ToArray();
+                if (worst.Length > 0) line += L.T("  straty: ", "  losses: ") + string.Join(", ", worst);
                 r.AppendLine(line);
             }
             List<string> inputLines = offLines;
@@ -201,7 +201,7 @@ namespace ACCoach
             string stamp = DateTime.Now.ToString("yyyyMMdd_HHmm", Inv);
             File.WriteAllText(Path.Combine(repDir, "raport_" + stamp + ".txt"), text, new UTF8Encoding(true));
             File.WriteAllText(Path.Combine(comboDir, "analysis.json"), Json(combo, length, refLap, corners, stats, session, compared, ideal, tips, InputRows(measured)), new UTF8Encoding(false));
-            Console.WriteLine("Raport zapisany w: " + repDir);
+            Console.WriteLine(L.T("Raport zapisany w: ", "Report saved in: ") + repDir);
 
             List<TrackMap.CornerInfo> info = new List<TrackMap.CornerInfo>();
             foreach (CornerStats cs in stats)
@@ -217,8 +217,8 @@ namespace ACCoach
             string warn = TrackMap.Write(comboDir, map, length, refLap, info, session, tips, reactionLines, inputLines, rivalLines,
                 Sectors.Bounds(comboDir, refLap.Track, refLap.Config, refLap.Trace), Rival.Load(dataDir, refLap.Car, refLap.Track, refLap.Config),
                 Rival.LoadLaps(dataDir, refLap.Car, refLap.Track, refLap.Config), targetLines, wheelLines);
-            if (warn != null) Console.WriteLine("Uwaga: " + warn);
-            Console.WriteLine("Mapa toru: " + map);
+            if (warn != null) Console.WriteLine(L.T("Uwaga: ", "Note: ") + warn);
+            Console.WriteLine(L.T("Mapa toru: ", "Track map: ") + map);
             if (open)
                 try { System.Diagnostics.Process.Start(map); } catch (Exception) { }
             return 0;
@@ -239,7 +239,7 @@ namespace ACCoach
                     if (!at.ContainsKey(key)) at[key] = new HashSet<string>();
                     at[key].Add(e.Kind);
                 }
-            r.Add(string.Format("KOŁA I OPONY ({0} okr. z danymi kół):", withData.Count));
+            r.Add(string.Format(L.T("KOŁA I OPONY ({0} okr. z danymi kół):", "WHEELS AND TYRES ({0} laps with wheel data):"), withData.Count));
             List<string> advice = new List<string>();
             for (int k = 0; k < corners.Count; k++)
             {
@@ -255,18 +255,20 @@ namespace ACCoach
                         HashSet<string> h;
                         (at.TryGetValue(m.Lap.File + "#" + k, out h) && h.Contains(kind) ? with : without).Add(m.Cmp.SegDelta);
                     }
-                    string cost = with.Count >= 2 && without.Count >= 2 ? string.Format(Inv, ", kosztuje średnio {0} s", Corners.Sec2(with.Average() - without.Average())) : "";
+                    string cost = with.Count >= 2 && without.Count >= 2 ? string.Format(Inv, L.T(", kosztuje średnio {0} s", ", costs {0} s on average"), Corners.Sec2(with.Average() - without.Average())) : "";
                     parts.Add(string.Format("{0} {1}/{2}{3}", Grip.Name(kind), cnt, withData.Count, cost));
-                    if (cnt * 3 >= withData.Count && advice.Count < 4) advice.Add(string.Format("Z{0} – {1}: {2}.", corners[k].Num, Grip.Name(kind), Grip.Advice(kind)));
+                    if (cnt * 3 >= withData.Count && advice.Count < 4) advice.Add(string.Format(L.T("Z{0} – {1}: {2}.", "T{0} – {1}: {2}."), corners[k].Num, Grip.Name(kind), Grip.Advice(kind)));
                 }
-                if (parts.Count > 0) r.Add(string.Format("  Z{0,-2} {1}", corners[k].Num, string.Join("; ", parts)));
+                if (parts.Count > 0) r.Add(string.Format(L.T("  Z{0,-2} {1}", "  T{0,-2} {1}"), corners[k].Num, string.Join("; ", parts)));
             }
-            if (r.Count == 1) r.Add("  bez blokad, buksowania i wyraźnych uślizgów – koła pracują czysto.");
+            if (!withData.Any(l => Grip.HasSlip(l.Samples)))
+                r.Add(L.T("  gra nie podaje poślizgu kół ani pracy TC/ABS (zaktualizuj Assetto Corsa do 1.14+) – tylko temperatury i ciśnienia.", "  the game gives no wheel slip or TC/ABS activity (update Assetto Corsa to 1.14+) – temperatures and pressures only."));
+            else if (r.Count == 1) r.Add(L.T("  bez blokad, buksowania i wyraźnych uślizgów – koła pracują czysto.", "  no lock-ups, wheelspin or clear slides – the tyres work cleanly."));
             foreach (string a in advice) r.Add("  → " + a);
             Grip.TyreStats best = Grip.Tyres(refLap.Samples);
-            if (best != null) r.Add("  najlepsze okrążenie: " + Grip.Text(best));
+            if (best != null) r.Add(L.T("  najlepsze okrążenie: ", "  best lap: ") + Grip.Text(best));
             int cold = withData.Count(l => Grip.Cold(Grip.Tyres(l.Samples), best));
-            if (cold > 0) r.Add(string.Format("  {0} okr. na zimnych oponach (chłodniejsze niż na najlepszym) – ich czasy nie mówią wszystkiego.", cold));
+            if (cold > 0) r.Add(string.Format(L.T("  {0} okr. na zimnych oponach (chłodniejsze niż na najlepszym) – ich czasy nie mówią wszystkiego.", "  {0} laps on cold tyres (colder than on the best lap) – their times do not tell the whole story."), cold));
             return r;
         }
 
@@ -280,7 +282,7 @@ namespace ACCoach
             LimitModel.Line line = LimitModel.LineOf(refLap.Trace);
             if (m == null || line == null)
             {
-                r.Add("CEL CZASU " + Lap.FormatTime(targetMs) + ": za mało danych do oceny – przejedź kilka czystych okrążeń.");
+                r.Add(L.T("CEL CZASU ", "LAP TIME TARGET ") + Lap.FormatTime(targetMs) + L.T(": za mało danych do oceny – przejedź kilka czystych okrążeń.", ": not enough data to judge – drive a few clean laps."));
                 return r;
             }
             TargetPlan p = TargetPlan.Make(m, line, refLap.Trace, refLap.LapMs, idealMs < refLap.LapMs ? idealMs : 0, targetMs);
@@ -306,10 +308,10 @@ namespace ACCoach
             Func<IEnumerable<string[]>, float> MedReact = rs => Med(rs.Select(p => F(p[5])));
             float allMiss = MedMiss(rows);
             List<float> absMiss = rows.Where(p => p.Length >= 14).Select(p => Math.Abs(F(p[13]))).Where(x => !float.IsNaN(x)).ToList();
-            lines.Add(string.Format(Inv, "Hamujesz zwykle {0} s po ostatnim piknięciu, {1} od punktu{2}.",
+            lines.Add(string.Format(Inv, L.T("Hamujesz zwykle {0} s po ostatnim piknięciu, {1} od punktu{2}.", "You usually brake {0} s after the last beep, {1} from the point{2}."),
                 MedReact(rows).ToString("+0.00;-0.00", Inv),
-                float.IsNaN(allMiss) ? "–" : string.Format(Inv, "{0:+0;-0;0} m (zwykle ±{1:0} m)", allMiss, Med(absMiss)),
-                all.Count > rows.Count ? string.Format("; pominięte {0} hamowań z wyjazdem", all.Count - rows.Count) : ""));
+                float.IsNaN(allMiss) ? "–" : string.Format(Inv, L.T("{0:+0;-0;0} m (zwykle ±{1:0} m)", "{0:+0;-0;0} m (usually ±{1:0} m)"), allMiss, Med(absMiss)),
+                all.Count > rows.Count ? string.Format(L.T("; pominięte {0} hamowań z wyjazdem", "; {0} brakings with an off-track left out"), all.Count - rows.Count) : ""));
             // only the corners that need attention: usually off the point by 10 m or more, or often early / late
             foreach (var g in rows.GroupBy(p => int.Parse(p[1], Inv)).OrderBy(g => g.Key))
             {
@@ -318,10 +320,10 @@ namespace ACCoach
                 int early = re.Count(x => x < -0.35f), late = re.Count(x => x > 0.35f);
                 if (float.IsNaN(miss) || (Math.Abs(miss) < 10 && Math.Max(early, late) * 4 < g.Count())) continue;
                 bool isEarly = miss <= -10 || (miss < 10 && early > late);
-                lines.Add(string.Format(Inv, "Z{0}: {1} w {2} z {3} hamowań{4} – {5}", g.Key,
-                    isEarly ? "za wcześnie" : "za późno", isEarly ? early : late, g.Count(),
-                    Math.Abs(miss) >= 10 ? string.Format(Inv, ", zwykle {0:0} m {1} punktu", Math.Abs(miss), miss < 0 ? "przed" : "za") : "",
-                    isEarly ? "zaufaj sygnałowi, hamuj na ostatnie piknięcie" : "noga na hamulec razem z ostatnim piknięciem"));
+                lines.Add(string.Format(Inv, L.T("Z{0}: {1} w {2} z {3} hamowań{4} – {5}", "T{0}: {1} in {2} of {3} brakings{4} – {5}"), g.Key,
+                    isEarly ? L.T("za wcześnie", "too early") : L.T("za późno", "too late"), isEarly ? early : late, g.Count(),
+                    Math.Abs(miss) >= 10 ? string.Format(Inv, L.T(", zwykle {0:0} m {1} punktu", ", usually {0:0} m {1} the point"), Math.Abs(miss), miss < 0 ? L.T("przed", "before") : L.T("za", "after")) : "",
+                    isEarly ? L.T("zaufaj sygnałowi, hamuj na ostatnie piknięcie", "trust the signal, brake on the last beep") : L.T("noga na hamulec razem z ostatnim piknięciem", "foot on the brake together with the last beep")));
             }
             return lines;
         }
@@ -354,7 +356,7 @@ namespace ACCoach
             float[] bounds = Sectors.Bounds(comboDir, refLap.Track, refLap.Config, refLap.Trace);
             if (bounds == null || bounds.Length + 1 != rv.SectorCount)
             {
-                lines.Add(string.Format("RYWAL: {0} – najlepsze {1} (granice sektorów toru nieznane, porównanie tylko całego okrążenia).", rv.Name, Lap.FormatTime(rv.BestLapMs)));
+                lines.Add(string.Format(L.T("RYWAL: {0} – najlepsze {1} (granice sektorów toru nieznane, porównanie tylko całego okrążenia).", "RIVAL: {0} – best {1} (sector boundaries unknown, whole lap compared only)."), rv.Name, Lap.FormatTime(rv.BestLapMs)));
                 return lines;
             }
             int n = rv.SectorCount;
@@ -370,41 +372,41 @@ namespace ACCoach
             Func<IEnumerable<float>, string> row = xs => string.Join("", xs.Select(x => (x / 1000f).ToString("0.00", Inv).PadLeft(8)).ToArray());
             Func<IEnumerable<float>, string> gapRow = xs => string.Join("", xs.Select(x => (x / 1000f).ToString("+0.00;-0.00", Inv).PadLeft(8)).ToArray());
             string head = string.Join("", Enumerable.Range(1, n).Select(i => ("S" + i).PadLeft(8)).ToArray());
-            lines.Add(string.Format("RYWAL: {0} – najlepsze {1}, czystych okrążeń {2} z {3}", rv.Name, Lap.FormatTime(rv.BestLapMs), rv.CleanLaps, rv.Laps));
-            lines.Add(string.Format("  {0,-30}{1}   okrążenie", "", head));
+            lines.Add(string.Format(L.T("RYWAL: {0} – najlepsze {1}, czystych okrążeń {2} z {3}", "RIVAL: {0} – best {1}, clean laps {2} of {3}"), rv.Name, Lap.FormatTime(rv.BestLapMs), rv.CleanLaps, rv.Laps));
+            lines.Add(string.Format(L.T("  {0,-30}{1}   okrążenie", "  {0,-30}{1}   lap"), "", head));
             Action<string, IEnumerable<float>, float> add = (label, xs, total) =>
                 lines.Add(string.Format("  {0,-30}{1}   {2}", label, row(xs), Lap.FormatTime((int)Math.Round(total))));
-            add(rv.Name + " najlepsze okrążenie", rv.BestLapSectors.Select(x => (float)x), rv.BestLapMs);
-            add("Ty najlepsze okrążenie", myBestLap.Select(x => (float)x), refLap.LapMs);
-            lines.Add(string.Format("  {0,-30}{1}   {2}", "  różnica", gapRow(Enumerable.Range(0, n).Select(i => (float)(myBestLap[i] - rv.BestLapSectors[i]))),
+            add(rv.Name + L.T(" najlepsze okrążenie", " best lap"), rv.BestLapSectors.Select(x => (float)x), rv.BestLapMs);
+            add(L.T("Ty najlepsze okrążenie", "You best lap"), myBestLap.Select(x => (float)x), refLap.LapMs);
+            lines.Add(string.Format("  {0,-30}{1}   {2}", L.T("  różnica", "  difference"), gapRow(Enumerable.Range(0, n).Select(i => (float)(myBestLap[i] - rv.BestLapSectors[i]))),
                 ((refLap.LapMs - rv.BestLapMs) / 1000f).ToString("+0.000;-0.000", Inv)));
-            add(rv.Name + " z najlepszych sektorów", rv.BestSectors.Select(x => (float)x), rv.IdealMs);
-            add("Ty z najlepszych sektorów", myBestSec.Select(x => (float)x), myBestSec.Sum());
-            add(rv.Name + " średnio (czyste)", rv.AvgSectors, rv.AvgSectors.Sum());
-            if (myAvg != null) add(string.Format("Ty średnio ({0} ważnych)", validSession.Count), myAvg, myAvg.Sum());
+            add(rv.Name + L.T(" z najlepszych sektorów", " from best sectors"), rv.BestSectors.Select(x => (float)x), rv.IdealMs);
+            add(L.T("Ty z najlepszych sektorów", "You from best sectors"), myBestSec.Select(x => (float)x), myBestSec.Sum());
+            add(rv.Name + L.T(" średnio (czyste)", " average (clean)"), rv.AvgSectors, rv.AvgSectors.Sum());
+            if (myAvg != null) add(string.Format(L.T("Ty średnio ({0} ważnych)", "You average ({0} valid)"), validSession.Count), myAvg, myAvg.Sum());
 
             // what follows
-            lines.Add("  Wnioski:");
+            lines.Add(L.T("  Wnioski:", "  Conclusions:"));
             float bestGap = (refLap.LapMs - rv.BestLapMs) / 1000f;
             int myValid = session.Count(l => l.Valid);
             if (myAvg != null)
             {
                 float avgGap = (myAvg.Sum() - rv.AvgSectors.Sum()) / 1000f;
-                lines.Add(string.Format(Inv, "  - Na najlepszym okrążeniu tracisz {0:0.0} s, średnio {1:0.0} s. Ważne okrążenia: Ty {2} z {3}, {4} {5} z {6}.",
+                lines.Add(string.Format(Inv, L.T("  - Na najlepszym okrążeniu tracisz {0:0.0} s, średnio {1:0.0} s. Ważne okrążenia: Ty {2} z {3}, {4} {5} z {6}.", "  - On the best lap you lose {0:0.0} s, on average {1:0.0} s. Valid laps: you {2} of {3}, {4} {5} of {6}."),
                     bestGap, avgGap, myValid, session.Count, rv.Name, rv.Laps - rv.CutLaps, rv.Laps));
                 if (avgGap - bestGap > 0.4f)
-                    lines.Add(string.Format(Inv, "    Większość różnicy to powtarzalność: {0} jeździ swoje tempo okrążenie za okrążeniem. Najpierw czyste okrążenia, potem szybsze.", rv.Name));
+                    lines.Add(string.Format(Inv, L.T("    Większość różnicy to powtarzalność: {0} jeździ swoje tempo okrążenie za okrążeniem. Najpierw czyste okrążenia, potem szybsze.", "    Most of the gap is consistency: {0} drives the same pace lap after lap. Clean laps first, then faster ones."), rv.Name));
             }
             int worst = Enumerable.Range(0, n).OrderByDescending(i => myBestLap[i] - rv.BestLapSectors[i]).First();
             float from = worst == 0 ? 0 : bounds[worst - 1], to = worst < bounds.Length ? bounds[worst] : length;
             List<int> inSector = corners.Where(c => c.ApexD >= from && c.ApexD < to).Select(c => c.Num).ToList();
-            string prioIn = string.Join(", ", prio.Where(p => inSector.Contains(p.Num)).Select(p => "Z" + p.Num).ToArray());
-            lines.Add(string.Format(Inv, "  - Najwięcej na najlepszym okrążeniu tracisz w S{0} ({1:+0.00} s): zakręty {2}.{3}",
-                worst + 1, (myBestLap[worst] - rv.BestLapSectors[worst]) / 1000f, string.Join(", ", inSector.Select(x => "Z" + x).ToArray()),
-                prioIn.Length > 0 ? " " + prioIn + " jest wyżej w \"Na następną jazdę\" – zacznij od tego." : ""));
-            lines.Add(string.Format(Inv, "  - Twoje najlepsze sektory razem dają {0} – {1:0.0} s do najlepszego okrążenia rywala ({2}){3}.",
+            string prioIn = string.Join(", ", prio.Where(p => inSector.Contains(p.Num)).Select(p => L.T("Z", "T") + p.Num).ToArray());
+            lines.Add(string.Format(Inv, L.T("  - Najwięcej na najlepszym okrążeniu tracisz w S{0} ({1:+0.00} s): zakręty {2}.{3}", "  - On the best lap you lose the most in S{0} ({1:+0.00} s): turns {2}.{3}"),
+                worst + 1, (myBestLap[worst] - rv.BestLapSectors[worst]) / 1000f, string.Join(", ", inSector.Select(x => L.T("Z", "T") + x).ToArray()),
+                prioIn.Length > 0 ? " " + prioIn + L.T(" jest wyżej w \"Na następną jazdę\" – zacznij od tego.", " is higher up in \"For the next run\" – start there.") : ""));
+            lines.Add(string.Format(Inv, L.T("  - Twoje najlepsze sektory razem dają {0} – {1:0.0} s do najlepszego okrążenia rywala ({2}){3}.", "  - Your best sectors add up to {0} – {1:0.0} s to the rival's best lap ({2}){3}."),
                 Lap.FormatTime(myBestSec.Sum()), (myBestSec.Sum() - rv.BestLapMs) / 1000f, rv.Name,
-                myAvg != null && myBestSec.Sum() < rv.AvgSectors.Sum() ? string.Format(", i już szybciej niż jego średnie okrążenie") : ""));
+                myAvg != null && myBestSec.Sum() < rv.AvgSectors.Sum() ? string.Format(L.T(", i już szybciej niż jego średnie okrążenie", ", and already faster than their average lap")) : ""));
             return lines;
         }
 
@@ -413,7 +415,7 @@ namespace ACCoach
             public int Num;
             public float Cost;                 // seconds per lap: average loss + off-tracks
             public List<string> Lines = new List<string>();
-            public string Text() { return string.Format(Inv, "Z{0} (ok. {1} s/okr.): {2}", Num, Corners.Sec(Cost), string.Join(" ", Lines.ToArray())); }
+            public string Text() { return string.Format(Inv, L.T("Z{0} (ok. {1} s/okr.): {2}", "T{0} (about {1} s/lap): {2}"), Num, Corners.Sec(Cost), string.Join(" ", Lines.ToArray())); }
         }
 
         const float OffTrackCostS = 3f;        // what an off-track costs (seconds lost + an invalid lap), spread over the attempts
@@ -441,14 +443,14 @@ namespace ACCoach
                     string cause;
                     if (onExit)
                         cause = main.Count(m => m.Cmp.Lap.CounterSteer >= 0.15f) * 2 >= main.Count
-                            ? "zwykle po uślizgu tyłu – dodawaj gaz płynniej, aż koła się wyprostują"
-                            : "wynosi Cię szeroko na wyjściu – spokojniej z gazem, aż koła się wyprostują";
+                            ? L.T("zwykle po uślizgu tyłu – dodawaj gaz płynniej, aż koła się wyprostują", "usually after the rear steps out – add throttle more smoothly until the wheel is straight")
+                            : L.T("wynosi Cię szeroko na wyjściu – spokojniej z gazem, aż koła się wyprostują", "you run wide on the exit – calmer throttle until the wheel is straight");
                     else
                         cause = main.Count(m => !float.IsNaN(m.Cmp.BrakeDiff) && m.Cmp.BrakeDiff > 12 && m.Cmp.BrakeDiff < 100) * 2 >= main.Count
-                            ? "zwykle po za późnym hamowaniu – hamuj na ostatnie piknięcie, nie później"
-                            : "za szybko na wejściu – zacznij hamować odrobinę wcześniej";
-                    p.Lines.Add(string.Format("Wypadasz w {0} z {1} przejazdów ({2}× na {3}): {4}.",
-                        offs.Count, mk.Count, main.Count, onExit ? "wyjściu" : "wejściu", cause));
+                            ? L.T("zwykle po za późnym hamowaniu – hamuj na ostatnie piknięcie, nie później", "usually after braking too late – brake on the last beep, not later")
+                            : L.T("za szybko na wejściu – zacznij hamować odrobinę wcześniej", "too fast on entry – start braking a little earlier");
+                    p.Lines.Add(string.Format(L.T("Wypadasz w {0} z {1} przejazdów ({2}× na {3}): {4}.", "You go off in {0} of {1} runs ({2}× on {3}): {4}."),
+                        offs.Count, mk.Count, main.Count, onExit ? L.T("wyjściu", "exit") : L.T("wejściu", "entry"), cause));
                 }
 
                 string fast = FastVsSlow(cs);
@@ -479,15 +481,15 @@ namespace ACCoach
             Action<float, float, string> add = (v, unit, text) => { if (!float.IsNaN(v) && Math.Abs(v) >= unit) found.Add(Tuple.Create(Math.Abs(v) / unit, text)); };
             float brake = D(c => c.Lap.BrakeD), minSpd = D(c => c.Lap.MinSpeed), thr = D(c => c.Lap.ThrottleD);
             float release = D(c => c.Lap.BrakeReleaseD), overlap = D(c => c.Lap.OverlapS), apex = D(c => c.ApexOff);
-            add(brake, 8, string.Format("hamujesz {0:0} m {1}", Math.Abs(brake), brake > 0 ? "później" : "wcześniej"));
-            add(minSpd, 3, string.Format("szczyt {0:+0;-0} km/h", minSpd));
-            add(thr, 15, string.Format("pełny gaz {0:0} m {1}", Math.Abs(thr), thr < 0 ? "wcześniej" : "później"));
-            add(release, 15, string.Format("puszczasz hamulec {0:0} m {1}", Math.Abs(release), release > 0 ? "później (dalej w zakręt)" : "wcześniej"));
-            add(overlap, 0.4f, overlap < 0 ? "mniej trzymasz gaz i hamulec naraz" : "dłużej trzymasz gaz i hamulec naraz");
-            add(apex, 0.8f, string.Format(Inv, "szczyt {0:0.0} m {1}", Math.Abs(apex), apex > 0 ? "bliżej wewnętrznej" : "szerzej"));
+            add(brake, 8, string.Format(L.T("hamujesz {0:0} m {1}", "you brake {0:0} m {1}"), Math.Abs(brake), brake > 0 ? L.T("później", "later") : L.T("wcześniej", "earlier")));
+            add(minSpd, 3, string.Format(L.T("szczyt {0:+0;-0} km/h", "apex {0:+0;-0} km/h"), minSpd));
+            add(thr, 15, string.Format(L.T("pełny gaz {0:0} m {1}", "full throttle {0:0} m {1}"), Math.Abs(thr), thr < 0 ? L.T("wcześniej", "earlier") : L.T("później", "later")));
+            add(release, 15, string.Format(L.T("puszczasz hamulec {0:0} m {1}", "you release the brake {0:0} m {1}"), Math.Abs(release), release > 0 ? L.T("później (dalej w zakręt)", "later (deeper into the turn)") : L.T("wcześniej", "earlier")));
+            add(overlap, 0.4f, overlap < 0 ? L.T("mniej trzymasz gaz i hamulec naraz", "less throttle and brake together") : L.T("dłużej trzymasz gaz i hamulec naraz", "more throttle and brake together"));
+            add(apex, 0.8f, string.Format(Inv, L.T("szczyt {0:0.0} m {1}", "apex {0:0.0} m {1}"), Math.Abs(apex), apex > 0 ? L.T("bliżej wewnętrznej", "closer to the inside") : L.T("szerzej", "wider")));
             if (found.Count == 0) return null;
             string[] best = found.OrderByDescending(x => x.Item1).Take(2).Select(x => x.Item2).ToArray();
-            return string.Format(Inv, "W Twoich szybkich przejazdach tego zakrętu (o {0} s lepszych od wolnych): {1}.", Corners.Sec(gain), string.Join(", ", best));
+            return string.Format(Inv, L.T("W Twoich szybkich przejazdach tego zakrętu (o {0} s lepszych od wolnych): {1}.", "In your fast runs through this turn ({0} s better than the slow ones): {1}."), Corners.Sec(gain), string.Join(", ", best));
         }
 
         static List<object> InputRows(List<Measured> all)
@@ -536,7 +538,7 @@ namespace ACCoach
         {
             if (float.IsNaN(off)) return "–";
             if (Math.Abs(off) < 0.5f) return "ok";
-            return string.Format(Inv, "{0:0.0} m {1}", Math.Abs(off), off < 0 ? "szerzej" : "ciaśniej");
+            return string.Format(Inv, "{0:0.0} m {1}", Math.Abs(off), off < 0 ? L.T("szerzej", "wider") : L.T("ciaśniej", "tighter"));
         }
 
         static CornerCmp Averaged(CornerStats cs)

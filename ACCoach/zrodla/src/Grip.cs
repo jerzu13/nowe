@@ -16,7 +16,7 @@ namespace ACCoach
 
     public static class Grip
     {
-        static readonly CultureInfo Pl = CultureInfo.GetCultureInfo("pl-PL");
+        static CultureInfo Pl { get { return L.Culture; } }
 
         // most important first: a locked wheel flat-spots the tyre and runs wide, wheelspin kills the exit
         public static readonly string[] Kinds = { "lockF", "lockR", "spin", "over", "under", "tc" };
@@ -25,12 +25,12 @@ namespace ACCoach
         {
             switch (kind)
             {
-                case "lockF": return "blokujesz przód";
-                case "lockR": return "blokujesz tył";
-                case "spin": return "buksujesz na wyjściu";
-                case "over": return "tył ucieka";
-                case "under": return "przód ucieka";
-                default: return "kontrola trakcji, łagodniej gaz";
+                case "lockF": return L.T("blokujesz przód", "front wheels locking");
+                case "lockR": return L.T("blokujesz tył", "rear wheels locking");
+                case "spin": return L.T("buksujesz na wyjściu", "wheelspin on exit");
+                case "over": return L.T("tył ucieka", "rear stepping out");
+                case "under": return L.T("przód ucieka", "front washing out");
+                default: return L.T("kontrola trakcji, łagodniej gaz", "traction control, gentler throttle");
             }
         }
 
@@ -38,12 +38,12 @@ namespace ACCoach
         {
             switch (kind)
             {
-                case "lockF": return "blokada przodu";
-                case "lockR": return "blokada tyłu";
-                case "spin": return "buksowanie";
-                case "over": return "nadsterowność";
-                case "under": return "podsterowność";
-                default: return "praca TC";
+                case "lockF": return L.T("blokada przodu", "front lock-up");
+                case "lockR": return L.T("blokada tyłu", "rear lock-up");
+                case "spin": return L.T("buksowanie", "wheelspin");
+                case "over": return L.T("nadsterowność", "oversteer");
+                case "under": return L.T("podsterowność", "understeer");
+                default: return L.T("praca TC", "TC cutting in");
             }
         }
 
@@ -51,18 +51,24 @@ namespace ACCoach
         {
             switch (kind)
             {
-                case "lockF": return "hamuj mocno od razu, ale potem stopniowo zdejmuj hamulec, im bardziej skręcasz";
-                case "lockR": return "mniej hamulca przy skręcie (i ewentualnie balans hamulców do przodu)";
-                case "spin": return "gaz dodawaj płynniej, pełny dopiero gdy koła się prostują";
-                case "over": return "spokojniej z gazem na wyjściu i mniej skrętu w tej fazie";
-                case "under": return "wolniej na wejściu albo później skręcaj – przód nie trzyma przy tej prędkości";
-                default: return "łagodniej z gazem, TC zabiera moc";
+                case "lockF": return L.T("hamuj mocno od razu, ale potem stopniowo zdejmuj hamulec, im bardziej skręcasz", "brake hard straight away, then ease off the brake the more you turn");
+                case "lockR": return L.T("mniej hamulca przy skręcie (i ewentualnie balans hamulców do przodu)", "less brake while turning (and possibly brake bias forward)");
+                case "spin": return L.T("gaz dodawaj płynniej, pełny dopiero gdy koła się prostują", "add throttle more smoothly, full only once the wheel unwinds");
+                case "over": return L.T("spokojniej z gazem na wyjściu i mniej skrętu w tej fazie", "calmer throttle on the exit and less steering in that phase");
+                case "under": return L.T("wolniej na wejściu albo później skręcaj – przód nie trzyma przy tej prędkości", "slower entry or turn in later – the front does not grip at that speed");
+                default: return L.T("łagodniej z gazem, TC zabiera moc", "gentler throttle, TC is cutting power");
             }
         }
 
         public static bool Has(List<Sample> s)
         {
             return s.Count > 0 && s.Exists(x => x.Ext != null && x.Ext[Wheels.Load] > 1);
+        }
+
+        // slip ratio and slip angle are filled by AC 1.14+ only; older versions (and some setups) leave them at 0
+        public static bool HasSlip(List<Sample> s)
+        {
+            return s.Exists(x => x.Ext != null && (Math.Abs(x.Ext[Wheels.SlipRatio]) > 1e-4f || Math.Abs(x.Ext[Wheels.SlipAngle]) > 1e-4f));
         }
 
         static float Avg2(float[] e, int i, int a, int b) { return (e[i + a] + e[i + b]) / 2; }
@@ -167,7 +173,7 @@ namespace ACCoach
         public static string Text(TyreStats t)
         {
             Func<float[], string, string> f = (a, fmt) => string.Join("/", a.Select(v => v.ToString(fmt, Pl)));
-            return string.Format("opony (LP/PP/LT/PT) rdzeń {0} °C, ciśnienie {1} psi, hamulce {2} °C", f(t.Core, "0"), f(t.Press, "0.0"), f(t.Brake, "0"));
+            return string.Format(L.T("opony (LP/PP/LT/PT) rdzeń {0} °C, ciśnienie {1} psi, hamulce {2} °C", "tyres (FL/FR/RL/RR) core {0} °C, pressure {1} psi, brakes {2} °C"), f(t.Core, "0"), f(t.Press, "0.0"), f(t.Brake, "0"));
         }
 
         // colder than on the best lap: the grip is not there yet (or no longer, after a spin)

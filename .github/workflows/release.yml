@@ -1,0 +1,29 @@
+# Builds AC Coach on Linux (Mono + NSIS) and publishes the installer and the portable ZIP as a GitHub Release.
+# Start it by pushing a tag (git tag v1.6.0 && git push origin v1.6.0), by creating a release with a new tag on
+# GitHub, or by hand: Actions > Release > Run workflow (then the files are only kept as a workflow artifact).
+name: Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Mono, NSIS, zip
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mono-devel nsis zip
+      - name: Build ACCoach.exe, installer and portable ZIP
+        run: ACCoach/zrodla/build.sh release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AC-Coach
+          path: dist/*
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

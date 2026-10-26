@@ -127,10 +127,11 @@ const D = /*__DATA__*/null;
 const NS = 'http://www.w3.org/2000/svg';
 const svg = document.getElementById('map');
 const $ = id => document.getElementById(id);
+const EN = D.lang === 'en', T = (pl, en) => EN ? en : pl;   // texts in both languages, picked by AC Coach
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 $('title').textContent = D.title;
-$('reftime').textContent = 'wzorzec: ' + D.ref.time;
+$('reftime').textContent = T('wzorzec: ', 'best lap: ') + D.ref.time;
 
 // world bounds from edges or laps
 let xs = [], zs = [];
@@ -183,7 +184,7 @@ function drawRef() {
 }
 function curLap() { return D.laps[+$('lap').value]; }
 function cmpLap() { const v = $('cmp').value; return v === '' ? null : D.laps[+v]; }
-function lapLabel(l) { return l.rival ? l.name : 'Ty ' + l.name.trim(); }
+function lapLabel(l) { return l.rival ? l.name : T('Ty ', 'You ') + l.name.trim(); }
 
 // sector time gap -> color: faster green, up to 0.3 s amber, more red
 function gapCls(g) { return g <= 0 ? 'g' : (g < 0.3 ? 'm' : 'b'); }
@@ -228,15 +229,15 @@ function drawMarks() {
   D.corners.forEach(c => {
     if (c.brake) {
       el('line', { x1: c.brake[0], y1: c.brake[1] - 7 * u, x2: c.brake[0], y2: c.brake[1] + 7 * u, stroke: css('--ref'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, gMarks)
-        .appendChild(title('Z' + c.num + ': punkt hamowania z wzorca'));
+        .appendChild(title(T('Z', 'T') + c.num + T(': punkt hamowania z wzorca', ': braking point of your best lap')));
     }
   });
   l.beeps.forEach(b => {
     if (b.beep && b.brake) el('line', { x1: b.beep[0], y1: b.beep[1], x2: b.brake[0], y2: b.brake[1], stroke: css('--text'), 'stroke-width': 1, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }, gMarks);
     if (b.beep) el('circle', { cx: b.beep[0], cy: b.beep[1], r: 6 * u, fill: 'none', stroke: css('--beep'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, gMarks)
-      .appendChild(title('Z' + b.corner + ': ostatnie piknięcie'));
+      .appendChild(title(T('Z', 'T') + b.corner + T(': ostatnie piknięcie', ': last beep')));
     if (b.brake) el('circle', { cx: b.brake[0], cy: b.brake[1], r: 4 * u, fill: css('--brake') }, gMarks)
-      .appendChild(title('Z' + b.corner + ': tu wcisnąłeś hamulec' + (b.reaction != null ? ' (' + sign(b.reaction) + ' s po piknięciu)' : '')));
+      .appendChild(title(T('Z', 'T') + b.corner + T(': tu wcisnąłeś hamulec', ': you braked here') + (b.reaction != null ? ' (' + sign(b.reaction) + T(' s po piknięciu)', ' s after the beep)') : '')));
   });
   (l.ev || []).forEach(e => {
     const s = 6 * u;
@@ -249,7 +250,7 @@ function drawMarks() {
     const g = el('g', {}, gMarks);
     el('line', { x1: p[0] - s, y1: p[1] - s, x2: p[0] + s, y2: p[1] + s, stroke: css('--off'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, g);
     el('line', { x1: p[0] - s, y1: p[1] + s, x2: p[0] + s, y2: p[1] - s, stroke: css('--off'), 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke' }, g);
-    g.appendChild(title('Wyjazd poza tor'));
+    g.appendChild(title(T('Wyjazd poza tor', 'Off track')));
   });
   D.corners.forEach(c => {
     if (!c.apex) return;
@@ -257,7 +258,7 @@ function drawMarks() {
     el('circle', { cx: c.apex[0], cy: c.apex[1], r: 11 * u, fill: css('--badge'), stroke: c.tip ? css('--brake') : 'none', 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }, g);
     const t = el('text', { x: c.apex[0], y: c.apex[1] + 4.5 * u, 'text-anchor': 'middle', 'font-size': 12.5 * u, 'font-weight': 700, fill: css('--badge-text') }, g);
     t.textContent = c.num;
-    g.appendChild(title('Z' + c.num + (c.tip ? ': ' + c.tip : '')));
+    g.appendChild(title(T('Z', 'T') + c.num + (c.tip ? ': ' + c.tip : '')));
     g.addEventListener('click', ev => { ev.stopPropagation(); focusCorner(c.num); });
   });
 }
@@ -340,7 +341,7 @@ function renderReaction() {
 }
 function renderTips() {
   $('tips').innerHTML = D.tips.length ? '<ol class="tips">' + D.tips.map(t => '<li>' + esc(t) + '</li>').join('') + '</ol>'
-    : '<div class="empty">Brak wyraźnych strat albo za mało okrążeń w sesji.</div>';
+    : T('<div class="empty">Brak wyraźnych strat albo za mało okrążeń w sesji.</div>', '<div class="empty">No clear losses, or too few laps in the session.</div>');
 }
 function renderCorners() {
   const l = curLap();
@@ -348,19 +349,19 @@ function renderCorners() {
     const b = l.beeps.find(b => b.corner === c.num);
     let beep = '';
     if (b) {
-      if (b.reaction == null) beep = '<div class="beepline">' + (b.brakeM == null ? 'brak hamowania po piknięciu' : 'hamulec przed ostatnim piknięciem') + '</div>';
+      if (b.reaction == null) beep = '<div class="beepline">' + (b.brakeM == null ? T('brak hamowania po piknięciu', 'no braking after the beep') : T('hamulec przed ostatnim piknięciem', 'brake before the last beep')) + '</div>';
       else {
         const k = b.reaction > 0.35 ? 'late' : (b.reaction < -0.35 ? 'early' : 'ok');
-        const word = k === 'late' ? 'za późno' : (k === 'early' ? 'za wcześnie' : 'dobrze');
-        beep = '<div class="beepline">piknięcie → hamulec: <span class="' + k + '">' + sign(b.reaction) + ' s, ' + word + '</span>'
+        const word = k === 'late' ? T('za późno', 'too late') : (k === 'early' ? T('za wcześnie', 'too early') : T('dobrze', 'good'));
+        beep = T('<div class="beepline">piknięcie → hamulec: <span class="', '<div class="beepline">beep → brake: <span class="') + k + '">' + sign(b.reaction) + ' s, ' + word + '</span>'
           + '</div>';
       }
-      if (b.miss != null) beep += '<div class="beepline">punkt hamowania: <span class="' + (Math.abs(b.miss) <= 8 ? 'ok' : (b.miss > 0 ? 'late' : 'early')) + '">'
-        + (b.miss > 0 ? '+' : '') + b.miss + ' m</span> <span class="meta">(+ = za punktem, − = przed)</span></div>';
-      if (b.out) beep += '<div class="beepline outtag">wyjazd poza tor w tym zakręcie</div>';
+      if (b.miss != null) beep += T('<div class="beepline">punkt hamowania: <span class="', '<div class="beepline">braking point: <span class="') + (Math.abs(b.miss) <= 8 ? 'ok' : (b.miss > 0 ? 'late' : 'early')) + '">'
+        + (b.miss > 0 ? '+' : '') + b.miss + T(' m</span> <span class="meta">(+ = za punktem, − = przed)</span></div>', ' m</span> <span class="meta">(+ = past the point, − = before)</span></div>');
+      if (b.out) beep += T('<div class="beepline outtag">wyjazd poza tor w tym zakręcie</div>', '<div class="beepline outtag">off track in this turn</div>');
     }
-    const meta = (c.force ? 'hamowanie: ' + c.force + ' (' + c.forcePct + '%)' : 'bez hamulca') + ' · szczyt ' + c.minSpeed + ' km/h'
-      + (c.loss > 0.05 ? ' · tracisz śr. ' + c.loss.toFixed(2) + ' s' : '');
+    const meta = (c.force ? T('hamowanie: ', 'braking: ') + c.force + ' (' + c.forcePct + '%)' : T('bez hamulca', 'no brake')) + T(' · szczyt ', ' · apex ') + c.minSpeed + ' km/h'
+      + (c.loss > 0.05 ? T(' · tracisz śr. ', ' · average loss ') + c.loss.toFixed(2) + ' s' : '');
     return '<div class="corner" data-num="' + c.num + '"><span class="cn">Z' + c.num + '</span> <span class="meta">' + meta + '</span>'
       + beep + (c.tip ? '<div class="tip">' + esc(c.tip) + '</div>' : '') + '</div>';
   }).join('');
@@ -370,15 +371,15 @@ function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<'
 
 function renderLegend() {
   const rows = [];
-  if (D.ai) rows.push('<span><span class="sw" style="border-color:var(--ai);border-top-style:dashed"></span>linia wzorcowa AI</span>');
-  rows.push('<span><span class="sw" style="border-color:var(--ref)"></span>Twoja najlepsza</span>');
-  rows.push('<span><span class="sw" style="border-color:var(--brake)"></span>hamulec</span>');
-  rows.push('<span><span class="sw" style="border-color:var(--gas)"></span>pełny gaz</span>');
-  rows.push('<span><span class="sw" style="border-color:var(--coast)"></span>częściowo / bez gazu</span>');
-  rows.push('<span><span class="dot" style="border:3px solid var(--beep)"></span>ostatnie piknięcie</span>');
-  rows.push('<span><span class="dot" style="background:var(--brake)"></span>Twoje hamowanie</span>');
-  rows.push('<span style="color:var(--off);font-weight:700">✕ <span style="color:var(--text);font-weight:400">poza torem</span></span>');
-  if (D.laps.some(l => l.ev)) rows.push('<span><span class="dot" style="background:var(--mid);border-radius:2px;transform:rotate(45deg)"></span>koła: blokada / buksowanie / uślizg</span>');
+  if (D.ai) rows.push(T('<span><span class="sw" style="border-color:var(--ai);border-top-style:dashed"></span>linia wzorcowa AI</span>', '<span><span class="sw" style="border-color:var(--ai);border-top-style:dashed"></span>AI racing line</span>'));
+  rows.push(T('<span><span class="sw" style="border-color:var(--ref)"></span>Twoja najlepsza</span>', '<span><span class="sw" style="border-color:var(--ref)"></span>your best</span>'));
+  rows.push(T('<span><span class="sw" style="border-color:var(--brake)"></span>hamulec</span>', '<span><span class="sw" style="border-color:var(--brake)"></span>brake</span>'));
+  rows.push(T('<span><span class="sw" style="border-color:var(--gas)"></span>pełny gaz</span>', '<span><span class="sw" style="border-color:var(--gas)"></span>full throttle</span>'));
+  rows.push(T('<span><span class="sw" style="border-color:var(--coast)"></span>częściowo / bez gazu</span>', '<span><span class="sw" style="border-color:var(--coast)"></span>partial / no throttle</span>'));
+  rows.push(T('<span><span class="dot" style="border:3px solid var(--beep)"></span>ostatnie piknięcie</span>', '<span><span class="dot" style="border:3px solid var(--beep)"></span>last beep</span>'));
+  rows.push(T('<span><span class="dot" style="background:var(--brake)"></span>Twoje hamowanie</span>', '<span><span class="dot" style="background:var(--brake)"></span>your braking</span>'));
+  rows.push(T('<span style="color:var(--off);font-weight:700">✕ <span style="color:var(--text);font-weight:400">poza torem</span></span>', '<span style="color:var(--off);font-weight:700">✕ <span style="color:var(--text);font-weight:400">off track</span></span>'));
+  if (D.laps.some(l => l.ev)) rows.push(T('<span><span class="dot" style="background:var(--mid);border-radius:2px;transform:rotate(45deg)"></span>koła: blokada / buksowanie / uślizg</span>', '<span><span class="dot" style="background:var(--mid);border-radius:2px;transform:rotate(45deg)"></span>wheels: lock-up / wheelspin / slide</span>'));
   $('legend').innerHTML = rows.join('');
 }
 
@@ -389,9 +390,9 @@ function renderSectorTable() {
   $('secCard').hidden = false;
   const n = l.sectors.length;
   const base = RT ? RT.bestLapSectors : (c && c.sectors ? c.sectors : null);
-  const baseName = RT ? RT.name + ' – najlepsze okrążenie' : (c ? lapLabel(c) : '');
-  $('secTitle').textContent = RT ? 'Sektory: Ty vs ' + RT.name : 'Sektory';
-  let h = '<table class="sec"><tr><th></th>' + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + '<th>okrążenie</th></tr>';
+  const baseName = RT ? RT.name + T(' – najlepsze okrążenie', ' – best lap') : (c ? lapLabel(c) : '');
+  $('secTitle').textContent = RT ? T('Sektory: Ty vs ', 'Sectors: you vs ') + RT.name : T('Sektory', 'Sectors');
+  let h = '<table class="sec"><tr><th></th>' + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + T('<th>okrążenie</th></tr>', '<th>lap</th></tr>');
   const row = (name, secs, lapMs, ref) => {
     let r = '<tr><td>' + esc(name) + '</td>';
     for (let i = 0; i < n; i++) {
@@ -402,13 +403,13 @@ function renderSectorTable() {
     return r + '<td>' + (lapMs ? fmtLap(lapMs) : '') + (lg != null ? ' <span class="' + gapCls(lg) + '">' + gapTxt(lg) + '</span>' : '') + '</td></tr>';
   };
   if (RT) {
-    h += row(RT.name + ' – najlepsze okrążenie', RT.bestLapSectors, RT.bestLapMs, null);
-    h += row(RT.name + ' – najlepsze sektory', RT.bestSectors, RT.bestSectors.reduce((x, y) => x + y, 0), null);
-    h += row(RT.name + ' – średnio', RT.avgSectors, RT.avgSectors.reduce((x, y) => x + y, 0), null);
+    h += row(RT.name + T(' – najlepsze okrążenie', ' – best lap'), RT.bestLapSectors, RT.bestLapMs, null);
+    h += row(RT.name + T(' – najlepsze sektory', ' – best sectors'), RT.bestSectors, RT.bestSectors.reduce((x, y) => x + y, 0), null);
+    h += row(RT.name + T(' – średnio', ' – average'), RT.avgSectors, RT.avgSectors.reduce((x, y) => x + y, 0), null);
   }
   h += row(lapLabel(l), l.sectors, l.lapMs, base);
   if (c && c !== l && c.sectors) h += row(lapLabel(c), c.sectors, c.lapMs, base);
-  $('secTable').innerHTML = h + '</table>' + (base ? '<div class="meta">Różnice względem: ' + esc(baseName) + '.</div>' : '');
+  $('secTable').innerHTML = h + '</table>' + (base ? T('<div class="meta">Różnice względem: ', '<div class="meta">Differences against: ') + esc(baseName) + '.</div>' : '');
 }
 
 function renderHeat() {
@@ -416,9 +417,9 @@ function renderHeat() {
   const mine = D.laps.map((l, i) => [l, i]).filter(p => !p[0].rival && p[0].sectors);
   if (!mine.length) { $('heatCard').hidden = true; return; }
   $('heatCard').hidden = false;
-  $('heatTitle').textContent = 'Wszystkie okrążenia sesji – sektory vs najlepsze okrążenie ' + RT.name;
+  $('heatTitle').textContent = T('Wszystkie okrążenia sesji – sektory vs najlepsze okrążenie ', 'All laps of the session – sectors vs best lap of ') + RT.name;
   const n = RT.bestLapSectors.length, cur = +$('lap').value;
-  let h = '<table class="sec"><tr><th>okrążenie</th>' + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + '<th>razem</th></tr>';
+  let h = T('<table class="sec"><tr><th>okrążenie</th>', '<table class="sec"><tr><th>lap</th>') + Array.from({ length: n }, (_, i) => '<th>S' + (i + 1) + '</th>').join('') + T('<th>razem</th></tr>', '<th>total</th></tr>');
   mine.forEach(([l, i]) => {
     h += '<tr class="pick' + (i === cur ? ' sel' : '') + '" data-i="' + i + '"><td>' + esc(l.name.trim()) + '</td>';
     for (let s = 0; s < n; s++) { const g = (l.sectors[s] - RT.bestLapSectors[s]) / 1000; h += '<td class="' + gapCls(g) + '">' + gapTxt(g) + '</td>'; }
@@ -434,38 +435,40 @@ function renderCharts() {
   const a = curLap(), b = cmpLap(), step = D.step;
   const host = $('charts'); host.innerHTML = '';
   const both = !!(b && b !== a);
-  $('chartTitle').textContent = both ? 'Porównanie: ' + lapLabel(a) + '  vs  ' + lapLabel(b) : 'Telemetria: ' + lapLabel(a);
+  $('chartTitle').textContent = both ? T('Porównanie: ', 'Comparison: ') + lapLabel(a) + '  vs  ' + lapLabel(b) : T('Telemetria: ', 'Telemetry: ') + lapLabel(a);
   const folder = RT ? 'rywale' + String.fromCharCode(92) + RT.name : '';
-  $('chartNote').innerHTML = (both ? 'Linia ciągła = wybrane okrążenie, przerywana = porównanie. ' : '')
-    + 'Najedź na wykres – miejsce pokaże się na mapie obok (i na dużej mapie). Kliknij wykres, żeby przypiąć punkt; potem strzałki ← → przesuwają go o 10 m (z Shift o 50 m).'
-    + (RT && !D.laps.some(l => l.rival) ? ' Z pliku serwera ' + esc(RT.name) + ' są tylko czasy sektorów – żeby porównać jego jazdę na wykresach, wrzuć jego okrążenia z AC Coach do folderu ' + esc(folder) + '.' : '');
+  $('chartNote').innerHTML = (both ? T('Linia ciągła = wybrane okrążenie, przerywana = porównanie. ', 'Solid line = selected lap, dashed = comparison. ') : '')
+    + T('Najedź na wykres – miejsce pokaże się na mapie obok (i na dużej mapie). Kliknij wykres, żeby przypiąć punkt; potem strzałki ← → przesuwają go o 10 m (z Shift o 50 m).', 'Hover over a chart – the spot shows on the map next to it (and on the big map). Click a chart to pin the point; then the ← → arrows move it by 10 m (50 m with Shift).')
+    + (RT && !D.laps.some(l => l.rival) ? T(' Z pliku serwera ', ' The server file of ') + esc(RT.name) + T(' są tylko czasy sektorów – żeby porównać jego jazdę na wykresach, wrzuć jego okrążenia z AC Coach do folderu ', ' has sector times only – to compare their driving on the charts, put their AC Coach laps into the folder ') + esc(folder) + '.' : '');
   const n = Math.min(a.spd.length, both ? b.spd.length : a.spd.length);
   const delta = both ? Array.from({ length: n }, (_, i) => a.t[i] - b.t[i]) : null;
   const cmpCol = both && b.rival ? '--cmp' : '--ref';
   const specs = [
-    { key: 'spd', name: 'prędkość [km/h]', series: [[a.spd, '--text', false]].concat(both ? [[b.spd, cmpCol, true]] : []) },
-    both ? { key: 'dt', name: 'różnica czasu [s] – w górę: ' + lapLabel(a) + ' traci, w dół: zyskuje', series: [[delta, '--bad', false]], zero: true } : null,
-    { key: 'gas', name: 'gaz [%]', series: [[a.gas.map(v => v * 100), '--gas', false]].concat(both ? [[b.gas.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
-    { key: 'brk', name: 'hamulec [%]', series: [[a.brk.map(v => v * 100), '--brake', false]].concat(both ? [[b.brk.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
-    { key: 'str', name: 'kierownica', series: [[a.str, '--text', false]].concat(both ? [[b.str, cmpCol, true]] : []), zero: true }
+    { key: 'spd', name: T('prędkość [km/h]', 'speed [km/h]'), series: [[a.spd, '--text', false]].concat(both ? [[b.spd, cmpCol, true]] : []) },
+    both ? { key: 'dt', name: T('różnica czasu [s] – w górę: ', 'time difference [s] – up: ') + lapLabel(a) + T(' traci, w dół: zyskuje', ' loses, down: gains'), series: [[delta, '--bad', false]], zero: true } : null,
+    { key: 'gas', name: T('gaz [%]', 'throttle [%]'), series: [[a.gas.map(v => v * 100), '--gas', false]].concat(both ? [[b.gas.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
+    { key: 'brk', name: T('hamulec [%]', 'brake [%]'), series: [[a.brk.map(v => v * 100), '--brake', false]].concat(both ? [[b.brk.map(v => v * 100), cmpCol, true]] : []), min: 0, max: 105 },
+    { key: 'str', name: T('kierownica', 'steering'), series: [[a.str, '--text', false]].concat(both ? [[b.str, cmpCol, true]] : []), zero: true }
   ].filter(Boolean);
   // wheels and tyres: only laps recorded with them (AC Coach 1.4+)
   if (a.srF) {
     const r2 = x => x == null ? '–' : x.toFixed(2), c0 = x => x == null ? '–' : Math.round(x);
-    specs.push(
-      { key: 'sr', name: 'poślizg wzdłużny kół – przód (czerwony), tył (niebieski); poniżej zera blokowanie, powyżej buksowanie',
+    // slip channels only when the game gives them (AC 1.14+), otherwise they are flat zero lines
+    if (a.slip !== false) specs.push(
+      { key: 'sr', name: T('poślizg wzdłużny kół – przód (czerwony), tył (niebieski); poniżej zera blokowanie, powyżej buksowanie', 'wheel slip ratio – front (red), rear (blue); below zero locking, above wheelspin'),
         series: [[a.srF, '--brake', false], [a.srR, '--ref', false]], min: -0.5, max: 0.5, zero: true,
-        tipf: i => 'przód ' + r2(a.srF[i]) + ', tył ' + r2(a.srR[i]) },
-      { key: 'sa', name: 'kąt poślizgu opon – przód (czerwony), tył (niebieski); tył wyżej = tył ucieka, przód wyżej = przód ucieka',
+        tipf: i => T('przód ', 'front ') + r2(a.srF[i]) + T(', tył ', ', rear ') + r2(a.srR[i]) },
+      { key: 'sa', name: T('kąt poślizgu opon – przód (czerwony), tył (niebieski); tył wyżej = tył ucieka, przód wyżej = przód ucieka', 'tyre slip angle – front (red), rear (blue); rear higher = oversteer, front higher = understeer'),
         series: [[a.saF, '--brake', false], [a.saR, '--ref', false]],
-        tipf: i => 'przód ' + r2(a.saF[i]) + ', tył ' + r2(a.saR[i]) + (a.saR[i] > 1.4 * a.saF[i] ? ' – tył ucieka' : a.saF[i] > 1.7 * a.saR[i] ? ' – przód ucieka' : '') },
-      { key: 'yaw', name: 'obrót auta (prędkość odchylania)' + (both && b.yaw ? ' – przerywana: porównanie' : ''),
+        tipf: i => T('przód ', 'front ') + r2(a.saF[i]) + T(', tył ', ', rear ') + r2(a.saR[i]) + (a.saR[i] > 1.4 * a.saF[i] ? T(' – tył ucieka', ' – oversteer') : a.saF[i] > 1.7 * a.saR[i] ? T(' – przód ucieka', ' – understeer') : '') });
+    specs.push(
+      { key: 'yaw', name: T('obrót auta (prędkość odchylania)', 'car rotation (yaw rate)') + (both && b.yaw ? T(' – przerywana: porównanie', ' – dashed: comparison') : ''),
         series: [[a.yaw, '--text', false]].concat(both && b.yaw ? [[b.yaw, cmpCol, true]] : []), zero: true,
         tipf: i => r2(a.yaw[i]) + (both && b.yaw ? ' vs ' + r2(b.yaw[i]) : '') },
-      { key: 'core', name: 'temperatura opon, rdzeń [°C] – LP (czerwony), PP (zielony), LT (niebieski), PT (fiolet)',
+      { key: 'core', name: T('temperatura opon, rdzeń [°C] – LP (czerwony), PP (zielony), LT (niebieski), PT (fiolet)', 'tyre core temperature [°C] – FL (red), FR (green), RL (blue), RR (purple)'),
         series: a.core.map((v, w) => [v, ['--brake', '--gas', '--ref', '--cmp'][w], false]),
         tipf: i => a.core.map(v => c0(v[i])).join(' / ') + ' °C' },
-      { key: 'press', name: 'ciśnienie opon [psi] – LP, PP, LT, PT',
+      { key: 'press', name: T('ciśnienie opon [psi] – LP, PP, LT, PT', 'tyre pressure [psi] – FL, FR, RL, RR'),
         series: a.press.map((v, w) => [v, ['--brake', '--gas', '--ref', '--cmp'][w], false]),
         tipf: i => a.press.map(v => v[i] == null ? '–' : v[i].toFixed(1)).join(' / ') + ' psi' });
   }
@@ -506,7 +509,7 @@ function chart(sp, n, step, a, b, both, delta) {
   });
   // corner numbers as HTML above the plot (SVG text would be stretched by the non-uniform scale)
   const marks = document.createElement('div'); marks.style.cssText = 'position:relative;height:14px;font-size:11px;color:var(--muted)';
-  D.corners.forEach(c => { if (c.apexD == null) return; const m = document.createElement('span'); m.textContent = 'Z' + c.num; m.style.cssText = 'position:absolute;transform:translateX(-50%);left:' + (c.apexD / step / (n - 1) * 100) + '%'; marks.appendChild(m); });
+  D.corners.forEach(c => { if (c.apexD == null) return; const m = document.createElement('span'); m.textContent = T('Z', 'T') + c.num; m.style.cssText = 'position:absolute;transform:translateX(-50%);left:' + (c.apexD / step / (n - 1) * 100) + '%'; marks.appendChild(m); });
   wrap.insertBefore(marks, s);
   const cursor = line(0, 0, 0, H, css('--accent'), 1); cursor.style.display = 'none';
   const at = ev => { const r = s.getBoundingClientRect(); return Math.max(0, Math.min(n - 1, Math.round((ev.clientX - r.left) / r.width * (n - 1)))); };
@@ -620,7 +623,7 @@ function miniHover(i) {
   clearTimeout(miniLeave);
   if (i == null || a.x[i] == null) {
     mPoint = null; miniApply();
-    info.innerHTML = '<span class="meta">Najedź na wykres prędkości, gazu, hamulca albo kierownicy.</span>';
+    info.innerHTML = T('<span class="meta">Najedź na wykres prędkości, gazu, hamulca albo kierownicy.</span>', '<span class="meta">Hover over the speed, throttle, brake or steering chart.</span>');
     miniLeave = setTimeout(() => miniGoTo(Object.assign({}, full)), 600);   // back to the whole track
     return;
   }
@@ -634,15 +637,15 @@ function miniHover(i) {
   const d = i * D.step;
   let near = null;
   D.corners.forEach(c => { if (c.apexD != null && Math.abs(c.apexD - d) < 200 && (!near || Math.abs(c.apexD - d) < Math.abs(near.apexD - d))) near = c; });
-  const where = near ? 'Z' + near.num + (d < near.apexD - 15 ? ' – wejście' : d > near.apexD + 15 ? ' – wyjście' : ' – szczyt') : 'prosta';
+  const where = near ? T('Z', 'T') + near.num + (d < near.apexD - 15 ? T(' – wejście', ' – entry') : d > near.apexD + 15 ? T(' – wyjście', ' – exit') : T(' – szczyt', ' – apex')) : T('prosta', 'straight');
   const v = (x, p) => x == null || !isFinite(x) ? '–' : (p ? Math.round(x * 100) + '%' : Math.round(x));
   const both = b && b !== a;
   const vs = (fa, fb, p) => v(fa, p) + (both ? ' <span class="meta">vs ' + v(fb, p) + '</span>' : '');
-  info.innerHTML = '<b>' + where + '</b> · ' + Math.round(d) + ' m' + (pinned != null ? ' · <span class="meta">przypięte (kliknij wykres, aby odpiąć)</span>' : '') + '<br>'
-    + 'prędkość ' + vs(a.spd[i], both && b.spd[i]) + ' km/h · hamulec ' + vs(a.brk[i], both && b.brk[i], true)
-    + ' · gaz ' + vs(a.gas[i], both && b.gas[i], true) + ' · kierownica ' + (a.str[i] == null ? '–' : a.str[i].toFixed(2))
+  info.innerHTML = '<b>' + where + '</b> · ' + Math.round(d) + ' m' + (pinned != null ? T(' · <span class="meta">przypięte (kliknij wykres, aby odpiąć)</span>', ' · <span class="meta">pinned (click the chart to unpin)</span>') : '') + '<br>'
+    + T('prędkość ', 'speed ') + vs(a.spd[i], both && b.spd[i]) + T(' km/h · hamulec ', ' km/h · brake ') + vs(a.brk[i], both && b.brk[i], true)
+    + T(' · gaz ', ' · throttle ') + vs(a.gas[i], both && b.gas[i], true) + T(' · kierownica ', ' · steering ') + (a.str[i] == null ? '–' : a.str[i].toFixed(2))
     + (both && b.str[i] != null ? ' <span class="meta">vs ' + b.str[i].toFixed(2) + '</span>' : '')
-    + (a.srF ? '<br>poślizg przód ' + a.srF[i].toFixed(2) + ' / tył ' + a.srR[i].toFixed(2) + ' · opony ' + a.core.map(c => Math.round(c[i])).join('/') + ' °C' : '')
+    + (a.srF ? (a.slip !== false ? T('<br>poślizg przód ', '<br>slip front ') + a.srF[i].toFixed(2) + T(' / tył ', ' / rear ') + a.srR[i].toFixed(2) + T(' · opony ', ' · tyres ') : T('<br>opony ', '<br>tyres ')) + a.core.map(c => Math.round(c[i])).join('/') + ' °C' : '')
     + ((a.ev || []).filter(e => Math.abs(e.d - d) < 40).map(e => ' · <b>' + e.name + '</b>').join(''));
 }
 $('miniZoom').onchange = () => { if (!$('miniZoom').checked) miniGoTo(Object.assign({}, full)); };
@@ -655,7 +658,7 @@ function onLapChange() { drawSectors(); drawRef(); drawLap(); drawMarks(); rende
 (function fillCmp() {
   const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; $('cmp').appendChild(o); };
   add('', '—');
-  D.laps.forEach((l, i) => { if (l.isRef) add(i, 'Twoje najlepsze okrążenie (wzorzec)'); });
+  D.laps.forEach((l, i) => { if (l.isRef) add(i, T('Twoje najlepsze okrążenie (wzorzec)', 'Your best lap')); });
   D.laps.forEach((l, i) => { if (l.rival) add(i, l.name); });
   const rivalIdx = D.laps.findIndex(l => l.rival), refIdx = D.laps.findIndex(l => l.isRef);
   $('cmp').value = rivalIdx >= 0 ? rivalIdx : (refIdx >= 0 ? refIdx : '');

@@ -8,7 +8,7 @@ using System.Threading;
 
 // Test-only: replays recorded ACCoach lap CSVs into fake Assetto Corsa shared memory, so the live coach
 // can be checked on real laps without the game. The first lap is played from 90% as an out lap.
-// Usage: AcReplay.exe lap1.csv lap2.csv ...
+// Usage: AcReplay.exe [--realtime] lap1.csv lap2.csv ...   (--realtime: at the game's pace, for voice timing)
 static class AcReplay
 {
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
@@ -35,6 +35,8 @@ static class AcReplay
 
     static int Main(string[] args)
     {
+        bool realtime = Array.IndexOf(args, "--realtime") >= 0;
+        args = Array.FindAll(args, a => a != "--realtime");
         if (args.Length == 0) { Console.WriteLine("Usage: AcReplay.exe lap1.csv [lap2.csv ...]"); return 2; }
         MemoryMappedFile fp, fg, fs;
         // test memory only (ACCoach --test-shm reads it); the game's acpmf_* pages are never touched
@@ -56,7 +58,9 @@ static class AcReplay
         {
             string[] lines = File.ReadAllLines(args[li]);
             int lapMs = int.Parse(Meta(lines[0], "lap_ms"), Inv);
-            for (int r = 2; r < lines.Length; r += 2)
+            DateTime start = DateTime.Now;
+            int t0 = -1;
+            for (int r = 2; r < lines.Length; r += realtime ? 1 : 2)
             {
                 // t_ms,pos,speed,gas,brake,clutch,steer,gear,rpm,lat_g,lon_g,x,z,tyres_out
                 string[] c = lines[r].Split(',');
@@ -91,7 +95,11 @@ static class AcReplay
                 g.Write(260, float.Parse(c[12], Inv));
                 g.Write(276, 0);
                 g.Write(0, packet);
-                Thread.Sleep(4);
+                if (!realtime) { Thread.Sleep(4); continue; }
+                int tms = int.Parse(c[0], Inv);
+                if (t0 < 0) { t0 = tms; start = DateTime.Now; }
+                int wait = (int)(tms - t0 - (DateTime.Now - start).TotalMilliseconds);
+                if (wait > 0) Thread.Sleep(wait);
             }
             completed++;
             lastMs = lapMs;

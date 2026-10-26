@@ -220,7 +220,7 @@ namespace ACCoach
 
         public string Describe()
         {
-            return string.Format(Inv, "przyczepność {0:0.00} g, hamowanie {1:0.00} g (przy 100 km/h), {2} okr.",
+            return string.Format(Inv, L.T("przyczepność {0:0.00} g, hamowanie {1:0.00} g (przy 100 km/h), {2} okr.", "grip {0:0.00} g, braking {1:0.00} g (at 100 km/h), {2} laps"),
                 LatAt(100 / 3.6f), BrkAt(100 / 3.6f), Laps);
         }
     }
