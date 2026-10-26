@@ -23,6 +23,9 @@
   - mapa: u Mirka gra nie podaje poślizgu kół ani TC/ABS (same zera – AC < 1.14?) – wykresy poślizgu ukryte, raport
     o tym pisze; temperatury bez skoku do 0 na starcie;
   - log okna zapisywany do `<dane>\log.txt` (+ `log_prev.txt`).
+- **1.7.1** – Defender blokował instalator 1.7.0 jako `Trojan:Win32/Ulthar.A!ml` (heurystyka ML, fałszywy alarm).
+  Próba: instalator kompresowany zlib zamiast solid lzma, pełne dane wersji (firma, copyright) w instalatorze i exe.
+  Niezweryfikowane – prawdziwe rozwiązanie: zgłoszenie do Microsoftu (wdsi/filesubmission) albo podpis cyfrowy.
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,

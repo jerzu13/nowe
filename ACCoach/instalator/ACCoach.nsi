@@ -1,11 +1,12 @@
 ﻿; AC Coach – installer for the current Windows user (no administrator rights), English or Polish.
 ; Build: makensis ACCoach.nsi  (NSIS 3, Windows or Linux)
 Unicode true
-SetCompressor /SOLID lzma
+; zlib, not solid lzma: a solid lzma block looks like a packed payload to antivirus heuristics
+SetCompressor zlib
 RequestExecutionLevel user
 
 !define APP      "AC Coach"
-!define VERSION  "1.7.0"
+!define VERSION  "1.7.1"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ACCoach"
 !define SRC      ".."
 
@@ -24,7 +25,9 @@ VIAddVersionKey /LANG=1033 "ProductName" "${APP}"
 VIAddVersionKey /LANG=1033 "FileDescription" "AC Coach setup – a coach for Assetto Corsa"
 VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${VERSION}"
-VIAddVersionKey /LANG=1033 "LegalCopyright" " "
+VIAddVersionKey /LANG=1033 "CompanyName" "AC Coach"
+VIAddVersionKey /LANG=1033 "LegalCopyright" "© 2026 AC Coach"
+VIAddVersionKey /LANG=1033 "OriginalFilename" "AC_Coach_Setup.exe"
 
 !define MUI_ICON "${SRC}\zrodla\ACCoach.ico"
 !define MUI_UNICON "${SRC}\zrodla\ACCoach.ico"
