@@ -236,6 +236,7 @@ namespace ACCoach
 
         // every line also goes to <data>\log.txt (the run before is kept as log_prev.txt), to send with a problem report
         static StreamWriter file;
+        static readonly object fileLock = new object();   // the coaching thread writes notes, the console the rest
 
         public static void Install(string dataDir)
         {
@@ -250,6 +251,12 @@ namespace ACCoach
             Console.SetOut(TextWriter.Synchronized(new LogWriter()));
         }
 
+        // a line for log.txt only (details for a problem report, not for the window)
+        public static void Note(string line)
+        {
+            lock (fileLock) if (file != null) try { file.WriteLine(DateTime.Now.ToString("HH:mm:ss ") + line); } catch (Exception) { file = null; }
+        }
+
         public override void Write(char c)
         {
             if (c == '\r') return;
@@ -258,7 +265,7 @@ namespace ACCoach
                 string line = cur.ToString();
                 lines.Enqueue(line);
                 cur.Clear();
-                if (file != null) try { file.WriteLine(DateTime.Now.ToString("HH:mm:ss ") + line); } catch (Exception) { file = null; }
+                Note(line);
                 return;
             }
             cur.Append(c);

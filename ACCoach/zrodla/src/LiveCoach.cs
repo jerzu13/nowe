@@ -69,6 +69,8 @@ namespace ACCoach
         int expectCount = -1;                  // lap counter value still to come for a crossing taken from the timer
         int prevLastMs;
         DateTime expectUntil, staleUntil;
+        DateTime skipShownAt = DateTime.MinValue;   // "out lap" message: at most every 30 s
+        int skipHidden, lapNotes, lapNotesIgnored;
 
         // training mode: brake countdown beeps and line cues, one slot per reference corner
         Beeper beeper;
@@ -183,18 +185,20 @@ namespace ACCoach
                     if (t.CompletedLaps == lastCompleted + 1)
                     {
                         lastCompleted = t.CompletedLaps;
-                        if (expectCount == t.CompletedLaps) expectCount = -1;   // the timer already reset: lap done
+                        if (expectCount == t.CompletedLaps) { expectCount = -1; LapNote(t, "counter after timer"); }   // the timer already reset: lap done
                         else
                         {
+                            LapNote(t, "counter");
                             FinishLap(t, t.CompletedLaps);
                             StartLap(t, true);
                             staleUntil = t.CurrentTimeMs > 3000 ? DateTime.Now.AddSeconds(3) : DateTime.MinValue;
                         }
                     }
-                    else if (t.CompletedLaps == lastCompleted && timerReset && lastPos > 0.9f && (t.Pos < 0.1f || t.Pos > 0.97f))
+                    else if (t.CompletedLaps == lastCompleted && timerReset && lastPos > 0.9f && (t.Pos < 0.1f || t.Pos > 0.97f) && RealCrossing(t))
                     {
                         // timer reset at the line before the counter (the game's last lap time may not be updated yet either)
                         if (t.LastTimeMs == prevLastMs) t.LastTimeMs = 0;
+                        LapNote(t, "timer");
                         FinishLap(t, lastCompleted + 1);
                         StartLap(t, true);
                         expectCount = lastCompleted + 1;
@@ -203,6 +207,7 @@ namespace ACCoach
                     else if (t.CompletedLaps != lastCompleted || timerReset)
                     {
                         // session restart, return to pits or a new session online
+                        LapNote(t, "restart");
                         lastCompleted = t.CompletedLaps;
                         expectCount = -1;
                         StartLap(t, false);
@@ -224,6 +229,29 @@ namespace ACCoach
                 voice.Dispose();
                 beeper.Dispose();
             }
+        }
+
+        // A lap timer reset taken as the line only when it looks like one: the car is moving, it moved a few metres
+        // forward since the last sample (not put back in the pits) and the timer had run for a lap. Standing in the
+        // pit box just before the line with a timer that starts over is not a lap (1.8.1: "Out lap" over and over).
+        bool RealCrossing(Telemetry t)
+        {
+            float len = si != null && si.SplineLength > 200 ? si.SplineLength : 3000;
+            float moved = t.Pos - lastPos;
+            if (moved < -0.5f) moved += 1;
+            moved *= len;
+            bool ok = t.SpeedKmh > 15 && lastSpeed > 15 && moved > -2 && moved < 120 && lastT > 10000;
+            if (!ok) LapNote(t, string.Format(Inv, "timer reset ignored (moved {0:0} m)", moved));
+            return ok;
+        }
+
+        // What the game reported at a lap change, to log.txt only: lets a problem with the line be traced later.
+        void LapNote(Telemetry t, string what)
+        {
+            bool routine = what.StartsWith("restart") || what.StartsWith("timer reset ignored");   // repeats while standing
+            if (routine ? ++lapNotesIgnored > 40 : ++lapNotes > 300) return;
+            LogWriter.Note(string.Format(Inv, "[line] {0}: laps {1}->{2} timer {3}->{4} last {5} pos {6:0.0000}->{7:0.0000} speed {8:0} pit {9}",
+                what, lastCompleted, t.CompletedLaps, lastT, t.CurrentTimeMs, t.LastTimeMs, lastPos, t.Pos, t.SpeedKmh, t.IsInPitLane));
         }
 
         void SetupCombo(StaticInfo info)
@@ -428,7 +456,11 @@ namespace ACCoach
         {
             if (!curFromLine || cur.Samples.Count < 100)
             {
-                Console.WriteLine(L.T("Okrążenie wyjazdowe / niepełne – pomijam.", "Out lap / incomplete lap – skipped."));
+                if ((DateTime.Now - skipShownAt).TotalSeconds < 30) { skipHidden++; return; }
+                Console.WriteLine(L.T("Okrążenie wyjazdowe / niepełne – pomijam.", "Out lap / incomplete lap – skipped.")
+                    + (skipHidden > 0 ? string.Format(L.T(" (i {0} razy wcześniej)", " (and {0} times before)"), skipHidden) : ""));
+                skipShownAt = DateTime.Now;
+                skipHidden = 0;
                 return;
             }
             int lastSampleT = cur.Samples[cur.Samples.Count - 1].T;

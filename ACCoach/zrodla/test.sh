@@ -23,13 +23,18 @@ laps=$(ls "$DATA"/*/laps/*.csv 2>/dev/null | wc -l)
 [ "$laps" -ge 4 ] && ok "$laps laps recorded" || bad "$laps laps recorded (log: $(tail -3 "$W/session.log"))"
 head -2 "$(ls "$DATA"/*/laps/*.csv | head -1)" | grep -q slip_ratio_lp && ok "wheel and tyre channels saved" || bad "no wheel channels in the laps"
 
-echo "2/6 offline sessions: lap timer and lap counter change in different frames (about 2 x 50 s)"
+echo "2/6 offline sessions: lap timer and lap counter change in different frames, pit box (about 3 x 50 s)"
 for ord in time laps; do
   D2="$W/data_$ord"; mkdir -p "$D2"
   (cd "$W" && timeout 120 mono Harness.exe AcSim.exe --order $ord --laps 4 -- ACCoach.exe --test-shm --once --lang en --data "$D2" > "session_$ord.log" 2>&1)
   n=$(ls "$D2"/*/laps/*.csv 2>/dev/null | wc -l)
   [ "$n" -ge 2 ] && ok "--order $ord: $n laps recorded" || bad "--order $ord: $n laps recorded (log: $(grep -E 'Lap |skipped' "$D2/log.txt" 2>/dev/null | tail -3))"
 done
+# standing in the pit box just before the line while the lap timer starts over: no lap from that, no endless "Out lap"
+D2="$W/data_pits"; mkdir -p "$D2"
+(cd "$W" && timeout 150 mono Harness.exe AcSim.exe --order time --pits 20 --laps 4 -- ACCoach.exe --test-shm --once --lang en --data "$D2" > session_pits.log 2>&1)
+n=$(ls "$D2"/*/laps/*.csv 2>/dev/null | wc -l); sk=$(grep -c "skipped" "$D2/log.txt" 2>/dev/null)
+[ "$n" -ge 2 ] && [ "${sk:-0}" -le 2 ] && ok "pit box with a restarting timer: $n laps, $sk out-lap message(s)" || bad "pit box: $n laps, $sk out-lap messages"
 
 echo "3/6 analysis in English"
 out=$(cd "$W" && mono ACCoach.exe analyze --no-open --lang en --data "$DATA" 2>&1)

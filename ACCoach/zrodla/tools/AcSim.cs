@@ -91,10 +91,14 @@ static class AcSim
         // counter goes up, as the game may do offline; default: both in the same frame
         string order = "";
         int lag = 4;
+        // --pits N: first N seconds (game time) standing in the pit box just before the line with a lap timer that
+        // keeps restarting – a crossing must not be taken from that (1.8.1 logged "Out lap" over and over)
+        float pits = 0;
         for (int i = 0; i + 1 < args.Length; i++)
         {
             if (args[i] == "--laps") laps = int.Parse(args[i + 1]);
             if (args[i] == "--order") order = args[i + 1];
+            if (args[i] == "--pits") pits = float.Parse(args[i + 1], System.Globalization.CultureInfo.InvariantCulture);
         }
         int shownCompleted = 0, shownLastMs = 0, lagLeft = 0;
         MemoryMappedFile fp, fg, fs;
@@ -110,7 +114,7 @@ static class AcSim
         s.Write(520, L);
         W(s, 524, "", 33);
 
-        float d = 0.9f * L;   // start mid-lap: the first lap is an out lap
+        float d = pits > 0 ? 0.985f * L : 0.9f * L;   // start mid-lap (or in the pit box): the first lap is an out lap
         int completed = 0, packet = 0, lastMs = 0, bestMs = 0;
         double lapT = 0;
         float[] decel = new float[3], vadd = new float[3], delay = new float[3];
@@ -122,6 +126,12 @@ static class AcSim
         {
             float brake, gas;
             float v = Speed(d, decel, vadd, delay, out brake, out gas);
+            if (pits > 0)
+            {
+                pits -= dt;
+                v = 0; gas = 0; brake = 0;
+                if (lapT > 2) lapT = 0;   // the timer starting over while the car stands
+            }
             d += v * dt;
             lapT += dt;
             if (d >= L)

@@ -32,6 +32,11 @@
 - **1.8.1** – mapa w analizie odtwarza aplikację w grze na wybranym okrążeniu (ta sama logika w JS co `acapp.py`,
   dane z `<combo>\aplikacja_w_grze.txt`): okienko jak w grze, odtwarzanie, wykres licznika, paski na wykresach,
   na mapie punkty 0 m i oceny. Zmiana logiki w `acapp.py` = ta sama zmiana w `appSim` w `map_template.html`.
+- **1.8.2** – pętla „Okrążenie wyjazdowe / niepełne – pomijam” (u jerzu, Vallelunga): metę z samego zerowania czasu
+  (ścieżka z 1.7) brał też przy aucie stojącym tuż przed linią (boks) – każde zerowanie = „okrążenie”, nic się nie
+  zapisywało. Teraz tylko gdy auto jedzie (> 15 km/h), przesunęło się kilka metrów do przodu i czas szedł > 10 s;
+  komunikat najwyżej co 30 s. Odtworzone w AcSim `--pits N` (stoi przed linią, czas startuje od nowa) – zachowanie
+  gry w boksie to hipoteza. `log.txt` ma teraz wiersze `[line]` (licznik, czas, pozycja, prędkość przy każdej zmianie).
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,
@@ -40,6 +45,7 @@
   dopasowania na prawdziwych okrążeniach.
 - Głos angielski/polski, głośności, okno na prawdziwym Windows (DPI, wygląd), zamknięcie okna krzyżykiem.
 - Kolejność licznik/czas na mecie offline – poprawka na hipotezie (obie kolejności obsłużone); potwierdzić w log.txt.
+- Pętla „Okrążenie wyjazdowe” (1.8.2): potwierdzić w `log.txt` (wiersze `[line]`), co gra podaje w boksie.
 - Wykrywanie zakrętów: na Silverstone GP 10 zakrętów zamiast 18 (szybkie łuki bez hamowania nie są wykrywane).
 - Aplikacja w grze (1.8): czy AC ją ładuje (Python 3.3, py_log.txt), sekcja `[ACCOACH] ACTIVE=1` w python.ini,
   wyrównanie etykiet, kolejność rysowania (pasek pod napisem), setBackgroundOpacity, zapis do folderu gry

@@ -2,7 +2,7 @@
 ==================================
 
 INSTALACJA (dowolny komputer z Windows 10/11, dowolny użytkownik)
-  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.8.1.exe).
+  Sposób 1 – INSTALATOR (zalecany): uruchom AC_Coach_Setup_<wersja>.exe (np. AC_Coach_Setup_1.8.2.exe).
     - Instaluje tylko dla Ciebie (bieżący użytkownik Windows), bez uprawnień administratora,
       do  %LOCALAPPDATA%\Programs\AC Coach .
     - Skróty w menu Start (folder "AC Coach"): AC Coach, Instrukcja, Odinstaluj

@@ -5,7 +5,7 @@ History, parked topics, open items: `NOTATKI.md` – read it before bigger chang
 
 ## Build & test (Linux, Mono)
 - `ACCoach/zrodla/build.sh` (exe + test tools), `build.sh release` (+ installer + ZIP in `dist/`)
-- `ACCoach/zrodla/test.sh` – smoke test ~4.5 min: AcSim session through the real window, offline lap order (`AcSim --order`), report EN/PL, map in Chromium
+- `ACCoach/zrodla/test.sh` – smoke test ~5.5 min: AcSim session through the real window, offline lap order (`AcSim --order`), report EN/PL, map in Chromium
 - Run the exe under Mono with `tools/test/bin/System.Speech.dll` next to it (stub; see BUILD_LINUX.md)
 - No Windows/game here: shared memory, voice and real driving are untested – say so to the user
 
