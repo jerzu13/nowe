@@ -2,7 +2,7 @@
 ====================================
 
 INSTALLATION (any Windows 10/11 PC, any user)
-  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.8.2.exe).
+  Option 1 – INSTALLER (recommended): run AC_Coach_Setup_<version>.exe (e.g. AC_Coach_Setup_1.9.0.exe).
     - Installs for you only (the current Windows user), no administrator rights needed,
       into  %LOCALAPPDATA%\Programs\AC Coach .
     - Start menu shortcuts (folder "AC Coach"): AC Coach, Manual, Uninstall,
@@ -71,7 +71,7 @@ WHEELS AND TYRES (from version 1.4, no add-ons – data straight from the game)
   slides happened. The "Where it is on the track" map shows this data too.
   Needs Assetto Corsa 1.14 or newer (older versions do not report slip).
 
-IN-GAME APP (from version 1.8) – on the screen of the game itself
+IN-GAME APP (from version 1.8, new layout in 1.9) – on the screen of the game itself
   AC Coach puts a small "AC Coach" app into Assetto Corsa (assettocorsa\apps\python\ACCoach)
   and switches it on (Documents\Assetto Corsa\cfg\python.ini). No Content Manager or
   Custom Shaders Patch needed – it also works full screen.
@@ -79,25 +79,30 @@ IN-GAME APP (from version 1.8) – on the screen of the game itself
   bar and click "AC Coach". Drag it where you want it; the game remembers the place.
   If it is not on the list: AC launcher > Options > General > UI Modules (or Content
   Manager > Settings > Assetto Corsa > Apps / Python apps) – tick "ACCoach".
-  WHAT IT SHOWS (everything from your best run of every turn, like the beeps):
-    - T3   85 m   92 km/h – metres to the braking point of the next turn (from about 3 s
-      before it), negative after you pass it; the apex speed of your best run.
-      It moves with your speed (faster = earlier) and with the safety margin.
-      After you press the brake: OK (within 5 m) / EARLY 12 m / LATE 8 m.
-    - B bar – how hard to brake right now (a reaction time ahead), the white line is your
-      pedal. Red BRAKE HARD -> yellow EASE OFF (trail braking) -> green LET GO.
-    - G bar – throttle: green FULL THROTTLE, yellow FEED IN, orange LIFT.
+  WHAT IT SHOWS – before the turn, never inside it (that is where all your attention goes):
+    - BEFORE THE TURN, on the straight: one thing to fix there, e.g. "T4: brake about 20 m
+      later" – from your last run of that turn compared with your best run of it.
+    - T3   85 m   92 km/h – metres to the braking point (from about 3 s before it), negative
+      after you pass it; it goes away as soon as you brake. The point is where you braked on
+      your best run of the turn, moved with your speed (faster = earlier) and with the safety
+      margin after off-tracks. When a later braking point gives a faster turn, that run
+      becomes the new best run – the point moves later from the next lap.
+    - RIGHT AFTER THE TURN, for 3 s: the time against your best lap (T3 -0.12 s, green =
+      faster, RECORD = your best run of this turn ever) and what was different from your best
+      run: braking 8 m later, apex +3 km/h, throttle 10 m earlier. Off track: "T3 off track".
+    - A turn that went well 3 times in a row goes quiet (records are still shown).
     - -0.21 – time to your best lap (green = faster). From the second lap on.
-  The data is updated by AC Coach as you get faster, so keep AC Coach running.
+  The tips and results come from AC Coach after every turn, so keep AC Coach running.
   With no laps yet the app says "no data for this car and track yet".
-  Settings tab > In-game app: switch the parts on/off, "Install / update now".
+  Settings tab > In-game app: countdown / tips and results / time to the best lap on or
+  off, "Install / update now". Focus mode: tips and results for the focus turn only.
   Problems: Documents\Assetto Corsa\logs\py_log.txt (lines "AC Coach").
   CHECK IT AFTER DRIVING: Analysis tab > the track map, card "In-game app" next to the charts.
-    It replays exactly what the app showed at every metre of the selected lap: the same box as
-    in the game, a "Play the lap" button (0.25x-2x), the chart "in-game app: metres to the
-    braking point", the app's bars as yellow dashed lines on the brake and throttle charts and,
-    on the big map, yellow squares where the counter reached 0 and the verdicts (T1 OK, T2 LATE 8 m).
-    Data: <car>__<track>\aplikacja_w_grze.txt (the same as the game reads; written by the trainer).
+    It replays what the app showed at every metre of the selected lap: the same box as in the
+    game, a "Play the lap" button (0.25x-2x), the chart "in-game app: metres to the braking
+    point" and, on the big map, yellow squares where the counter reached 0 and the results
+    after the turns. Data: <car>__<track>\aplikacja_w_grze.txt (turns and braking points) and
+    aplikacja_log.txt (tips and results of every lap), both written by the trainer.
 
 LAP TIME TARGET (e.g. from 1:39.5 to 1:35)
   On the Drive tab type a time (e.g. 1:35.000 or 1:35:500) and click "Set target".

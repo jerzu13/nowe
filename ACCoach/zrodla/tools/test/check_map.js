@@ -18,12 +18,16 @@ try { pw = require('playwright'); } catch (e) { pw = require(path.join(require('
     if (!D.app) return null;
     const s = curApp(), i = s.views.findIndex(o => o.dist != null && o.dist > 20);
     showHover(i);
-    return { shown: !$('appCard').hidden, counts: s.views.filter(o => o.dist != null).length, presses: s.ev.filter(e => e.kind === 'press').length, box: $('apN').textContent };
+    // results and tips come from aplikacja_log.txt: look at all laps
+    const all = D.laps.filter(l => !l.rival).map(l => appSim(l));
+    return { shown: !$('appCard').hidden, counts: s.views.filter(o => o.dist != null).length, box: $('apN').textContent,
+      results: all.reduce((n, x) => n + x.ev.filter(e => e.kind === 'result').length, 0),
+      tips: all.reduce((n, x) => n + x.views.filter(o => o.text && !o.big).length, 0) };
   });
   if (app) { await p.click('#apPlay'); await p.waitForTimeout(600); app.playing = await p.evaluate(() => pinned > 0); }
   await b.close();
   console.log('map: ' + laps + ' laps, ' + charts + ' charts, in-game app: ' + JSON.stringify(app) + ', errors: ' + JSON.stringify(errs));
-  const appBad = process.argv[3] === '--app' && !(app && app.shown && app.counts > 20 && app.presses > 0 && /\d+ m/.test(app.box) && app.playing);
+  const appBad = process.argv[3] === '--app' && !(app && app.shown && app.counts > 20 && app.results > 0 && app.tips > 0 && /\d+ m/.test(app.box) && app.playing);
   if (appBad) console.log('in-game app panel missing or empty');
   process.exit(errs.length || !laps || appBad ? 1 : 0);
 })();

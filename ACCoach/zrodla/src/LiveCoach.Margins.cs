@@ -63,6 +63,7 @@ namespace ACCoach
             Corner c = refCorners[k];
             bool entry = d < c.ApexD;
             Console.WriteLine(string.Format(Inv, L.T("  [WYJAZD] Z{0} {1} ({2:0} m {3} szczytem)", "  [OFF TRACK] T{0} {1} ({2:0} m {3} the apex)"), c.Num, entry ? L.T("na wejściu", "on entry") : L.T("na wyjściu", "on exit"), Math.Abs(d - c.ApexD), entry ? L.T("przed", "before") : L.T("za", "after")));
+            AppTipForOff(c.Num, entry);
             if (o.Focus && c.Num == focusNum)
             {
                 focusStreak = 0;

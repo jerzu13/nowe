@@ -49,6 +49,7 @@ namespace ACCoach
     {
         public float Score;
         public string Short, Long;
+        public string Cue;     // what to do there next time, a few words (shown before the turn by the in-game app)
         // Short without the leading "Zakręt N, ", to append after the corner's better/worse call
         public string Action { get { int i = Short.IndexOf(", "); return i < 0 ? Short : Short.Substring(i + 2); } }
     }
@@ -421,53 +422,61 @@ namespace ACCoach
         {
             int n = c.Ref.Num;
             Tip best = null;
-            Func<float, string, string, Tip> consider = delegate (float score, string sh, string lg)
+            Func<float, string, string, string, Tip> consider = delegate (float score, string sh, string lg, string cue)
             {
-                if (best == null || score > best.Score) { best = new Tip(); best.Score = score; best.Short = sh; best.Long = lg; }
+                if (best == null || score > best.Score) { best = new Tip(); best.Score = score; best.Short = sh; best.Long = lg; best.Cue = cue; }
                 return best;
             };
+            Func<string, string, string> T = ACCoach.L.T;
             if (!float.IsNaN(c.BrakeDiff) && c.BrakeDiff < -12)
             {
                 int m = Round5(-c.BrakeDiff);
                 consider(-c.BrakeDiff / 10f,
                     string.Format(ACCoach.L.T("Zakręt {0}, hamujesz za wcześnie, o {1} metrów", "Turn {0}, braking too early, by {1} metres"), n, m),
-                    string.Format(ACCoach.L.T("Z{0}: hamujesz ok. {1} m wcześniej niż na najlepszym okrążeniu – przesuń punkt hamowania bliżej zakrętu.", "T{0}: you brake about {1} m earlier than on your best lap – move the braking point closer to the corner."), n, m));
+                    string.Format(ACCoach.L.T("Z{0}: hamujesz ok. {1} m wcześniej niż na najlepszym okrążeniu – przesuń punkt hamowania bliżej zakrętu.", "T{0}: you brake about {1} m earlier than on your best lap – move the braking point closer to the corner."), n, m),
+                    string.Format(T("hamuj ok. {0} m później", "brake about {0} m later"), m));
             }
             if (!float.IsNaN(c.BrakeDiff) && c.BrakeDiff > 12 && c.MinSpdDiff < -3)
             {
                 consider(c.BrakeDiff / 10f + -c.MinSpdDiff / 3f,
                     string.Format(ACCoach.L.T("Zakręt {0}, za późno na hamulec", "Turn {0}, braking too late"), n),
-                    string.Format(ACCoach.L.T("Z{0}: hamujesz {1} m później, ale szczyt jest wolniejszy o {2:0} km/h – przestrzeliwujesz zakręt. Hamuj odrobinę wcześniej i płynniej puszczaj hamulec.", "T{0}: you brake {1} m later, but the apex is {2:0} km/h slower – you overshoot the corner. Brake a little earlier and release the brake more smoothly."), n, Round5(c.BrakeDiff), -c.MinSpdDiff));
+                    string.Format(ACCoach.L.T("Z{0}: hamujesz {1} m później, ale szczyt jest wolniejszy o {2:0} km/h – przestrzeliwujesz zakręt. Hamuj odrobinę wcześniej i płynniej puszczaj hamulec.", "T{0}: you brake {1} m later, but the apex is {2:0} km/h slower – you overshoot the corner. Brake a little earlier and release the brake more smoothly."), n, Round5(c.BrakeDiff), -c.MinSpdDiff),
+                    T("hamuj odrobinę wcześniej", "brake a little earlier"));
             }
             if (c.MinSpdDiff < -4)
             {
                 consider(-c.MinSpdDiff / 3f,
                     string.Format(ACCoach.L.T("Zakręt {0}, szczyt za wolno, minus {1:0}", "Turn {0}, apex too slow, minus {1:0}"), n, -c.MinSpdDiff),
-                    string.Format(ACCoach.L.T("Z{0}: minimalna prędkość niższa o {1:0} km/h ({2:0} vs {3:0}) – wnieś więcej prędkości, wcześniej odpuszczaj hamulec.", "T{0}: minimum speed {1:0} km/h lower ({2:0} vs {3:0}) – carry more speed in, come off the brake earlier."), n, -c.MinSpdDiff, c.Lap.MinSpeed, c.Ref.MinSpeed));
+                    string.Format(ACCoach.L.T("Z{0}: minimalna prędkość niższa o {1:0} km/h ({2:0} vs {3:0}) – wnieś więcej prędkości, wcześniej odpuszczaj hamulec.", "T{0}: minimum speed {1:0} km/h lower ({2:0} vs {3:0}) – carry more speed in, come off the brake earlier."), n, -c.MinSpdDiff, c.Lap.MinSpeed, c.Ref.MinSpeed),
+                    string.Format(Inv, T("szczyt {0:0} km/h, wnieś więcej prędkości", "apex {0:0} km/h, carry more speed"), c.Ref.MinSpeed));
             }
             if (!float.IsNaN(c.ThrDiff) && c.ThrDiff > 15)
             {
                 consider(c.ThrDiff / 12f,
                     string.Format(ACCoach.L.T("Zakręt {0}, gaz za późno", "Turn {0}, throttle too late"), n),
-                    string.Format(ACCoach.L.T("Z{0}: pełny gaz ok. {1} m później niż na wzorcu – wcześniej i zdecydowanie otwieraj gaz na wyjściu.", "T{0}: full throttle about {1} m later than on your best lap – open the throttle earlier and decisively on the exit."), n, Round5(c.ThrDiff)));
+                    string.Format(ACCoach.L.T("Z{0}: pełny gaz ok. {1} m później niż na wzorcu – wcześniej i zdecydowanie otwieraj gaz na wyjściu.", "T{0}: full throttle about {1} m later than on your best lap – open the throttle earlier and decisively on the exit."), n, Round5(c.ThrDiff)),
+                    string.Format(T("pełny gaz ok. {0} m wcześniej", "full throttle about {0} m earlier"), Round5(c.ThrDiff)));
             }
             if (c.PeakBrakeDiff < -0.15f && !float.IsNaN(c.BrakeDiff) && c.BrakeDiff < -5)
             {
                 consider(-c.PeakBrakeDiff * 8f,
                     string.Format(ACCoach.L.T("Zakręt {0}, hamuj mocniej i krócej", "Turn {0}, brake harder and shorter"), n),
-                    string.Format(ACCoach.L.T("Z{0}: maksymalne hamowanie {1:0}% vs {2:0}% na wzorcu, a hamujesz wcześniej – hamuj później, ale mocniej.", "T{0}: peak braking {1:0}% vs {2:0}% on your best lap, and you brake earlier – brake later but harder."), n, c.Lap.PeakBrake * 100, c.Ref.PeakBrake * 100));
+                    string.Format(ACCoach.L.T("Z{0}: maksymalne hamowanie {1:0}% vs {2:0}% na wzorcu, a hamujesz wcześniej – hamuj później, ale mocniej.", "T{0}: peak braking {1:0}% vs {2:0}% on your best lap, and you brake earlier – brake later but harder."), n, c.Lap.PeakBrake * 100, c.Ref.PeakBrake * 100),
+                    T("hamuj później, ale mocniej", "brake later but harder"));
             }
             if (c.BrakeForceDiff < -0.2f)
             {
                 consider(-c.BrakeForceDiff * 6f,
                     string.Format(ACCoach.L.T("Zakręt {0}, hamuj mocniej", "Turn {0}, brake harder"), n),
-                    string.Format(ACCoach.L.T("Z{0}: hamulec średnio {1:0}% w pierwszej sekundzie vs {2:0}% na wzorcu – wciśnij mocniej od razu.", "T{0}: brake {1:0}% on average in the first second vs {2:0}% on your best lap – press harder right away."), n, c.Lap.BrakeForce * 100, c.Ref.BrakeForce * 100));
+                    string.Format(ACCoach.L.T("Z{0}: hamulec średnio {1:0}% w pierwszej sekundzie vs {2:0}% na wzorcu – wciśnij mocniej od razu.", "T{0}: brake {1:0}% on average in the first second vs {2:0}% on your best lap – press harder right away."), n, c.Lap.BrakeForce * 100, c.Ref.BrakeForce * 100),
+                    T("od razu mocniej na hamulec", "press the brake harder right away"));
             }
             if (c.BrakeForceDiff > 0.2f && c.MinSpdDiff < -3)
             {
                 consider(c.BrakeForceDiff * 6f + -c.MinSpdDiff / 3f,
                     string.Format(ACCoach.L.T("Zakręt {0}, za mocno hamujesz", "Turn {0}, braking too hard"), n),
-                    string.Format(ACCoach.L.T("Z{0}: hamulec średnio {1:0}% vs {2:0}% na wzorcu, a szczyt wolniejszy o {3:0} km/h – hamuj lżej albo krócej.", "T{0}: brake {1:0}% on average vs {2:0}% on your best lap, and the apex is {3:0} km/h slower – brake lighter or shorter."), n, c.Lap.BrakeForce * 100, c.Ref.BrakeForce * 100, -c.MinSpdDiff));
+                    string.Format(ACCoach.L.T("Z{0}: hamulec średnio {1:0}% vs {2:0}% na wzorcu, a szczyt wolniejszy o {3:0} km/h – hamuj lżej albo krócej.", "T{0}: brake {1:0}% on average vs {2:0}% on your best lap, and the apex is {3:0} km/h slower – brake lighter or shorter."), n, c.Lap.BrakeForce * 100, c.Ref.BrakeForce * 100, -c.MinSpdDiff),
+                    T("hamuj lżej albo krócej", "brake lighter or shorter"));
             }
             // pedal and steering work, against the best version of this corner (c.Ref). Only what your laps show
             // costs time or ends off track: a rear slide (countersteer) and both pedals pressed before the apex.
@@ -477,53 +486,62 @@ namespace ACCoach
             if (L.CounterSteer >= 0.15f && L.CounterSteer > R.CounterSteer + 0.12f)
                 consider(2f + L.CounterSteer * 5f,
                     string.Format(ACCoach.L.T("Zakręt {0}, uślizg tyłu, łagodniej gaz", "Turn {0}, rear sliding, gentler throttle"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: na wyjściu kontrujesz kierownicą ({1:0}% skrętu w drugą stronę) – tył ucieka. Dodawaj gaz płynniej, w miarę jak prostujesz koła.", "T{0}: you countersteer on the exit ({1:0}% lock the other way) – the rear steps out. Add throttle more smoothly as you unwind the wheel."), n, L.CounterSteer * 100));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: na wyjściu kontrujesz kierownicą ({1:0}% skrętu w drugą stronę) – tył ucieka. Dodawaj gaz płynniej, w miarę jak prostujesz koła.", "T{0}: you countersteer on the exit ({1:0}% lock the other way) – the rear steps out. Add throttle more smoothly as you unwind the wheel."), n, L.CounterSteer * 100),
+                    T("łagodniej gaz na wyjściu", "gentler throttle on the exit"));
             if (L.OverlapS >= 0.8f && L.OverlapS > R.OverlapS + 0.5f)
                 consider(L.OverlapS * 1.2f,
                     string.Format(ACCoach.L.T("Zakręt {0}, gaz i hamulec naraz", "Turn {0}, throttle and brake together"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: przez {1:0.0} s przed szczytem wciskasz gaz i hamulec jednocześnie – najpierw puść hamulec, dopiero potem dodawaj gaz.", "T{0}: for {1:0.0} s before the apex you press throttle and brake together – release the brake first, then add throttle."), n, L.OverlapS));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: przez {1:0.0} s przed szczytem wciskasz gaz i hamulec jednocześnie – najpierw puść hamulec, dopiero potem dodawaj gaz.", "T{0}: for {1:0.0} s before the apex you press throttle and brake together – release the brake first, then add throttle."), n, L.OverlapS),
+                    T("najpierw puść hamulec, potem gaz", "release the brake, then throttle"));
             if (L.Braked && R.Braked && !float.IsNaN(L.BrakeReleaseD) && !float.IsNaN(R.BrakeReleaseD) && c.MinSpdDiff < -2)
             {
                 float rel = L.BrakeReleaseD - R.BrakeReleaseD;
                 if (rel < -15)
                     consider(-rel / 10f,
                         string.Format(ACCoach.L.T("Zakręt {0}, prowadź hamulec dalej w zakręt", "Turn {0}, trail the brake deeper"), n),
-                        string.Format(ACCoach.L.T("Z{0}: puszczasz hamulec {1} m wcześniej niż na najlepszym przejeździe, a szczyt jest wolniejszy o {2:0} km/h – zdejmuj hamulec stopniowo aż do skrętu (trail braking), wtedy przód lepiej skręca.", "T{0}: you release the brake {1} m earlier than on your best run, and the apex is {2:0} km/h slower – bleed the brake off gradually into the turn (trail braking), the front will turn in better."), n, Round5(-rel), -c.MinSpdDiff));
+                        string.Format(ACCoach.L.T("Z{0}: puszczasz hamulec {1} m wcześniej niż na najlepszym przejeździe, a szczyt jest wolniejszy o {2:0} km/h – zdejmuj hamulec stopniowo aż do skrętu (trail braking), wtedy przód lepiej skręca.", "T{0}: you release the brake {1} m earlier than on your best run, and the apex is {2:0} km/h slower – bleed the brake off gradually into the turn (trail braking), the front will turn in better."), n, Round5(-rel), -c.MinSpdDiff),
+                    T("prowadź hamulec dalej w zakręt", "trail the brake deeper into the turn"));
                 else if (rel > 15)
                     consider(rel / 10f,
                         string.Format(ACCoach.L.T("Zakręt {0}, za długo na hamulcu", "Turn {0}, too long on the brake"), n),
-                        string.Format(ACCoach.L.T("Z{0}: trzymasz hamulec {1} m dłużej niż na najlepszym przejeździe, a szczyt jest wolniejszy o {2:0} km/h – puść go wcześniej, żeby auto przetoczyło się przez szczyt.", "T{0}: you hold the brake {1} m longer than on your best run, and the apex is {2:0} km/h slower – release it earlier so the car rolls through the apex."), n, Round5(rel), -c.MinSpdDiff));
+                        string.Format(ACCoach.L.T("Z{0}: trzymasz hamulec {1} m dłużej niż na najlepszym przejeździe, a szczyt jest wolniejszy o {2:0} km/h – puść go wcześniej, żeby auto przetoczyło się przez szczyt.", "T{0}: you hold the brake {1} m longer than on your best run, and the apex is {2:0} km/h slower – release it earlier so the car rolls through the apex."), n, Round5(rel), -c.MinSpdDiff),
+                    T("puść hamulec wcześniej", "release the brake earlier"));
             }
 
             if (line && c.ApexOff < -1.0f)
             {
                 consider(-c.ApexOff * 0.9f,
                     string.Format(ACCoach.L.T("Zakręt {0}, szczyt za szeroko", "Turn {0}, apex too wide"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: na szczycie jesteś {1:0.0} m dalej od wewnętrznej niż na wzorcu – celuj bliżej tarki.", "T{0}: at the apex you are {1:0.0} m further from the inside than on your best lap – aim closer to the kerb."), n, -c.ApexOff));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: na szczycie jesteś {1:0.0} m dalej od wewnętrznej niż na wzorcu – celuj bliżej tarki.", "T{0}: at the apex you are {1:0.0} m further from the inside than on your best lap – aim closer to the kerb."), n, -c.ApexOff),
+                    T("bliżej wewnętrznej w szczycie", "closer to the inside at the apex"));
             }
             if (line && c.ApexOff > 1.5f)
             {
                 consider(c.ApexOff * 0.6f,
                     string.Format(ACCoach.L.T("Zakręt {0}, za ciasno, za wcześnie w szczyt", "Turn {0}, too tight, apex too early"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: wchodzisz w szczyt {1:0.0} m ciaśniej niż na wzorcu – za wczesny szczyt psuje wyjście, skręcaj odrobinę później.", "T{0}: you take the apex {1:0.0} m tighter than on your best lap – an early apex ruins the exit, turn in a little later."), n, c.ApexOff));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: wchodzisz w szczyt {1:0.0} m ciaśniej niż na wzorcu – za wczesny szczyt psuje wyjście, skręcaj odrobinę później.", "T{0}: you take the apex {1:0.0} m tighter than on your best lap – an early apex ruins the exit, turn in a little later."), n, c.ApexOff),
+                    T("skręcaj odrobinę później", "turn in a little later"));
             }
             if (line && c.EntryOff > 1.5f)
             {
                 consider(c.EntryOff * 0.7f,
                     string.Format(ACCoach.L.T("Zakręt {0}, wejdź szerzej", "Turn {0}, enter wider"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: przed zakrętem jesteś {1:0.0} m bliżej wewnętrznej – ustaw auto szerzej przed hamowaniem.", "T{0}: before the corner you are {1:0.0} m closer to the inside – place the car wider before braking."), n, c.EntryOff));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: przed zakrętem jesteś {1:0.0} m bliżej wewnętrznej – ustaw auto szerzej przed hamowaniem.", "T{0}: before the corner you are {1:0.0} m closer to the inside – place the car wider before braking."), n, c.EntryOff),
+                    T("szerzej przed hamowaniem", "go wider before braking"));
             }
             if (line && c.ExitOff > 1.5f)
             {
                 consider(c.ExitOff * 0.7f,
                     string.Format(ACCoach.L.T("Zakręt {0}, wykorzystaj całe wyjście", "Turn {0}, use the whole exit"), n),
-                    string.Format(Inv, ACCoach.L.T("Z{0}: na wyjściu zostawiasz {1:0.0} m toru – pozwól autu wyjechać szeroko i wcześniej daj pełny gaz.", "T{0}: you leave {1:0.0} m of track on the exit – let the car run wide and go to full throttle earlier."), n, c.ExitOff));
+                    string.Format(Inv, ACCoach.L.T("Z{0}: na wyjściu zostawiasz {1:0.0} m toru – pozwól autu wyjechać szeroko i wcześniej daj pełny gaz.", "T{0}: you leave {1:0.0} m of track on the exit – let the car run wide and go to full throttle earlier."), n, c.ExitOff),
+                    T("wykorzystaj całe wyjście", "use the whole exit"));
             }
             if (best == null && c.ExitSpdDiff < -5)
             {
                 consider(-c.ExitSpdDiff / 4f,
                     string.Format(ACCoach.L.T("Zakręt {0}, wolne wyjście", "Turn {0}, slow exit"), n),
-                    string.Format(ACCoach.L.T("Z{0}: prędkość na wyjściu niższa o {1:0} km/h – lepsze wyjście daje czas na całej prostej.", "T{0}: exit speed {1:0} km/h lower – a better exit gains time along the whole straight."), n, -c.ExitSpdDiff));
+                    string.Format(ACCoach.L.T("Z{0}: prędkość na wyjściu niższa o {1:0} km/h – lepsze wyjście daje czas na całej prostej.", "T{0}: exit speed {1:0} km/h lower – a better exit gains time along the whole straight."), n, -c.ExitSpdDiff),
+                    T("lepsze wyjście, wcześniej gaz", "better exit, throttle earlier"));
             }
             return best;
         }

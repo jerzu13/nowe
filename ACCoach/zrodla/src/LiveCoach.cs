@@ -266,6 +266,7 @@ namespace ACCoach
             refLap = Lap.BestValid(allLaps);
             UpdateBeepLead(true);
             LoadMargins();
+            LoadAppTips();
             if (refLap != null) SetReference(refLap, false);
             else Console.WriteLine(L.T("Brak wzorca – przejedź jedno czyste okrążenie, wtedy włączą się podpowiedzi.", "No best lap yet – drive one clean lap and the tips will start."));
             if (o.Focus && focusNum == 0) ChooseFocus(true);
@@ -416,6 +417,7 @@ namespace ACCoach
             lastLiveD = -1;
             ResetTraining();
             LoadNotes();
+            AppLapStart();
         }
 
         void AddSample(Telemetry t)
@@ -480,6 +482,7 @@ namespace ACCoach
             cur.Save(Path.Combine(comboDir, "laps", name));
             cur.File = Path.Combine(comboDir, "laps", name);
             SaveBeepLog(name);
+            SaveAppLog(name);
             UpdateBeepLead(false);
             lapsThisSession++;
 

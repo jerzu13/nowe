@@ -80,19 +80,14 @@ table.sec tr.pick:hover td, table.sec tr.sel td { background: color-mix(in srgb,
 .g { color: var(--good); font-weight: 600; } .b { color: var(--bad); font-weight: 600; } .m { color: var(--mid); font-weight: 600; }
 .scroll { overflow-x: auto; }
 /* the in-game app as it looks in AC: dark box, white text, whatever the page theme */
-.appgame { background: #1e1e1e; color: #fff; border-radius: 6px; padding: 4px 0 6px; width: 100%; max-width: 320px; font: 700 13px/1.2 "Segoe UI", system-ui, sans-serif; margin-top: 8px; }
-.appgame .row { display: flex; align-items: center; justify-content: space-between; padding: 0 8px; height: 50px; }
+.appgame { background: #1e1e1e; color: #fff; border-radius: 6px; padding: 4px 0 6px; width: 100%; max-width: 340px; font: 700 13px/1.2 "Segoe UI", system-ui, sans-serif; margin-top: 8px; }
+.appgame .row { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; height: 50px; }
 .appgame .cn { font-size: 18px; color: #fff; min-width: 44px; }
 .appgame .cnt { font-size: 32px; text-align: center; flex: 1; }
 .appgame .ap { font-size: 13px; min-width: 64px; text-align: right; }
-.appgame .bar { display: flex; align-items: center; gap: 8px; padding: 3px 8px; }
-.appgame .bar > span { width: 14px; font-size: 15px; }
-.appgame .trk { position: relative; flex: 1; height: 22px; background: #2a2a2a; }
-.appgame .fill { position: absolute; left: 0; top: 0; bottom: 0; }
-.appgame .frame { position: absolute; left: 0; right: 0; top: 0; bottom: 0; border-top: 3px solid; border-bottom: 3px solid; display: none; }
-.appgame .mine { position: absolute; top: -3px; bottom: -3px; width: 3px; background: #fff; }
-.appgame .txt { position: absolute; left: 0; right: 0; top: 3px; text-align: center; font-size: 12px; }
-.appgame .dl { text-align: center; font-size: 22px; height: 30px; padding-top: 2px; }
+.appgame .big { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 22px; }
+.appgame .txt { text-align: center; font-size: 14px; height: 40px; white-space: pre; padding: 0 6px; }
+.appgame .dl { text-align: center; font-size: 20px; height: 28px; padding-top: 2px; }
 .appctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 </style>
 </head>
@@ -136,9 +131,8 @@ table.sec tr.pick:hover td, table.sec tr.sel td { background: color-mix(in srgb,
       <label class="meta"><input type="checkbox" id="miniZoom" checked> przybliżaj do miejsca na wykresie</label>
       <div id="appCard" hidden><h2 style="margin-top:12px">Aplikacja w grze</h2>
         <div class="appgame" id="appGame">
-          <div class="row"><span class="cn" id="apC"></span><span class="cnt" id="apN"></span><span class="ap" id="apA"></span></div>
-          <div class="bar"><span>B</span><div class="trk"><div class="fill" id="apBf"></div><div class="frame" id="apBr"></div><div class="mine" id="apBm"></div><div class="txt" id="apBt"></div></div></div>
-          <div class="bar"><span>G</span><div class="trk"><div class="fill" id="apGf"></div><div class="frame" id="apGr"></div><div class="mine" id="apGm"></div><div class="txt" id="apGt"></div></div></div>
+          <div class="row"><span class="cn" id="apC"></span><span class="cnt" id="apN"></span><span class="ap" id="apA"></span><div class="big" id="apB"></div></div>
+          <div class="txt" id="apT"></div>
           <div class="dl" id="apD"></div>
         </div>
         <div class="appctl"><button id="apPlay">▶ Odtwórz okrążenie</button>
@@ -273,8 +267,8 @@ function drawMarks() {
         .appendChild(title(T('Z', 'T') + e.num + T(': tu licznik aplikacji doszedł do 0 m', ': the app counter reached 0 m here') + (e.margin > 0 ? T(' (z marginesem ', ' (with a margin of ') + Math.round(e.margin) + ' m)' : '')));
     } else {
       const t = el('text', { x: l.x[i] + 9 * u, y: l.z[i] - 7 * u, 'font-size': 12 * u, 'font-weight': 700, fill: rgb(e.col), stroke: '#000', 'stroke-width': 3 * u, 'paint-order': 'stroke' }, gMarks);
-      t.textContent = T('Z', 'T') + e.num + ' ' + e.text;
-      t.appendChild(title(T('Aplikacja po wciśnięciu hamulca: ', 'The app after the brake press: ') + e.text + ' (' + (e.dist > 0 ? '+' : '') + Math.round(e.dist) + ' m)'));
+      t.textContent = e.text;
+      t.appendChild(title(T('Aplikacja po zakręcie: ', 'The app after the turn: ') + e.text));
     }
   });
   (l.ev || []).forEach(e => {
@@ -513,15 +507,10 @@ function renderCharts() {
   }
   const sim = curApp();
   if (sim) {
-    const bi = specs.findIndex(x => x.key === 'brk'), gi = specs.findIndex(x => x.key === 'gas');
-    const pct = k => sim.views.map(o => o[k + 'Col'] ? o[k] * 100 : null);
-    const extra = k => i => { const o = sim.views[i]; return o[k + 'Col'] ? T(' · pasek ', ' · bar ') + Math.round(o[k] * 100) + '% ' + o[k + 'Txt'] : ''; };
-    specs[bi].extra = extra('brk'); specs[gi].extra = extra('gas');
-    specs[bi].series.push([pct('brk'), '--beep', true]); specs[bi].name += T(' · żółta przerywana: pasek B aplikacji', ' · yellow dashed: the app\'s B bar');
-    specs[gi].series.push([pct('gas'), '--beep', true]); specs[gi].name += T(' · żółta przerywana: pasek G aplikacji', ' · yellow dashed: the app\'s G bar');
+    const bi = specs.findIndex(x => x.key === 'brk');
     specs.splice(bi + 1, 0, { key: 'app', name: T('aplikacja w grze: metry do punktu hamowania (0 = hamuj, poniżej zera = już za punktem)', 'in-game app: metres to the braking point (0 = brake, below zero = past the point)'),
       series: [[sim.views.map(o => o.dist == null ? null : Math.max(-150, Math.min(250, o.dist))), '--beep', false]], zero: true,
-      tipf: i => { const o = sim.views[i]; return [o.corner, o.count, o.brkTxt && 'B: ' + o.brkTxt, o.gasTxt && 'G: ' + o.gasTxt].filter(Boolean).join(' · ') || '–'; } });
+      tipf: i => { const o = sim.views[i]; return [o.corner, o.count, o.big, o.text.replace('\n', ' ')].filter(Boolean).join(' · ') || '–'; } });
   }
   specs.forEach(sp => host.appendChild(chart(sp, n, step, a, b, both, delta)));
 }
@@ -610,24 +599,38 @@ function showHover(i) {
 }
 
 // ---------- in-game app: the same logic as acapp.py (Coach.step), replayed on the selected lap ----------
-// D.app = <combo>\aplikacja_w_grze.txt, written by the trainer (what the app in the game reads); null = none yet
+// D.app = <combo>\\aplikacja_w_grze.txt (what the app in the game reads); the tips and results of each lap come from
+// aplikacja_log.txt (lap.app: [metres, "tip"/"result", turn, text, kind]), as the trainer wrote them. null = none yet
 const A = D.app;
+const APP_LINE = 38, RESULT_S = 3.0, TIP_S = 6.0, TIP_MIN = 250;
+const APP_COL = { record: [0.3, 0.95, 0.4], good: [0.3, 0.9, 0.35], even: [1, 1, 1], bad: [1, 0.4, 0.3], off: [1, 0.25, 0.2] };
 function wrapD(x, L) { x = ((x % L) + L) % L; return x > L / 2 ? x - L : x; }
 function appIdx(d) { const n = A.t.length; return ((Math.round(d / A.step) % n) + n) % n; }
-function appRamp(x) { return x >= 0.5 ? [1, 0.85 - 0.6 * (x - 0.5) * 2, 0.15] : [0.3 + 0.7 * x * 2, 0.85, 0.2 + 0.1 * (1 - x * 2)]; }
-function appVerdict(dist) {
-  const m = Math.abs(Math.round(dist));
-  if (m <= 5) return ['OK', [0.2, 0.85, 0.3]];
-  return [(dist > 0 ? T('WCZESNIE ', 'EARLY ') : T('POZNO ', 'LATE ')) + m + ' m', m <= 15 ? [0.95, 0.85, 0.2] : [1, 0.25, 0.2]];
+function twoLines(t) {
+  if (t.length <= APP_LINE) return t;
+  let cut = t.lastIndexOf(' ', APP_LINE); if (cut <= 0) cut = APP_LINE;
+  const rest = t.slice(cut).trim();
+  return t.slice(0, cut).trimEnd() + '\n' + (rest.length <= APP_LINE ? rest : rest.slice(0, APP_LINE - 2) + '..');
 }
 // Every 4 m point of the lap -> what the app showed there; 4 steps in between, like frames in the game.
-// ev: where the counter reached 0 ("zero") and where you pressed the brake ("press", with the verdict).
+// ev: where the counter reached 0 ("zero") and the results after the turns ("result").
 function appSim(l) {
-  const L = A.length, st = {}, views = new Array(l.spd.length), ev = [];
-  let result = null, view = null;
-  function step(dt, d, speed, gas, brake, lapS) {
+  const L = A.length, st = {}, views = new Array(l.spd.length), ev = [], log = (l.app || []).slice().sort((a, b) => a[0] - b[0]);
+  const tips = {};
+  let li = 0, result = null, view = null;
+  function step(dt, d, speed, brake, lapS) {
     const v = Math.max(speed / 3.6, 5);
-    const o = { corner: '', count: '', countCol: [1, 1, 1], apex: '', num: 0, dist: null };
+    const o = { corner: '', count: '', countCol: [1, 1, 1], apex: '', big: '', bigCol: [1, 1, 1], text: '', textCol: [1, 1, 1], dist: null };
+    // what the trainer wrote up to here (tips at the line, then tips and results after the turns)
+    while (li < log.length && log[li][0] <= d) {
+      const e = log[li++];
+      if (e[1] === 'tip') { if (e[3]) tips[e[2]] = e[3]; else delete tips[e[2]]; }
+      else {
+        const p = e[3].split('|');
+        result = [p[0], p[1] || '', APP_COL[e[4]] || [1, 1, 1], RESULT_S];
+        ev.push({ kind: 'result', num: e[2], d: e[0], text: p[0], col: result[2] });
+      }
+    }
     let best = null;
     A.corners.forEach(c => {
       const num = c[0], apex = c[2];
@@ -636,6 +639,7 @@ function appSim(l) {
       const toApex = wrapD(apex - d, L);
       if (toApex > 0 && (best == null || toApex < best[0])) best = [toApex, c, s];
     });
+    let counting = false;
     if (best) {
       const c = best[1], s = best[2], num = c[0], b = c[1], apex = c[2], vb = c[3] / 3.6, vm = c[4] / 3.6, margin = c[5];
       let point;
@@ -648,30 +652,23 @@ function appSim(l) {
       const dist = wrapD(point - d, L), win = Math.max(100, v * 3);
       if (dist <= 0 && s[2] == null) { s[2] = point; ev.push({ kind: 'zero', num: num, d: point, margin: margin }); }
       if (brake < 0.05 && dist < win + 200) s[0] = true;
-      if (!s[1] && s[0] && brake > 0.1 && dist < win + 50) {
-        s[1] = true;
-        const vd = appVerdict(dist);
-        result = [vd[0], vd[1], 2.0];
-        ev.push({ kind: 'press', num: num, d: d, dist: dist, text: vd[0], col: vd[1] });
-      }
+      if (!s[1] && s[0] && brake > 0.1 && dist < win + 50) s[1] = true;
       if (!s[1] && dist <= win && dist > -150) {
-        o.corner = T('Z', 'T') + num; o.apex = Math.round(c[4]) + ' km/h'; o.count = Math.round(dist) + ' m'; o.num = num; o.dist = dist;
+        counting = true;
+        o.corner = T('Z', 'T') + num; o.apex = Math.round(c[4]) + ' km/h'; o.count = Math.round(dist) + ' m'; o.dist = dist;
         o.countCol = dist > 50 ? [1, 1, 1] : dist > 0 ? [1, 0.85, 0.2] : [1, 0.25, 0.2];
       }
     }
     if (result) {
-      result[2] -= dt;
-      if (result[2] <= 0) result = null; else { o.count = result[0]; o.countCol = result[1]; o.verdict = true; }
+      result[3] -= dt;
+      if (result[3] <= 0 || counting) result = null;
+      else { o.big = result[0]; o.bigCol = result[2]; o.text = twoLines(result[1]); }
     }
-    const i = appIdx(d + v * A.lead);
-    o.brk = A.brk[i]; o.gas = A.gas[i]; o.myBrk = brake; o.myGas = gas;
-    const ph = A.ph[i];
-    if (ph < 0) { o.brkCol = null; o.brkTxt = ''; }
-    else { o.brkCol = appRamp(ph); o.brkTxt = ph >= 0.75 ? T('HAMUJ MOCNO', 'BRAKE HARD') : ph >= 0.25 ? T('ODPUSZCZAJ', 'EASE OFF') : T('PUSC', 'LET GO'); }
-    const g = A.gas[i], later = A.gas[(i + Math.trunc(20 / A.step)) % A.t.length];
-    if (g >= 0.95) { o.gasCol = [0.2, 0.85, 0.3]; o.gasTxt = T('PELNY GAZ', 'FULL THROTTLE'); }
-    else if (g > 0.05) { const up = later >= g; o.gasCol = up ? [0.95, 0.85, 0.2] : [1, 0.55, 0.15]; o.gasTxt = up ? T('DODAWAJ', 'FEED IN') : T('ODPUSC GAZ', 'LIFT'); }
-    else { o.gasCol = null; o.gasTxt = ''; }
+    if (!result) {
+      let nxt = null;
+      (A.turns || []).forEach(t => { const to = wrapD(t[1] - d, L); if (to > 0 && (!nxt || to < nxt[0])) nxt = [to, t[0]]; });
+      if (nxt && tips[nxt[1]] && nxt[0] <= Math.max(TIP_MIN, v * TIP_S) && brake < 0.1) { o.text = twoLines(T('Z', 'T') + nxt[1] + ': ' + tips[nxt[1]]); o.textCol = [1, 0.85, 0.2]; }
+    }
     const delta = lapS - A.t[appIdx(d)];
     o.delta = Math.abs(delta) < 30 ? delta : null;
     return o;
@@ -681,11 +678,11 @@ function appSim(l) {
     for (let k = i === 0 ? SUB - 1 : 0; k < SUB; k++) {
       const j = Math.max(0, i - 1), f = i === 0 ? 1 : (k + 1) / SUB;
       const lerp = a => a[j] + (a[i] - a[j]) * f;
-      view = step(i === 0 ? 0 : (l.t[i] - l.t[j]) / SUB, Math.min((j + (i === 0 ? 0 : f)) * D.step, A.length - 0.01), lerp(l.spd), lerp(l.gas), lerp(l.brk), lerp(l.t));
+      view = step(i === 0 ? 0 : (l.t[i] - l.t[j]) / SUB, Math.min((j + (i === 0 ? 0 : f)) * D.step, A.length - 0.01), lerp(l.spd), lerp(l.brk), lerp(l.t));
     }
     views[i] = view;
   }
-  return { views: views, ev: ev };
+  return { views: views, ev: ev, logged: log.length > 0 };
 }
 const appCache = new Map();
 function curApp() { const l = curLap(); if (!A || l.rival) return null; if (!appCache.has(l)) appCache.set(l, appSim(l)); return appCache.get(l); }
@@ -696,19 +693,9 @@ function appShow(i) {
   const o = i == null ? null : sim.views[i];
   $('apC').textContent = o ? o.corner : ''; $('apA').textContent = o ? o.apex : '';
   $('apN').textContent = o ? o.count : ''; $('apN').style.color = o ? rgb(o.countCol) : '';
-  [['B', 'brk', 'myBrk', 'brkCol', 'brkTxt'], ['G', 'gas', 'myGas', 'gasCol', 'gasTxt']].forEach(([k, t, my, col, txt]) => {
-    const fill = $('ap' + k + 'f'), frame = $('ap' + k + 'r'), mine = $('ap' + k + 'm'), tx = $('ap' + k + 't');
-    const c = o && o[col], full = c && o[t] > 0.01;
-    fill.style.width = full ? Math.min(100, o[t] * 100) + '%' : '0';
-    fill.style.background = full ? rgb(c) : '';
-    frame.style.display = c && !full ? 'block' : 'none';
-    if (c) frame.style.borderColor = rgb(c);
-    mine.style.display = o ? '' : 'none';
-    if (o) mine.style.left = 'calc(' + Math.max(0, Math.min(1, o[my])) * 100 + '% - ' + (o[my] >= 0.99 ? 3 : 0) + 'px)';
-    tx.textContent = o ? o[txt] : '';
-    tx.style.color = full && o[t] > 0.55 ? '#111' : '#fff';
-  });
-  $('apD').textContent = o && o.delta != null ? (o.delta > 0 ? '+' : o.delta < 0 ? '−' : '+') + Math.abs(o.delta).toFixed(2) : '';
+  $('apB').textContent = o && !o.count ? o.big : ''; $('apB').style.color = o ? rgb(o.bigCol) : '';
+  $('apT').textContent = o ? o.text : ''; $('apT').style.color = o ? (o.big ? '#d9d9d9' : rgb(o.textCol)) : '';
+  $('apD').textContent = o && o.delta != null ? (o.delta < 0 ? '−' : '+') + Math.abs(o.delta).toFixed(2) : '';
   $('apD').style.color = o && o.delta != null ? (o.delta <= 0 ? '#4ce65a' : '#ff5a4d') : '';
 }
 // play the lap in (scaled) real time: the charts' cursor, both maps and the app box follow
@@ -738,7 +725,8 @@ function renderApp() {
   $('appNote').innerHTML = sim
     ? T('Dokładnie to, co pokazywała aplikacja w grze na tym okrążeniu (ta sama logika, dane z ', 'Exactly what the in-game app showed on this lap (the same logic, data from ') + esc(A.file) + ', ' + A.date
       + T('). Najedź na wykres, kliknij, żeby przypiąć (← → przesuwają), albo odtwórz okrążenie. Na dużej mapie: ', '). Hover over a chart, click to pin (← → move), or play the lap. On the big map: ')
-      + T('<b style="color:var(--beep)">■</b> licznik doszedł do 0, etykieta = ocena po wciśnięciu hamulca. Gdy jeździsz szybciej, dane się zmieniają – starsze okrążenia mogły widzieć trochę inne punkty.', '<b style="color:var(--beep)">■</b> the counter reached 0, label = the verdict after the brake press. The data changes as you get faster – older laps may have seen slightly different points.')
+      + T('<b style="color:var(--beep)">■</b> licznik doszedł do 0, etykieta = wynik po zakręcie. Punkty hamowania są z obecnych danych – gdy jeździsz szybciej, się zmieniają, więc starsze okrążenia mogły widzieć trochę inne.', '<b style="color:var(--beep)">■</b> the counter reached 0, label = the result after the turn. The braking points are today\'s – they change as you get faster, so older laps may have seen slightly different ones.')
+      + (sim.logged ? '' : T(' <b>Tego okrążenia nie ma w dzienniku aplikacji (aplikacja_log.txt) – bez wskazówek i wyników.</b>', ' <b>This lap is not in the app log (aplikacja_log.txt) – no tips or results.</b>'))
     : T('Okrążenie rywala – aplikacja liczy tylko Twoje okrążenia.', 'Rival lap – the app works on your laps only.');
   appShow(null);
 }

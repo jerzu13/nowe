@@ -40,12 +40,12 @@ namespace ACCoach
             g = Group(p, L.T("Aplikacja w grze (Assetto Corsa)", "In-game app (Assetto Corsa)"), ref top);
             gameChk = Check(g, L.T("Instaluj aplikację „AC Coach” w grze i wysyłaj jej dane", "Install the “AC Coach” app in the game and send it data"));
             gameCdChk = Check(g, L.T("Licznik metrów do punktu hamowania", "Metres to the braking point"));
-            gameBarsChk = Check(g, L.T("Paski hamulca i gazu (ile wcisnąć, kolor = faza)", "Brake and throttle bars (how much to press, colour = phase)"));
+            gameTipsChk = Check(g, L.T("Wskazówka przed zakrętem i wynik po nim", "A tip before each turn and the result after it"));
             gameDeltaChk = Check(g, L.T("Strata / zysk do najlepszego okrążenia", "Time lost / gained to the best lap"));
             Button install = new Button { Text = L.T("Zainstaluj / zaktualizuj teraz", "Install / update now"), Width = 200, Height = 27 };
             Add(g, install, 10, y); y += 34;
             install.Click += delegate { InstallGameApp(true); };
-            foreach (CheckBox c in new[] { gameChk, gameCdChk, gameBarsChk, gameDeltaChk })
+            foreach (CheckBox c in new[] { gameChk, gameCdChk, gameTipsChk, gameDeltaChk })
                 c.CheckedChanged += delegate { if (loading) return; RememberGameApp(); };
             End(g, ref top);
 
@@ -131,10 +131,10 @@ namespace ACCoach
         {
             st.GameApp = gameChk.Checked;
             st.GameCountdown = gameCdChk.Checked;
-            st.GameBars = gameBarsChk.Checked;
+            st.GameTips = gameTipsChk.Checked;
             st.GameDelta = gameDeltaChk.Checked;
             o.GameApp = st.GameApp;
-            foreach (CheckBox c in new[] { gameCdChk, gameBarsChk, gameDeltaChk }) c.Enabled = st.GameApp;
+            foreach (CheckBox c in new[] { gameCdChk, gameTipsChk, gameDeltaChk }) c.Enabled = st.GameApp;
             saveDue = true;
             if (st.GameApp && gameDir == null) InstallGameApp(false);
             else GameApp.WriteSettings(gameDir, st);

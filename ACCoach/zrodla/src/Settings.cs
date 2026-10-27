@@ -28,7 +28,7 @@ namespace ACCoach
         public string Lang = L.InstallerDefault();   // "en" | "pl"
         public bool GameApp = true;          // install the in-game app into AC and write its data
         public bool GameCountdown = true;    // in-game app: metres to the braking point
-        public bool GameBars = true;         // in-game app: brake and throttle bars
+        public bool GameTips = true;         // in-game app: a tip before each turn, the result after it
         public bool GameDelta = true;        // in-game app: time to the best lap
 
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
@@ -75,7 +75,7 @@ namespace ACCoach
                         case "Jezyk": s.Lang = v == "pl" ? "pl" : "en"; break;
                         case "AplikacjaWGrze": s.GameApp = v != "0"; break;
                         case "GraLicznik": s.GameCountdown = v != "0"; break;
-                        case "GraPedaly": s.GameBars = v != "0"; break;
+                        case "GraWskazowki": s.GameTips = v != "0"; break;
                         case "GraDelta": s.GameDelta = v != "0"; break;
                     }
                 }
@@ -106,7 +106,7 @@ namespace ACCoach
             l.Add("Jezyk=" + Lang);
             l.Add("AplikacjaWGrze=" + B(GameApp));
             l.Add("GraLicznik=" + B(GameCountdown));
-            l.Add("GraPedaly=" + B(GameBars));
+            l.Add("GraWskazowki=" + B(GameTips));
             l.Add("GraDelta=" + B(GameDelta));
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
             File.WriteAllLines(FilePath, l, new UTF8Encoding(false));

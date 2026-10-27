@@ -5,5 +5,5 @@ using System.Reflection;
 [assembly: AssemblyDescription("A coach for Assetto Corsa: lap recording, voice tips, session analysis")]
 [assembly: AssemblyCompany("AC Coach")]
 [assembly: AssemblyCopyright("© 2026 AC Coach")]
-[assembly: AssemblyVersion("1.8.2.0")]
-[assembly: AssemblyFileVersion("1.8.2.0")]
+[assembly: AssemblyVersion("1.9.0.0")]
+[assembly: AssemblyFileVersion("1.9.0.0")]

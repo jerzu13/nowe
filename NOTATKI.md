@@ -37,6 +37,13 @@
   zapisywało. Teraz tylko gdy auto jedzie (> 15 km/h), przesunęło się kilka metrów do przodu i czas szedł > 10 s;
   komunikat najwyżej co 30 s. Odtworzone w AcSim `--pits N` (stoi przed linią, czas startuje od nowa) – zachowanie
   gry w boksie to hipoteza. `log.txt` ma teraz wiersze `[line]` (licznik, czas, pozycja, prędkość przy każdej zmianie).
+- **1.9** – aplikacja w grze przebudowana po jeździe jerzu („paski B/G w niczym nie pomagają”, „hamowałem później
+  i było szybciej, a licznik pisał POZNO”): paski usunięte. Zasada: nic w trakcie zakrętu poza licznikiem (znika po
+  wciśnięciu hamulca); przed zakrętem jedna wskazówka (`Tip.Cue`, krótkie polecenie z `Corners.MakeTip`), zaraz po
+  zakręcie wynik 3 s (czas vs wzorzec, REKORD, różnice vs najlepszy przejazd), zakręt cichnie po 3 dobrych
+  przejazdach. Trener pisze `<combo>.live.txt` w grze po każdym zakręcie, `aplikacja_wskazowki.txt` (wskazówki
+  i serie między sesjami) i `aplikacja_log.txt` (co aplikacja pokazała na każdym okrążeniu – mapa to odtwarza).
+  Dane gry `accoach 2`: linie `turn`, siatka tylko czas + prędkość.
 
 ## Do sprawdzenia na prawdziwej grze (nic z tego nie było testowane na Windows z AC)
 - Offsety pamięci kół (AcShm.cs: 640 slipRatio, 656 slipAngle, 72 load, 152 core, 88 pressure, 348 brakeTemp,
@@ -47,8 +54,8 @@
 - Kolejność licznik/czas na mecie offline – poprawka na hipotezie (obie kolejności obsłużone); potwierdzić w log.txt.
 - Pętla „Okrążenie wyjazdowe” (1.8.2): potwierdzić w `log.txt` (wiersze `[line]`), co gra podaje w boksie.
 - Wykrywanie zakrętów: na Silverstone GP 10 zakrętów zamiast 18 (szybkie łuki bez hamowania nie są wykrywane).
-- Aplikacja w grze (1.8): czy AC ją ładuje (Python 3.3, py_log.txt), sekcja `[ACCOACH] ACTIVE=1` w python.ini,
-  wyrównanie etykiet, kolejność rysowania (pasek pod napisem), setBackgroundOpacity, zapis do folderu gry
+- Aplikacja w grze (1.8/1.9): czy AC ją ładuje (Python 3.3, py_log.txt), sekcja `[ACCOACH] ACTIVE=1` w python.ini,
+  wyrównanie etykiet, dwie linie tekstu („\n” w etykiecie), setBackgroundOpacity, zapis do folderu gry
   (uprawnienia Steam), widoczność w VR. Testowana tylko atrapą `ac` (tools/test/check_acapp.py).
 - Progi wskazówek z Corners.cs strojone na 26 okrążeniach Huracán ST / Vallelunga – sprawdzić na innych autach.
 

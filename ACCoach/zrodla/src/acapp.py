@@ -1,7 +1,9 @@
-# AC Coach - in-game app for Assetto Corsa: metres to the braking point, brake and throttle bars
-# (how much to press and when to let go) and the time to the best lap.
+# AC Coach - in-game app for Assetto Corsa. Before a turn: one thing to fix there (from your last runs). Before the
+# braking point: metres to it. Right after the turn: the time gained or lost and what was different from your best
+# run. Inside the turn: nothing - all the attention goes to driving. A turn that goes well a few times goes quiet.
 # AC Coach (the Windows program) copies this file to assettocorsa\apps\python\ACCoach\ACCoach.py and writes
-# data\<car>__<track>.txt (the ideal lap, rewritten as you get faster) and data\settings.txt.
+# data\<car>__<track>.txt (turns, braking points, best lap), data\<car>__<track>.live.txt (tips, last result;
+# rewritten after every turn) and data\settings.txt.
 # Changes made here are overwritten by AC Coach - edit src\acapp.py in its sources instead.
 # The track map of the analysis replays the same logic (appSim in map_template.html): change both together.
 # Python 3.3 (the one inside AC): no f-strings. Texts without Polish letters (the AC font may lack them).
@@ -17,9 +19,12 @@ except ImportError:          # tests outside the game
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(APP_DIR, "data")
 
-W = 320                     # app width, px
-BAR_X, BAR_W, BAR_H = 34, 278, 24
-ROW_CD, ROW_BAR, ROW_DELTA = 58, 30, 34
+W = 340                     # app width, px
+ROW_A, ROW_B, ROW_C = 50, 42, 32
+LINE = 38                   # characters per line of the tip / result text
+RESULT_S = 3.0              # seconds a result stays
+TIP_S = 6.0                 # the tip appears this many seconds before the turn (at least TIP_MIN metres)
+TIP_MIN = 250.0
 
 lang_pl = False
 
@@ -39,15 +44,29 @@ def wrap(x, length):
     return x - length if x > length / 2 else x
 
 
+def two_lines(text):
+    # the tip / result text in at most two lines of LINE characters, cut at a space
+    if len(text) <= LINE:
+        return text
+    cut = text.rfind(" ", 0, LINE + 1)
+    if cut <= 0:
+        cut = LINE
+    rest = text[cut:].strip()
+    return text[:cut].rstrip() + "\n" + (rest if len(rest) <= LINE else rest[:LINE - 2] + "..")
+
+
+COLORS = {"record": (0.3, 0.95, 0.4), "good": (0.3, 0.9, 0.35), "even": (1, 1, 1), "bad": (1, 0.4, 0.3), "off": (1, 0.25, 0.2)}
+
+
 class Data(object):
-    """The ideal lap written by AC Coach for one car + track."""
+    """Turns, braking points and the best lap written by AC Coach for one car + track."""
 
     def __init__(self, path):
+        self.turns = []             # (num, onset m, apex m)
         self.corners = []           # (num, brake m, apex m, speed at brake km/h, apex km/h, margin m, lead s)
         self.length = 0.0
-        self.lead = 0.15
         self.step = 2.0
-        t, spd, gas, brk, ph = [], [], [], [], []
+        t, spd = [], []
         grid = False
         with open(path, encoding="utf-8") as f:
             for line in f:
@@ -55,19 +74,18 @@ class Data(object):
                 if not p or p[0].startswith("#"):
                     continue
                 if grid:
-                    t.append(float(p[0])); spd.append(float(p[1])); gas.append(float(p[2]))
-                    brk.append(float(p[3])); ph.append(float(p[4]))
+                    t.append(float(p[0])); spd.append(float(p[1]))
                 elif p[0] == "length":
                     self.length = float(p[1])
-                elif p[0] == "lead":
-                    self.lead = float(p[1])
+                elif p[0] == "turn":
+                    self.turns.append((int(p[1]), float(p[2]), float(p[3])))
                 elif p[0] == "corner":
                     v = [float(x) for x in p[1:8]]
                     self.corners.append((int(v[0]), v[1], v[2], v[3], v[4], v[5], v[6]))
                 elif p[0] == "grid":
                     self.step = float(p[1])
                     grid = True
-        self.t, self.spd, self.gas, self.brk, self.ph = t, spd, gas, brk, ph
+        self.t, self.spd = t, spd
         self.n = len(t)
         if self.n < 10 or self.length <= 0:
             raise ValueError("no grid in " + path)
@@ -76,17 +94,54 @@ class Data(object):
         return int(round(d / self.step)) % self.n
 
 
+class Live(object):
+    """Tips and the last result written by AC Coach after every turn."""
+
+    def __init__(self, path=None):
+        self.seq = -1
+        self.result = None          # (seq, num, kind, headline, detail)
+        self.tips = {}              # turn number -> text
+        if path is None:
+            return
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                p = line.rstrip("\r\n").split(" ", 1)
+                if len(p) < 2:
+                    continue
+                if p[0] == "seq":
+                    self.seq = int(p[1])
+                elif p[0] == "tip":
+                    q = p[1].split(" ", 1)
+                    if len(q) == 2:
+                        self.tips[int(q[0])] = q[1]
+                elif p[0] == "result":
+                    q = p[1].split(" ", 3)
+                    if len(q) == 4:
+                        head, _, detail = q[3].partition("|")
+                        self.result = (int(q[0]), int(q[1]), q[2], head, detail)
+
+
 class Coach(object):
     """Everything the app shows, from the car state; no AC calls, so it can be tested outside the game."""
 
     def __init__(self, data):
         self.d = data
-        self.state = {}             # corner number -> [armed, done, frozen point or None]
-        self.result = None          # (text, colour, seconds left) after the brake press
+        self.live = Live()
+        self.seen = None            # result seq already shown (None = the first live file: its result is old)
+        self.state = {}             # corner number -> [armed, braked, frozen point or None]
+        self.result = None          # (headline, detail, colour, seconds left)
         self.last_laps = -1
         self.lap_ok = False         # the lap started at the line: the time to the best lap makes sense
+        self.countdown_on = True    # the countdown is shown (it takes the place of a result)
 
-    def step(self, dt, pos, speed, gas, brake, lap_ms, laps):
+    def set_live(self, live):
+        self.live = live
+        r = live.result
+        if self.seen is not None and r is not None and r[0] != self.seen and r[0] == live.seq:
+            self.result = (r[3], r[4], COLORS.get(r[2], (1, 1, 1)), RESULT_S)
+        self.seen = live.seq
+
+    def step(self, dt, pos, speed, brake, lap_ms, laps):
         dd = self.d
         L = dd.length
         if lap_ms < 5000 and pos > 0.5:
@@ -96,9 +151,10 @@ class Coach(object):
         if laps != self.last_laps:
             self.lap_ok = self.last_laps >= 0 and laps == self.last_laps + 1
             self.last_laps = laps
-        out = {"corner": "", "count": "", "count_col": (1, 1, 1), "apex": ""}
+        out = {"corner": "", "count": "", "count_col": (1, 1, 1), "apex": "", "big": "", "big_col": (1, 1, 1),
+               "text": "", "text_col": (1, 1, 1), "dist": None}
 
-        # ---- metres to the braking point of the next corner ----
+        # ---- metres to the braking point of the next corner, until the brake goes on ----
         best = None
         for c in dd.corners:
             num, b, apex = c[0], c[1], c[2]
@@ -109,11 +165,12 @@ class Coach(object):
             to_apex = wrap(apex - d, L)
             if to_apex > 0 and (best is None or to_apex < best[0]):
                 best = (to_apex, c, s)
+        counting = False
         if best is not None:
             c, s = best[1], best[2]
             num, b, apex, vb, vm, margin = c[0], c[1], c[2], c[3] / 3.6, c[4] / 3.6, c[5]
             if s[2] is None:
-                # faster than the ideal run here -> brake earlier, slower -> later (braking distance ~ v^2),
+                # faster than the best run here -> brake earlier, slower -> later (braking distance ~ v^2),
                 # the same as the beeps of AC Coach
                 ve = vb + v - dd.spd[dd.idx(d)] / 3.6
                 f = 1.0
@@ -129,40 +186,33 @@ class Coach(object):
             if brake < 0.05 and dist < window + 200:
                 s[0] = True
             if not s[1] and s[0] and brake > 0.1 and dist < window + 50:
-                s[1] = True
-                self.result = self.verdict(dist) + (2.0,)
+                s[1] = True                     # braking: the countdown has done its job
             if not s[1] and dist <= window and dist > -150:
+                counting = True
                 out["corner"] = T("Z", "T") + str(num)
                 out["apex"] = "%d km/h" % round(c[4])
                 out["count"] = "%d m" % round(dist)
+                out["dist"] = dist
                 out["count_col"] = (1, 1, 1) if dist > 50 else (1, 0.85, 0.2) if dist > 0 else (1, 0.25, 0.2)
-        if self.result is not None:
-            text, col, left = self.result
-            left -= dt
-            self.result = (text, col, left) if left > 0 else None
-            if self.result is not None:
-                out["count"], out["count_col"] = text, col
 
-        # ---- pedals of the ideal run, a reaction time ahead ----
-        i = dd.idx(d + v * dd.lead)
-        out["brk"], out["gas"] = dd.brk[i], dd.gas[i]
-        out["my_brk"], out["my_gas"] = brake, gas
-        ph = dd.ph[i]
-        if ph < 0:
-            out["brk_col"], out["brk_txt"] = None, ""
-        else:
-            out["brk_col"] = ramp(ph)
-            out["brk_txt"] = T("HAMUJ MOCNO", "BRAKE HARD") if ph >= 0.75 else T("ODPUSZCZAJ", "EASE OFF") if ph >= 0.25 else T("PUSC", "LET GO")
-        g = dd.gas[i]
-        later = dd.gas[(i + int(20 / dd.step)) % dd.n]
-        if g >= 0.95:
-            out["gas_col"], out["gas_txt"] = (0.2, 0.85, 0.3), T("PELNY GAZ", "FULL THROTTLE")
-        elif g > 0.05:
-            up = later >= g
-            out["gas_col"] = (0.95, 0.85, 0.2) if up else (1, 0.55, 0.15)
-            out["gas_txt"] = T("DODAWAJ", "FEED IN") if up else T("ODPUSC GAZ", "LIFT")
-        else:
-            out["gas_col"], out["gas_txt"] = None, ""
+        # ---- the result of the turn just driven (a countdown takes its place) ----
+        if self.result is not None:
+            head, detail, col, left = self.result
+            left -= dt
+            self.result = (head, detail, col, left) if left > 0 and not (counting and self.countdown_on) else None
+            if self.result is not None:
+                out["big"], out["big_col"], out["text"] = head, col, two_lines(detail)
+
+        # ---- one thing to fix in the next turn, on the straight before it ----
+        if self.result is None:
+            nxt = None
+            for num, onset, apex in dd.turns:
+                to = wrap(onset - d, L)
+                if to > 0 and (nxt is None or to < nxt[0]):
+                    nxt = (to, num)
+            if nxt is not None and nxt[1] in self.live.tips and nxt[0] <= max(TIP_MIN, v * TIP_S) and brake < 0.1:
+                out["text"] = two_lines(T("Z", "T") + str(nxt[1]) + ": " + self.live.tips[nxt[1]])
+                out["text_col"] = (1, 0.85, 0.2)
 
         # ---- time to the best lap ----
         out["delta"] = None
@@ -172,47 +222,36 @@ class Coach(object):
                 out["delta"] = delta
         return out
 
-    @staticmethod
-    def verdict(dist):
-        # dist at the brake press: + = braked before the point, - = after it
-        m = abs(int(round(dist)))
-        if m <= 5:
-            return "OK", (0.2, 0.85, 0.3)
-        col = (0.95, 0.85, 0.2) if m <= 15 else (1, 0.25, 0.2)
-        return (T("WCZESNIE ", "EARLY ") if dist > 0 else T("POZNO ", "LATE ")) + "%d m" % m, col
-
-
-def ramp(x):
-    # 1 = red (hard), 0.5 = yellow, 0 = green (let go)
-    if x >= 0.5:
-        return (1.0, 0.85 - 0.6 * (x - 0.5) * 2, 0.15)
-    return (0.3 + 0.7 * x * 2, 0.85, 0.2 + 0.1 * (1 - x * 2))
-
 
 # ---------------------------------------------------------------- the app inside AC
 
 app = None
 ui = {}                     # label ids
-bar_y = {}                  # top of the brake and throttle bars, px
-cfg = {"countdown": True, "bars": True, "delta": True}
+cfg = {"countdown": True, "tips": True, "delta": True}
 coach = None
 data_file = None
-data_mtime = 0
-settings_mtime = 0
+mtimes = {}
 check_timer = 0.0
-view = None
+live_timer = 0.0
 
 
-def read_settings():
-    global lang_pl, settings_mtime
-    f = os.path.join(DATA_DIR, "settings.txt")
+def changed(f):
+    # True when the file is there and new since the last look
     try:
         m = os.path.getmtime(f)
     except OSError:
         return False
-    if m == settings_mtime:
+    if mtimes.get(f) == m:
         return False
-    settings_mtime = m
+    mtimes[f] = m
+    return True
+
+
+def read_settings():
+    global lang_pl
+    f = os.path.join(DATA_DIR, "settings.txt")
+    if not changed(f):
+        return False
     with open(f, encoding="utf-8") as fh:
         for line in fh:
             p = line.split()
@@ -224,37 +263,45 @@ def read_settings():
     return True
 
 
-def combo_file():
+def combo_name():
     name = safe_name(ac.getCarName(0)) + "__" + safe_name(ac.getTrackName(0))
     conf = ac.getTrackConfiguration(0)
     if conf:
         name += "__" + safe_name(conf)
-    return os.path.join(DATA_DIR, name + ".txt")
+    return os.path.join(DATA_DIR, name)
 
 
 def load_data():
-    global coach, data_file, data_mtime
+    global coach, data_file
     if data_file is None:
-        data_file = combo_file()
-    try:
-        m = os.path.getmtime(data_file)
-    except OSError:
-        if coach is not None:
-            coach = None
+        data_file = combo_name()
+    f = data_file + ".txt"
+    if not os.path.exists(f):
+        coach = None
         return
-    if m == data_mtime:
+    if changed(f):
+        try:
+            dd = Data(f)
+        except Exception as e:
+            ac.log("AC Coach: cannot read " + f + ": " + str(e))
+            return
+        if coach is None:
+            coach = Coach(dd)
+            mtimes.pop(data_file + ".live.txt", None)   # read the tips now
+        else:
+            coach.d = dd            # keeps the lap state
+        ac.log("AC Coach: loaded " + f)
+    load_live()
+
+
+def load_live():
+    f = data_file + ".live.txt"
+    if coach is None or not changed(f):
         return
     try:
-        dd = Data(data_file)
+        coach.set_live(Live(f))
     except Exception as e:
-        ac.log("AC Coach: cannot read " + data_file + ": " + str(e))
-        return
-    data_mtime = m
-    if coach is None:
-        coach = Coach(dd)
-    else:
-        coach.d = dd            # keeps the lap state
-    ac.log("AC Coach: loaded " + data_file)
+        ac.log("AC Coach: cannot read " + f + ": " + str(e))
 
 
 def label(text, size, x, y, align="left"):
@@ -267,27 +314,22 @@ def label(text, size, x, y, align="left"):
 
 def layout():
     y = 4
-    show = lambda lb, on: ac.setVisible(ui[lb], 1 if on else 0)
-    for k in ("corner", "count", "apex"):
-        show(k, cfg["countdown"])
-    ac.setPosition(ui["corner"], 8, y + 6)
+    for k in ("corner", "count", "apex", "big"):
+        ac.setVisible(ui[k], 1 if cfg["countdown"] or (k == "big" and cfg["tips"]) else 0)
+    ac.setPosition(ui["corner"], 8, y + 10)
     ac.setPosition(ui["count"], W // 2, y)
-    ac.setPosition(ui["apex"], W - 8, y + 12)
-    if cfg["countdown"]:
-        y += ROW_CD
-    bar_y["brk"], bar_y["gas"] = y, y + ROW_BAR
-    for k in ("b", "g", "brk_txt", "gas_txt"):
-        show(k, cfg["bars"])
-    if cfg["bars"]:
-        ac.setPosition(ui["b"], 10, y + 2)
-        ac.setPosition(ui["brk_txt"], BAR_X + BAR_W // 2, y + 3)
-        ac.setPosition(ui["g"], 10, y + ROW_BAR + 2)
-        ac.setPosition(ui["gas_txt"], BAR_X + BAR_W // 2, y + ROW_BAR + 3)
-        y += 2 * ROW_BAR
-    show("delta", cfg["delta"])
+    ac.setPosition(ui["apex"], W - 8, y + 16)
+    ac.setPosition(ui["big"], W // 2, y + 6)
+    if cfg["countdown"] or cfg["tips"]:
+        y += ROW_A
+    ac.setVisible(ui["text"], 1 if cfg["tips"] else 0)
+    ac.setPosition(ui["text"], W // 2, y)
+    if cfg["tips"]:
+        y += ROW_B
+    ac.setVisible(ui["delta"], 1 if cfg["delta"] else 0)
     ac.setPosition(ui["delta"], W // 2, y)
     if cfg["delta"]:
-        y += ROW_DELTA
+        y += ROW_C
     ac.setPosition(ui["msg"], 8, 8)
     ac.setSize(app, W, max(y + 4, 60))
 
@@ -299,91 +341,67 @@ def acMain(ac_version):
     ac.setIconPosition(app, 0, -10000)
     ac.drawBorder(app, 0)
     ac.setBackgroundOpacity(app, 0.45)
-    ui["corner"] = label("", 20, 8, 10)
-    ui["count"] = label("", 40, W // 2, 4, "center")
-    ui["apex"] = label("", 15, W - 8, 16, "right")
-    ui["b"] = label("B", 17, 10, 0)
-    ui["g"] = label("G", 17, 10, 0)
-    ui["brk_txt"] = label("", 15, 0, 0, "center")
-    ui["gas_txt"] = label("", 15, 0, 0, "center")
-    ui["delta"] = label("", 26, W // 2, 0, "center")
+    ui["corner"] = label("", 20, 8, 14)
+    ui["count"] = label("", 36, W // 2, 4, "center")
+    ui["apex"] = label("", 15, W - 8, 20, "right")
+    ui["big"] = label("", 26, W // 2, 10, "center")
+    ui["text"] = label("", 16, W // 2, 54, "center")
+    ui["delta"] = label("", 22, W // 2, 96, "center")
     ui["msg"] = label("", 15, 8, 8)
     read_settings()
     layout()
-    ac.addRenderCallback(app, on_render)
     load_data()
     return "AC Coach"
 
 
+def show(k, text, col=None):
+    ac.setText(ui[k], text)
+    if col is not None:
+        ac.setFontColor(ui[k], col[0], col[1], col[2], 1)
+
+
 def acUpdate(delta_t):
-    global check_timer, view
+    global check_timer, live_timer
     ac.setBackgroundOpacity(app, 0.45)       # AC resets it when the mouse leaves the app
     check_timer += delta_t
-    if check_timer > 1.0:
-        check_timer = 0.0
-        try:
+    live_timer += delta_t
+    try:
+        if check_timer > 1.0:
+            check_timer = 0.0
             if read_settings():
                 layout()
             load_data()
-        except Exception as e:
-            ac.log("AC Coach: " + str(e))
+        elif live_timer > 0.25:              # tips and results come after every turn: look often
+            live_timer = 0.0
+            load_live()
+    except Exception as e:
+        ac.log("AC Coach: " + str(e))
     if coach is None:
-        view = None
-        ac.setText(ui["msg"], T("AC Coach: brak danych dla tego auta i toru.\nPrzejedz czyste okrazenie z wlaczonym AC Coach.",
-                                "AC Coach: no data for this car and track yet.\nDrive a clean lap with AC Coach running."))
-        for k in ("corner", "count", "apex", "brk_txt", "gas_txt", "delta", "b", "g"):
+        show("msg", T("AC Coach: brak danych dla tego auta i toru.\nPrzejedz czyste okrazenie z wlaczonym AC Coach.",
+                      "AC Coach: no data for this car and track yet.\nDrive a clean lap with AC Coach running."))
+        for k in ("corner", "count", "apex", "big", "text", "delta"):
             ac.setText(ui[k], "")
         return
-    ac.setText(ui["msg"], "")
-    ac.setText(ui["b"], "B")
-    ac.setText(ui["g"], "G")
+    show("msg", "")
+    coach.countdown_on = cfg["countdown"]
     try:
         view = coach.step(delta_t,
                           ac.getCarState(0, acsys.CS.NormalizedSplinePosition),
                           ac.getCarState(0, acsys.CS.SpeedKMH),
-                          ac.getCarState(0, acsys.CS.Gas),
                           ac.getCarState(0, acsys.CS.Brake),
                           ac.getCarState(0, acsys.CS.LapTime),
                           ac.getCarState(0, acsys.CS.LapCount))
     except Exception as e:
         ac.log("AC Coach: " + str(e))
-        view = None
         return
-    ac.setText(ui["corner"], view["corner"])
-    ac.setText(ui["apex"], view["apex"])
-    ac.setText(ui["count"], view["count"])
-    r, g, b = view["count_col"]
-    ac.setFontColor(ui["count"], r, g, b, 1)
-    for k, t in (("brk", "brk_txt"), ("gas", "gas_txt")):
-        ac.setText(ui[t], view[t])
-        dark = view[k + "_col"] is not None and view[k] > 0.55    # the coloured fill is under the text
-        ac.setFontColor(ui[t], *((0.05, 0.05, 0.05, 1) if dark else (1, 1, 1, 1)))
+    cd = cfg["countdown"]
+    show("corner", view["corner"] if cd else "")
+    show("apex", view["apex"] if cd else "")
+    show("count", view["count"] if cd else "", view["count_col"])
+    show("big", view["big"] if cfg["tips"] and not (cd and view["count"]) else "", view["big_col"])
+    show("text", view["text"] if cfg["tips"] else "", view["text_col"] if not view["big"] else (0.85, 0.85, 0.85))
     dl = view["delta"]
-    ac.setText(ui["delta"], "" if dl is None else "%+.2f" % dl)
-    if dl is not None:
-        ac.setFontColor(ui["delta"], *((0.3, 0.9, 0.35, 1) if dl <= 0 else (1, 0.35, 0.3, 1)))
-
-
-def bar(y, target, mine, col):
-    ac.glColor4f(0.12, 0.12, 0.12, 0.85)
-    ac.glQuad(BAR_X, y, BAR_W, BAR_H)
-    if col is not None and target > 0.01:
-        ac.glColor4f(col[0], col[1], col[2], 0.9)
-        ac.glQuad(BAR_X, y, BAR_W * min(1.0, target), BAR_H)
-    elif col is not None:
-        ac.glColor4f(col[0], col[1], col[2], 0.9)       # "let go": a green frame
-        ac.glQuad(BAR_X, y, BAR_W, 3)
-        ac.glQuad(BAR_X, y + BAR_H - 3, BAR_W, 3)
-    ac.glColor4f(1, 1, 1, 1)                             # your pedal
-    x = BAR_X + BAR_W * max(0.0, min(1.0, mine))
-    ac.glQuad(min(x, BAR_X + BAR_W - 3), y - 3, 3, BAR_H + 6)
-
-
-def on_render(delta_t):
-    if view is None or not cfg["bars"]:
-        return
-    bar(bar_y["brk"], view["brk"], view["my_brk"], view["brk_col"])
-    bar(bar_y["gas"], view["gas"], view["my_gas"], view["gas_col"])
+    show("delta", "" if dl is None else "%+.2f" % dl, None if dl is None else (0.3, 0.9, 0.35) if dl <= 0 else (1, 0.35, 0.3))
 
 
 def acShutdown():

@@ -14,6 +14,17 @@ namespace ACCoach
         public const string Name = "ACCoach";
 
         public const string ComboCopy = "aplikacja_w_grze.txt";   // the same data in <combo>, for the track map
+        public const string LogFile = "aplikacja_log.txt";        // what the app showed on every lap, for the track map
+
+        // The AC font may lack Polish letters: the app gets plain ones.
+        public static string Ascii(string s)
+        {
+            if (s == null) return null;
+            const string from = "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ–", to = "acelnoszzACELNOSZZ-";
+            StringBuilder b = new StringBuilder(s.Length);
+            foreach (char c in s) { int i = from.IndexOf(c); b.Append(i >= 0 ? to[i] : c < 128 ? c : '?'); }
+            return b.ToString();
+        }
 
         public static string AppDir(string acRoot) { return Path.Combine(acRoot, "apps", "python", Name); }
 
@@ -82,7 +93,7 @@ namespace ACCoach
                     "# AC Coach – settings of the in-game app (change them in the AC Coach window, Settings tab)",
                     "lang " + st.Lang,
                     "countdown " + (st.GameCountdown ? "1" : "0"),
-                    "bars " + (st.GameBars ? "1" : "0"),
+                    "tips " + (st.GameTips ? "1" : "0"),
                     "delta " + (st.GameDelta ? "1" : "0") });
             }
             catch (Exception) { }
@@ -115,28 +126,47 @@ namespace ACCoach
             {
                 System.Globalization.CultureInfo inv = System.Globalization.CultureInfo.InvariantCulture;
                 Func<string, float> F = x => float.Parse(x, inv);
-                List<object> corners = new List<object>();
-                List<float>[] grid = { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
-                float length = 0, lead = 0.15f, step = 2;
-                bool inGrid = false;
+                List<object> corners = new List<object>(), turns = new List<object>();
+                List<float> t = new List<float>(), spd = new List<float>();
+                float length = 0, step = 2;
+                bool inGrid = false, v2 = false;
                 foreach (string line in File.ReadAllLines(f, Encoding.UTF8))
                 {
                     string[] p = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (p.Length == 0 || p[0].StartsWith("#")) continue;
-                    if (inGrid) { for (int k = 0; k < 5; k++) grid[k].Add(F(p[k])); continue; }
-                    if (p[0] == "length") length = F(p[1]);
-                    else if (p[0] == "lead") lead = F(p[1]);
+                    if (inGrid) { t.Add(F(p[0])); spd.Add(F(p[1])); continue; }
+                    if (p[0] == "accoach") v2 = p.Length > 1 && p[1] != "1";
+                    else if (p[0] == "length") length = F(p[1]);
                     else if (p[0] == "grid") { step = F(p[1]); inGrid = true; }
+                    else if (p[0] == "turn" && p.Length >= 4) turns.Add(new object[] { int.Parse(p[1], inv), Math.Round(F(p[2]), 1), Math.Round(F(p[3]), 1) });
                     else if (p[0] == "corner" && p.Length >= 8)
                         corners.Add(new object[] { int.Parse(p[1], inv), Math.Round(F(p[2]), 1), Math.Round(F(p[3]), 1), Math.Round(F(p[4]), 1), Math.Round(F(p[5]), 1), Math.Round(F(p[6]), 1), Math.Round(F(p[7]), 2) });
                 }
-                if (length <= 0 || grid[0].Count < 10) return null;
+                if (!v2 || length <= 0 || t.Count < 10) return null;   // 1.8.x data: drive with this version first
                 return new Dictionary<string, object> {
-                    { "length", Math.Round(length, 1) }, { "lead", Math.Round(lead, 2) }, { "step", step }, { "corners", corners }, { "file", ComboCopy },
-                    { "date", File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm", inv) },
-                    { "t", Round(grid[0], 3) }, { "spd", Round(grid[1], 0) }, { "gas", Round(grid[2], 2) }, { "brk", Round(grid[3], 2) }, { "ph", Round(grid[4], 2) } };
+                    { "length", Math.Round(length, 1) }, { "step", step }, { "turns", turns }, { "corners", corners }, { "file", ComboCopy },
+                    { "date", File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm", inv) }, { "t", Round(t, 3) }, { "spd", Round(spd, 0) } };
             }
             catch (Exception) { return null; }
+        }
+
+        // aplikacja_log.txt: lap file -> what the app showed on that lap: [metres, "tip"/"result", turn, text, kind]
+        public static Dictionary<string, List<object>> ReadLog(string comboDir)
+        {
+            Dictionary<string, List<object>> r = new Dictionary<string, List<object>>();
+            string f = Path.Combine(comboDir, LogFile);
+            if (!File.Exists(f)) return r;
+            System.Globalization.CultureInfo inv = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (string line in File.ReadAllLines(f, Encoding.UTF8))
+            {
+                string[] p = line.Split('\t');
+                float d; int num;
+                if (p.Length < 5 || !float.TryParse(p[1], System.Globalization.NumberStyles.Float, inv, out d) || !int.TryParse(p[3], out num)) continue;
+                if (!r.ContainsKey(p[0])) r[p[0]] = new List<object>();
+                if (p[2] == "result" && p.Length >= 6) r[p[0]].Add(new object[] { d, "result", num, p[5], p[4] });
+                else if (p[2] == "tip") r[p[0]].Add(new object[] { d, "tip", num, p[4], null });
+            }
+            return r;
         }
 
         static double[] Round(List<float> a, int digits) { return a.Select(v => Math.Round((double)v, digits)).ToArray(); }

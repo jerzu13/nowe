@@ -48,7 +48,7 @@ namespace ACCoach
         // settings tab
         TextBox dataBox, acBox;
         Label dataHint, acHint;
-        CheckBox autoChk, mapChk, gameChk, gameCdChk, gameBarsChk, gameDeltaChk;
+        CheckBox autoChk, mapChk, gameChk, gameCdChk, gameTipsChk, gameDeltaChk;
         string gameDir;               // apps\python\ACCoach in the game folder, null = not installed by this run
 
         const int GroupW = 440;       // inner width of the groups on the left of the drive tab and in the settings tab
@@ -177,9 +177,9 @@ namespace ACCoach
             mapChk.Checked = !o.NoOpen;
             gameChk.Checked = st.GameApp;
             gameCdChk.Checked = st.GameCountdown;
-            gameBarsChk.Checked = st.GameBars;
+            gameTipsChk.Checked = st.GameTips;
             gameDeltaChk.Checked = st.GameDelta;
-            foreach (CheckBox c in new[] { gameCdChk, gameBarsChk, gameDeltaChk }) c.Enabled = st.GameApp;
+            foreach (CheckBox c in new[] { gameCdChk, gameTipsChk, gameDeltaChk }) c.Enabled = st.GameApp;
         }
 
         // ---------- every 250 ms: state, target, log ----------

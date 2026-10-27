@@ -100,6 +100,7 @@ namespace ACCoach
                             Corners.Sec2((live.TimeAt(evalD) - live.TimeAt(rc.StartD)) - (refLap.Trace.TimeAt(evalD) - refLap.Trace.TimeAt(rc.StartD))), why));
                         if (offThisLap[k] && !o.Quiet && SpeakAbout(rc.Num)) OffCall(k);
                         if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);   // the beep log keeps the off-track
+                        if (offThisLap[k]) AppOff(k, evalD);
                         nextEval++;
                         continue;
                     }
@@ -122,6 +123,7 @@ namespace ACCoach
                         cmp.Ref.Num, Corners.Sec2(cmp.SegDelta), Metres(tcmp.BrakeDiff), tcmp.MinSpdDiff, Metres(tcmp.ThrDiff), LineText(cmp.ApexOff), Pct(tcmp.BrakeForceDiff), Corners.Sec2(total), planTxt + wheelTxt));
                     if (o.Train && targetCorners[k].Braked) LogBeep(k, tcmp);
                     DecayMargin(k);
+                    AppCorner(k, cmp, tcmp, tip, ownTarget, evalD);
                     if (!o.Quiet)
                     {
                         string[] calls = CornerCall(rc.Num, cmp.SegDelta, ownTarget ? tcmp.SegDelta : cmp.SegDelta, tip, vsPlan, planHint, wheelKind);

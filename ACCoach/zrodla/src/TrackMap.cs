@@ -298,10 +298,17 @@ namespace ACCoach
             root["corners"] = cl;
 
             Dictionary<string, List<string[]>> beeps = ReadBeeps(comboDir);
+            Dictionary<string, List<object>> appLog = GameApp.ReadLog(comboDir);
             List<object> laps = new List<object>();
             List<Lap> shown = new List<Lap>(session);
             if (!shown.Any(l => l.File == refLap.File)) shown.Insert(0, refLap);
-            foreach (Lap l in shown) laps.Add(LapData(l, length, refLap, sectorBounds, beeps, null));
+            foreach (Lap l in shown)
+            {
+                Dictionary<string, object> ld = LapData(l, length, refLap, sectorBounds, beeps, null);
+                List<object> ev;
+                if (appLog.TryGetValue(Path.GetFileName(l.File), out ev)) ld["app"] = ev;
+                laps.Add(ld);
+            }
             if (rivalLaps != null)
                 foreach (KeyValuePair<string, Lap> rl in rivalLaps) laps.Add(LapData(rl.Value, length, refLap, sectorBounds, beeps, rl.Key));
             root["laps"] = laps;
